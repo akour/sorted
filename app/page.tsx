@@ -53,9 +53,12 @@ export default function HomePage() {
           <a href="#why-sorted">Why Sorted</a>
         </nav>
 
-        <Link className="marketing-header-cta" href="/workspace">
-          Open workspace <span aria-hidden="true">↗</span>
-        </Link>
+        <div className="marketing-account-nav">
+          <Link className="marketing-sign-in" href="/sign-in">Sign in</Link>
+          <Link className="marketing-header-cta" href="/sign-up">
+            Create account <span aria-hidden="true">→</span>
+          </Link>
+        </div>
       </header>
 
       <section className="marketing-hero" aria-labelledby="hero-title">

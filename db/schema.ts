@@ -96,3 +96,64 @@ export const promoEvents = sqliteTable("promo_events", {
   creative: text("creative").notNull().default("{}"),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("promo_events_product_owner_idx").on(table.productId, table.ownerId)]);
+
+// Better Auth's native D1 adapter uses these four core tables. Keep their
+// physical names and camel-case columns aligned with Better Auth's defaults.
+export const authUsers = sqliteTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  emailVerified: integer("emailVerified", { mode: "boolean" }).notNull().default(false),
+  image: text("image"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [uniqueIndex("user_email_uidx").on(table.email)]);
+
+export const authSessions = sqliteTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: integer("expiresAt", { mode: "timestamp_ms" }).notNull(),
+  token: text("token").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId").notNull().references(() => authUsers.id, { onDelete: "cascade" }),
+}, (table) => [
+  uniqueIndex("session_token_uidx").on(table.token),
+  index("session_userId_idx").on(table.userId),
+]);
+
+export const authAccounts = sqliteTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId").notNull().references(() => authUsers.id, { onDelete: "cascade" }),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: integer("accessTokenExpiresAt", { mode: "timestamp_ms" }),
+  refreshTokenExpiresAt: integer("refreshTokenExpiresAt", { mode: "timestamp_ms" }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [index("account_userId_idx").on(table.userId)]);
+
+export const authVerifications = sqliteTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp_ms" }).notNull(),
+}, (table) => [index("verification_identifier_idx").on(table.identifier)]);
+
+// The private Sites identity remains the canonical owner ID for the existing
+// workspace. This one-to-one link lets a verified customer session resolve to
+// that same owner ID without rewriting any existing product data.
+export const accountIdentityLinks = sqliteTable("account_identity_links", {
+  authUserId: text("auth_user_id").primaryKey().references(() => authUsers.id, { onDelete: "cascade" }),
+  siteUserId: text("site_user_id").notNull(),
+  email: text("email").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("account_identity_links_site_user_uidx").on(table.siteUserId)]);

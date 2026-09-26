@@ -5,5 +5,7 @@ declare namespace Cloudflare {
     OPENCODE_API_KEY?: string;
     OPENCODE_BASE_URL?: string;
     OPENCODE_MODEL?: string;
+    BETTER_AUTH_SECRET?: string;
+    BETTER_AUTH_URL?: string;
   }
 }

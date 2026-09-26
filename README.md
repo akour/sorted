@@ -98,6 +98,14 @@ SIWC establishes identity only; it does not prove workspace membership. Use the 
 
 Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
 
+## Sorted Customer Accounts
+
+Sorted uses Better Auth email/password sessions in the existing D1 database. `BETTER_AUTH_SECRET` is a server-side Sites secret of at least 32 characters; `BETTER_AUTH_URL` is optional because the configured host allowlist supports the private preview and `sort3d.space`.
+
+The owner-only Sites preview continues to use its Sites identity. A sign-in or sign-up from that preview can link a Better Auth user to the same Sites identity only when both accounts use the same email. Existing workspace rows keep their current owner IDs; customer sessions resolve through the link, while unlinked customer accounts use their own isolated owner ID.
+
+Public customer sign-up is intentionally closed until transactional email supports verification and password recovery. The sign-up form is available only inside the owner-only preview, and public customer sessions require a verified email. Do not open the Site to customers before email delivery and recovery are configured.
+
 ## Local D1 migrations
 
 For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
