@@ -1,0 +1,53 @@
+import { and, eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { getDb } from "../../../../../../db";
+import { optimizationPlans, products } from "../../../../../../db/schema";
+import { fetchProductMetadata } from "../../../../../../lib/product-icons";
+import { classifyProductUrl, normalizeProductUrlInput } from "../../../../../../lib/product-url";
+
+async function getOwnerId() {
+  const requestHeaders = await headers();
+  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
+}
+
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const productId = Number((await context.params).id);
+    if (!Number.isSafeInteger(productId) || productId < 1) {
+      return Response.json({ error: "Product not found." }, { status: 404 });
+    }
+    const ownerId = await getOwnerId();
+    const payload = await request.json().catch(() => ({})) as { url?: unknown };
+    const db = getDb();
+    const [product] = await db.select().from(products)
+      .where(and(eq(products.id, productId), eq(products.ownerId, ownerId)))
+      .limit(1);
+    if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
+
+    const rawUrl = typeof payload.url === "string" && payload.url.trim() ? payload.url : product.url;
+    const sourceUrl = normalizeProductUrlInput(rawUrl);
+    if (!sourceUrl) return Response.json({ error: "Add a valid public store listing URL before fetching metadata." }, { status: 400 });
+    const linkKind = classifyProductUrl(sourceUrl);
+    if (linkKind !== "google-play" && linkKind !== "app-store") {
+      return Response.json({ error: "Use a Google Play or App Store listing URL to fetch store metadata." }, { status: 400 });
+    }
+
+    const preview = await fetchProductMetadata(sourceUrl);
+    if (!preview?.currentListing) {
+      return Response.json({ error: `We could not read the ${preview?.sourceLabel ?? "store"} listing. Try again or continue with the available product details.` }, { status: 502 });
+    }
+    const currentListing = preview.currentListing;
+    const [existing] = await db.select().from(optimizationPlans)
+      .where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)))
+      .limit(1);
+    if (existing) {
+      await db.update(optimizationPlans).set({ currentListing: JSON.stringify(currentListing), updatedAt: new Date().toISOString() })
+        .where(eq(optimizationPlans.id, existing.id));
+    } else {
+      await db.insert(optimizationPlans).values({ productId, ownerId, currentListing: JSON.stringify(currentListing) });
+    }
+    return Response.json({ currentListing });
+  } catch {
+    return Response.json({ error: "We could not fetch the current listing metadata. Try again." }, { status: 502 });
+  }
+}

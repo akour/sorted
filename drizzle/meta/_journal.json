@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1790073414607,
+      "tag": "0000_goofy_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790075839455,
+      "tag": "0001_short_gamora",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790319651804,
+      "tag": "0009_product_icons",
+      "breakpoints": true
+    }
+  ]
+}
