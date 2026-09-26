@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createAuth } from "@/lib/auth";
-import { isOwnerOnlySiteHost } from "@/lib/auth-hosts";
+import { hasAuthEmailDeliveryConfigured } from "@/lib/auth-email";
+import { isCustomerAuthHost, isOwnerOnlySiteHost } from "@/lib/auth-hosts";
 
 const unavailable = () => Response.json(
   { message: "Account sign-in is not configured on this deployment." },
@@ -11,13 +12,23 @@ async function handleAuth(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const host = url.hostname.toLowerCase();
   const isSignupRequest = url.pathname.startsWith("/api/auth/sign-up/");
+  const isEmailDeliveryRequest = url.pathname.endsWith("/request-password-reset") ||
+    url.pathname.endsWith("/send-verification-email");
 
-  // New public accounts stay closed until Sorted has email verification and
-  // recovery delivery configured. The Sites preview is owner-only.
-  if (isSignupRequest && !isOwnerOnlySiteHost(host)) {
+  // Keep customer sign-up closed until the sender domain has been verified
+  // and delivery has been deliberately enabled in the runtime environment.
+  if (isSignupRequest && !isOwnerOnlySiteHost(host) &&
+    (!isCustomerAuthHost(host) || !hasAuthEmailDeliveryConfigured())) {
     return Response.json(
-      { message: "Customer sign-up will open after account email delivery is configured." },
+      { message: "Customer sign-up is not open yet." },
       { status: 403 },
+    );
+  }
+
+  if (isEmailDeliveryRequest && !hasAuthEmailDeliveryConfigured()) {
+    return Response.json(
+      { message: "Account email delivery is not configured." },
+      { status: 503 },
     );
   }
 

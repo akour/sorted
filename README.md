@@ -104,7 +104,7 @@ Sorted uses Better Auth email/password sessions in the existing D1 database. `BE
 
 The owner-only Sites preview continues to use its Sites identity. A sign-in or sign-up from that preview can link a Better Auth user to the same Sites identity only when both accounts use the same email. Existing workspace rows keep their current owner IDs; customer sessions resolve through the link, while unlinked customer accounts use their own isolated owner ID.
 
-Public customer sign-up is intentionally closed until transactional email supports verification and password recovery. The sign-up form is available only inside the owner-only preview, and public customer sessions require a verified email. Do not open the Site to customers before email delivery and recovery are configured.
+Public customer sign-up stays closed until the transactional email sender is verified and deliberately enabled. Sorted uses Resend for account verification and password recovery. Keep `RESEND_API_KEY` secret; set `SORTED_AUTH_EMAIL_FROM` to the verified sender and set `SORTED_AUTH_EMAIL_ENABLED=true` only after verifying delivery. Until all three values are present, customer sign-up, verification resend, and password recovery remain gated. The owner-only preview can still create and link the existing account without sending email.
 
 ## Local D1 migrations
 

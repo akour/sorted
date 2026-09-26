@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { AUTH_ALLOWED_HOSTS, AUTH_TRUSTED_ORIGINS, isOwnerOnlySiteHost } from "./auth-hosts";
+import { hasAuthEmailDeliveryConfigured, sendAuthEmail } from "./auth-email";
 
 export function createAuth(host: string | null | undefined) {
   const secret = env.BETTER_AUTH_SECRET?.trim();
@@ -26,6 +27,24 @@ export function createAuth(host: string | null | undefined) {
       // The owner-only Sites identity independently proves ownership for the
       // one existing account. Customer hosts require email verification.
       requireEmailVerification: !isOwnerOnlySiteHost(host),
+      sendResetPassword: async ({ user, url }) => sendAuthEmail({
+        to: user.email,
+        url,
+        purpose: "password-reset",
+      }),
+      resetPasswordTokenExpiresIn: 60 * 60,
+      revokeSessionsOnPasswordReset: true,
+    },
+    emailVerification: {
+      sendVerificationEmail: async ({ user, url }) => sendAuthEmail({
+        to: user.email,
+        url,
+        purpose: "verification",
+      }),
+      sendOnSignUp: !isOwnerOnlySiteHost(host),
+      sendOnSignIn: !isOwnerOnlySiteHost(host) && hasAuthEmailDeliveryConfigured(),
+      autoSignInAfterVerification: true,
+      expiresIn: 60 * 60,
     },
   });
 }

@@ -20,7 +20,17 @@ function safeReturnPath(): string {
   }
 }
 
-export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOwnerPreview: boolean }) {
+export function AccountAuthForm({
+  mode,
+  isOwnerPreview,
+  canUseEmail,
+  canCustomerSignUp = false,
+}: {
+  mode: AuthMode;
+  isOwnerPreview: boolean;
+  canUseEmail: boolean;
+  canCustomerSignUp?: boolean;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,7 +38,9 @@ export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOw
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeAction, setNoticeAction] = useState<"workspace" | "sign-in" | null>(null);
   const isSignUp = mode === "sign-up";
+  const signUpUnavailable = isSignUp && !isOwnerPreview && !canCustomerSignUp;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,9 +50,21 @@ export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOw
 
     try {
       const result = isSignUp
-        ? await authClient.signUp.email({ name: name.trim(), email: email.trim(), password })
+        ? await authClient.signUp.email({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            callbackURL: `${window.location.origin}/workspace`,
+          })
         : await authClient.signIn.email({ email: email.trim(), password });
 
+      if (result.error?.code === "EMAIL_NOT_VERIFIED" && !isOwnerPreview) {
+        setNotice(canUseEmail
+          ? "Your email still needs verification. We sent a fresh link; check your inbox."
+          : "Your email still needs verification, but email delivery is unavailable right now. Try again later.");
+        setNoticeAction("sign-in");
+        return;
+      }
       if (result.error) throw new Error(result.error.message || "Could not sign in.");
 
       if (isOwnerPreview) {
@@ -50,6 +74,14 @@ export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOw
           throw new Error(linkData.error || "Your account signed in, but it could not be connected to this workspace.");
         }
         setNotice("Your account is connected to the existing workspace. Use this email and password when customer sign-in opens on sort3d.space.");
+        setNoticeAction("workspace");
+        return;
+      }
+
+      if (isSignUp) {
+        setPassword("");
+        setNotice("We sent a verification link to your email. Verify it to finish creating your account.");
+        setNoticeAction("sign-in");
         return;
       }
 
@@ -84,7 +116,9 @@ export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOw
           )}
           {isSignUp && !isOwnerPreview && (
             <p className="account-auth-hint">
-              Customer sign-up is not open yet. Email verification and account recovery need to be configured before new accounts can be created.
+              {canCustomerSignUp
+                ? "Verify your email before you can sign in. You can request a fresh link from the sign-in page."
+                : "Customer sign-up will open after Sorted’s email sender is verified and enabled."}
             </p>
           )}
 
@@ -113,15 +147,27 @@ export function AccountAuthForm({ mode, isOwnerPreview }: { mode: AuthMode; isOw
               {isSignUp && <small>Use at least 12 characters.</small>}
             </label>
 
+            {!isSignUp && (
+              <p className="account-auth-forgot">
+                {canUseEmail
+                  ? <Link href="/forgot-password">Forgot password?</Link>
+                  : <span>Password recovery will be available after email delivery is configured.</span>}
+              </p>
+            )}
+
             {error && <p className="account-auth-error" role="alert">{error}</p>}
             {notice && <p className="account-auth-success" role="status">{notice}</p>}
 
             {notice ? (
-              <button className="account-auth-submit" type="button" onClick={() => router.replace(safeReturnPath())}>
-                Open workspace <span aria-hidden="true">→</span>
-              </button>
+              noticeAction === "workspace" ? (
+                <button className="account-auth-submit" type="button" onClick={() => router.replace(safeReturnPath())}>
+                  Open workspace <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <Link className="account-auth-submit" href="/sign-in">Back to sign in <span aria-hidden="true">→</span></Link>
+              )
             ) : (
-              <button className="account-auth-submit" type="submit" disabled={busy || (isSignUp && !isOwnerPreview)}>
+              <button className="account-auth-submit" type="submit" disabled={busy || signUpUnavailable}>
                 {busy ? "Please wait…" : isSignUp ? "Create account" : "Sign in"}
                 {!busy && <span aria-hidden="true">→</span>}
               </button>

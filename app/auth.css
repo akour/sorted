@@ -32,6 +32,9 @@
 .account-auth-error { border: 1px solid #f0d0ce; background: #fff8f7; color: #9d4038; }
 .account-auth-success { border: 1px solid #d2eadf; background: #f3fbf7; color: #34775e; }
 .account-auth-switch { margin: 21px 0 0; color: #827d89; font-size: 11px; text-align: center; }
+.account-auth-forgot { margin: -7px 0 0; color: #827d89; font-size: 11px; text-align: right; }
+.account-auth-forgot a { color: #6551b8; font-weight: 680; text-decoration: none; }
+.account-auth-forgot a:hover { color: #4e3e9d; text-decoration: underline; }
 .account-auth-switch a, .account-auth-footer a { color: #6551b8; font-weight: 720; text-decoration: none; }
 .account-auth-switch a:hover, .account-auth-footer a:hover { color: #4e3e9d; text-decoration: underline; }
 .account-auth-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 18px 2px 0; color: #9a95a1; font-size: 10px; }
