@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./marketing.css";
 
 export const metadata: Metadata = {
-  title: "Sorted — Organic marketing workspace",
-  description: "One workspace for every product, channel, and organic growth decision.",
+  title: "Sorted — Organic growth, in one clear workspace",
+  description: "Research, optimize, create, and plan organic growth for mobile apps and games in one connected workspace.",
   other: {
     "codex-preview": "development",
   },
