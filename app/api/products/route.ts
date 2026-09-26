@@ -1,15 +1,10 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../db";
 import { optimizationPlans, products } from "../../../db/schema";
 import { isSafeProductIconUrl, type ProductListing } from "../../../lib/product-icons";
 import { getInitialProductIconUrl } from "../../../lib/product-icon-url";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../../lib/product-url";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function routeError(error: unknown) {
   const message = error instanceof Error ? error.message : "Unexpected error";
@@ -22,6 +17,7 @@ function routeError(error: unknown) {
 export async function GET() {
   try {
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [rows, plans] = await Promise.all([
       db.select().from(products).where(eq(products.ownerId, ownerId)).orderBy(desc(products.updatedAt), desc(products.id)),
@@ -47,6 +43,7 @@ export async function POST(request: Request) {
     if (!name || !type) return Response.json({ error: "Product name and type are required." }, { status: 400 });
 
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const rawUrl = payload.url?.trim() ?? "";
     const url = rawUrl ? normalizeProductUrlInput(rawUrl) : "";
     if (rawUrl && !url) return Response.json({ error: "Enter a valid public website, Google Play, or App Store link." }, { status: 400 });

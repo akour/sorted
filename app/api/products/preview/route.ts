@@ -1,8 +1,10 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { fetchProductMetadata } from "../../../../lib/product-icons";
 import { normalizeProductUrlInput } from "../../../../lib/product-url";
 
 export async function POST(request: Request) {
   try {
+    if (!(await getOwnerId())) return ownerAuthenticationRequired();
     const payload = await request.json().catch(() => ({})) as { url?: unknown };
     const rawUrl = typeof payload.url === "string" ? payload.url : "";
     const url = normalizeProductUrlInput(rawUrl);

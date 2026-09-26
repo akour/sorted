@@ -1,13 +1,8 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../db";
 import { products, promoEvents } from "../../../../db/schema";
 import { serializeEvent } from "../route";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function objectValue(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? JSON.stringify(value) : "{}";
@@ -21,6 +16,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const eventId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const payload = await request.json() as Record<string, unknown>;
     const db = getDb();
     const [existing] = await db.select().from(promoEvents).where(and(eq(promoEvents.id, eventId), eq(promoEvents.ownerId, ownerId))).limit(1);
@@ -58,6 +54,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   try {
     const eventId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const [event] = await getDb().delete(promoEvents).where(and(eq(promoEvents.id, eventId), eq(promoEvents.ownerId, ownerId))).returning({ id: promoEvents.id });
     if (!event) return Response.json({ error: "Promo event not found." }, { status: 404 });
     return Response.json({ ok: true });

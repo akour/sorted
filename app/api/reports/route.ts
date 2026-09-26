@@ -1,16 +1,11 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../db";
 import { createBriefs, optimizationPlans, products, promoEvents, publishPlans, researchBriefs } from "../../../db/schema";
 import { canMarkPublishReady, getPublishReadiness, hasCreateBriefContent } from "../../../lib/publish-readiness";
 
 type StageStatus = "not-started" | "draft" | "needs-review" | "ready";
 type WorkflowStage = { key: string; label: string; view: string; status: StageStatus; detail: string };
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseArray(value: string | undefined) {
   try {
@@ -180,6 +175,7 @@ function buildWorkflow(
 export async function GET() {
   try {
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [productRows, researchRows, optimizationRows, createRows, publishRows, eventRows] = await Promise.all([
       db.select().from(products).where(eq(products.ownerId, ownerId)).orderBy(desc(products.updatedAt)),

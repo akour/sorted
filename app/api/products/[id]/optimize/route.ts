@@ -1,12 +1,7 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../db";
 import { optimizationPlans } from "../../../../../db/schema";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseJson(value: string | null | undefined, fallback: unknown[]) {
   try {
@@ -39,6 +34,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const [plan] = await getDb().select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     return Response.json({ optimization: serialize(plan, productId) });
   } catch {
@@ -50,6 +46,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const payload = await request.json() as Record<string, unknown>;
     const values = {
       focus: typeof payload.focus === "string" ? payload.focus.trim() : "ASO + AEO",

@@ -1,12 +1,7 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, asc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../db";
 import { products, promoEvents } from "../../../db/schema";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseObject(value: string | null | undefined) {
   try {
@@ -41,6 +36,7 @@ function arrayValue(value: unknown) {
 export async function GET() {
   try {
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const rows = await getDb().select({ event: promoEvents, productName: products.name }).from(promoEvents).innerJoin(products, eq(promoEvents.productId, products.id)).where(eq(promoEvents.ownerId, ownerId)).orderBy(asc(promoEvents.startDate), asc(promoEvents.id));
     return Response.json({ events: rows.map((row) => serializeEvent(row.event, row.productName)) });
   } catch {
@@ -56,6 +52,7 @@ export async function POST(request: Request) {
     const endDate = typeof payload.endDate === "string" ? payload.endDate : "";
     if (startDate && endDate && endDate < startDate) return Response.json({ error: "End date must be on or after the start date." }, { status: 400 });
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!product) return Response.json({ error: "Choose a product for this event." }, { status: 400 });

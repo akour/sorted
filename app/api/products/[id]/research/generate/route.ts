@@ -1,15 +1,10 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../../db";
 import { aiSettings, optimizationPlans, products, researchBriefs } from "../../../../../../db/schema";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel } from "../../../../../../lib/opencode-models";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCodeWithFallback, safeOpenCodeFailureDetails } from "../../../../../../lib/opencode-client";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseModelJson(raw: string) {
   const candidate = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
@@ -36,6 +31,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });

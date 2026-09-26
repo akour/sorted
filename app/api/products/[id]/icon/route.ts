@@ -1,13 +1,8 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../db";
 import { optimizationPlans, products } from "../../../../../db/schema";
 import { fetchProductMetadata } from "../../../../../lib/product-icons";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -16,6 +11,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       return Response.json({ error: "Product not found." }, { status: 404 });
     }
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select().from(products)
       .where(and(eq(products.id, productId), eq(products.ownerId, ownerId)))

@@ -1,12 +1,7 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../db";
 import { researchBriefs } from "../../../../../db/schema";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function emptyBrief(productId: number) {
   return { productId, intent: "", semanticCore: "", competitors: "", proof: "", notes: "" };
@@ -16,6 +11,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const [research] = await getDb().select().from(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId))).limit(1);
     return Response.json({ research: research ?? emptyBrief(productId) });
   } catch {
@@ -27,6 +23,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const payload = (await request.json()) as { intent?: string; semanticCore?: string; competitors?: string; proof?: string; notes?: string };
     const values = {
       intent: payload.intent?.trim() ?? "",

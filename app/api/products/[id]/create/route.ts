@@ -1,12 +1,7 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../db";
 import { createBriefs } from "../../../../../db/schema";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseJson(value: string | null | undefined, fallback: unknown) {
   try {
@@ -56,6 +51,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const [brief] = await getDb().select().from(createBriefs).where(and(eq(createBriefs.productId, productId), eq(createBriefs.ownerId, ownerId))).limit(1);
     return Response.json({ create: serialize(brief, productId) });
   } catch {
@@ -67,6 +63,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const payload = await request.json() as Record<string, unknown>;
     const values = {
       status: typeof payload.status === "string" ? payload.status : "draft",

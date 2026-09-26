@@ -1,14 +1,9 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../db";
 import { createBriefs, optimizationPlans, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
 import { getInitialProductIconUrl } from "../../../../lib/product-icon-url";
 import { normalizeProductUrlInput } from "../../../../lib/product-url";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -16,6 +11,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const productId = Number(id);
     const payload = (await request.json()) as { name?: string; type?: string; url?: string; position?: string; audience?: string };
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [current] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!current) return Response.json({ error: "Product not found." }, { status: 404 });
@@ -49,6 +45,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select({ id: products.id }).from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });

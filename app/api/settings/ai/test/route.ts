@@ -1,16 +1,11 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { env } from "cloudflare:workers";
-import { headers } from "next/headers";
 import { getOpenCodeModel } from "../../../../../lib/opencode-models";
 import { requestOpenCode, safeOpenCodeFailureDetails } from "../../../../../lib/opencode-client";
 
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
-
 export async function POST(request: Request) {
   try {
-    await getOwnerId();
+    if (!(await getOwnerId())) return ownerAuthenticationRequired();
     const apiKey = env.OPENCODE_API_KEY;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet." }, { status: 503 });
     const body = await request.json() as { model?: string };

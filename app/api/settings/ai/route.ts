@@ -1,18 +1,14 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
-import { headers } from "next/headers";
 import { getDb } from "../../../../db";
 import { aiSettings } from "../../../../db/schema";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel, OPENCODE_MODELS } from "../../../../lib/opencode-models";
 
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
-
 export async function GET() {
   try {
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [saved] = await db.select().from(aiSettings).where(eq(aiSettings.ownerId, ownerId)).limit(1);
     const configuredModel = saved?.activeModel || env.OPENCODE_MODEL || DEFAULT_OPENCODE_MODEL;
@@ -38,6 +34,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const body = await request.json() as { activeModel?: string; fallbackModels?: string[] };
     const activeModel = body.activeModel?.trim();
     const model = getOpenCodeModel(activeModel);

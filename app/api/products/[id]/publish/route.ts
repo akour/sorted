@@ -1,13 +1,8 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { getDb } from "../../../../../db";
 import { createBriefs, optimizationPlans, products, publishPlans, researchBriefs } from "../../../../../db/schema";
 import { canMarkPublishReady, getPublishReadiness } from "../../../../../lib/publish-readiness";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseJson(value: string | null | undefined, fallback: unknown[]) {
   try {
@@ -48,6 +43,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
@@ -73,6 +69,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const productId = Number((await context.params).id);
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const payload = await request.json() as Record<string, unknown>;
     const db = getDb();
     const [research] = await db.select().from(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId))).limit(1);

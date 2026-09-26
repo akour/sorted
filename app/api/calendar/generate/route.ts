@@ -1,16 +1,11 @@
+import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
-import { headers } from "next/headers";
 import { getDb } from "../../../../db";
 import { aiSettings, createBriefs, optimizationPlans, products, promoEvents, researchBriefs } from "../../../../db/schema";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCode, safeOpenCodeFailureDetails } from "../../../../lib/opencode-client";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel, getOpenCodeTransport } from "../../../../lib/opencode-models";
 import { serializeEvent } from "../route";
-
-async function getOwnerId() {
-  const requestHeaders = await headers();
-  return requestHeaders.get("oai-authenticated-user-id") ?? "local-owner";
-}
 
 function parseFallbacks(value: string | undefined) {
   try {
@@ -225,6 +220,7 @@ export async function POST(request: Request) {
     const requestedTitle = typeof payload.title === "string" ? payload.title.trim() : "";
     const requestedIdea = (typeof payload.eventIdea === "string" ? payload.eventIdea : typeof inputBrief.idea === "string" ? inputBrief.idea : "").trim();
     const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
     const db = getDb();
     const [product] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
     if (!product) return Response.json({ error: "Choose a product before building an event." }, { status: 400 });
