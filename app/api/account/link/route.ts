@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { env } from "cloudflare:workers";
 import { getDb } from "@/db";
-import { accountIdentityLinks, authUsers } from "@/db/schema";
+import { accountIdentityLinks } from "@/db/schema";
 import { createAuth } from "@/lib/auth";
 import { OWNER_ONLY_SITE_ORIGIN, isOwnerOnlySiteHost } from "@/lib/auth-hosts";
 import { getTrustedSitesIdentity } from "@/lib/owner";
@@ -24,20 +24,17 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const siteIdentity = await getTrustedSitesIdentity();
-  if (!siteIdentity?.email) {
+  if (!siteIdentity) {
     return forbidden("The private preview identity could not be verified.");
   }
   const siteUserId = siteIdentity.userId;
-  const siteEmail = siteIdentity.email;
 
   try {
     const session = await createAuth(url.hostname).api.getSession({ headers: request.headers });
     if (!session) return Response.json({ error: "Sign in to your Sorted account first." }, { status: 401 });
 
     const authEmail = session.user.email.trim().toLowerCase();
-    if (!authEmail || authEmail !== siteEmail) {
-      return forbidden("Use the same email for your Sorted account and the private preview to connect existing workspace data.");
-    }
+    if (!authEmail) return forbidden("Your Sorted account needs an email address before it can be connected.");
 
     const db = getDb();
     const [byAuthUser, bySiteUser] = await Promise.all([
@@ -58,7 +55,7 @@ export async function POST(request: Request): Promise<Response> {
       await db.insert(accountIdentityLinks).values({
         authUserId: session.user.id,
         siteUserId,
-        email: siteEmail,
+        email: authEmail,
       }).onConflictDoNothing();
     }
 
@@ -72,13 +69,13 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: "This account could not be linked because the identity is already in use." }, { status: 409 });
     }
 
-    // The owner-only Sites session and matching verified email are independent
-    // proof for the existing account, so its customer login can be verified.
-    await db.update(authUsers)
-      .set({ emailVerified: true, updatedAt: new Date() })
-      .where(eq(authUsers.id, session.user.id));
-
-    return Response.json({ linked: true, alreadyLinked: Boolean(existingAuthLink && existingSiteLink) });
+    // The owner-only Sites session authorizes the workspace link. The Sorted
+    // account's email remains unverified until its own verification link is used.
+    return Response.json({
+      linked: true,
+      alreadyLinked: Boolean(existingAuthLink && existingSiteLink),
+      emailVerified: session.user.emailVerified,
+    });
   } catch {
     return Response.json({ error: "Could not link this account right now." }, { status: 500 });
   }

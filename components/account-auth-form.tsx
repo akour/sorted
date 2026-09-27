@@ -69,11 +69,17 @@ export function AccountAuthForm({
 
       if (isOwnerPreview) {
         const linkResponse = await fetch("/api/account/link", { method: "POST", cache: "no-store" });
-        const linkData = await linkResponse.json().catch(() => ({})) as { error?: string };
+        const linkData = await linkResponse.json().catch(() => ({})) as { error?: string; emailVerified?: boolean };
         if (!linkResponse.ok) {
-          throw new Error(linkData.error || "Your account signed in, but it could not be connected to this workspace.");
+          setNotice(`Your Sorted sign-in worked, but this account could not be connected to the workspace. ${linkData.error || "Try again in a moment."}`);
+          setNoticeAction("workspace");
+          return;
         }
-        setNotice("Your account is connected to the existing workspace. Use this email and password when customer sign-in opens on sort3d.space.");
+        setNotice(linkData.emailVerified
+          ? "Your Sorted sign-in worked, and this account is connected to your workspace."
+          : canUseEmail
+            ? "Your Sorted sign-in worked, and this account is connected. Check your inbox and verify this email before using the account on sort3d.space."
+            : "Your Sorted sign-in worked, and this account is connected. Customer sign-in will work once email verification is available.");
         setNoticeAction("workspace");
         return;
       }
@@ -111,7 +117,9 @@ export function AccountAuthForm({
 
           {isSignUp && isOwnerPreview && (
             <p className="account-auth-hint">
-              To connect the workspace you already use, create your account with the same email as this private preview.
+              {canUseEmail
+                ? "Your private preview connects this Sorted login to your existing workspace. We’ll send a verification link so you can use the login on sort3d.space."
+                : "Your private preview connects this Sorted login to your existing workspace. Customer sign-in on sort3d.space will need email verification once email delivery is enabled."}
             </p>
           )}
           {isSignUp && !isOwnerPreview && (

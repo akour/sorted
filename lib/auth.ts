@@ -24,8 +24,8 @@ export function createAuth(host: string | null | undefined) {
       autoSignIn: true,
       minPasswordLength: 12,
       maxPasswordLength: 128,
-      // The owner-only Sites identity independently proves ownership for the
-      // one existing account. Customer hosts require email verification.
+      // The private preview can sign in without a verified email so its owner
+      // can connect an account; customer hosts always require verification.
       requireEmailVerification: !isOwnerOnlySiteHost(host),
       sendResetPassword: async ({ user, url }) => sendAuthEmail({
         to: user.email,
@@ -41,8 +41,8 @@ export function createAuth(host: string | null | undefined) {
         url,
         purpose: "verification",
       }),
-      sendOnSignUp: !isOwnerOnlySiteHost(host),
-      sendOnSignIn: !isOwnerOnlySiteHost(host) && hasAuthEmailDeliveryConfigured(),
+      sendOnSignUp: hasAuthEmailDeliveryConfigured(),
+      sendOnSignIn: hasAuthEmailDeliveryConfigured(),
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60,
     },
