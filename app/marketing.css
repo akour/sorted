@@ -60,7 +60,7 @@
 .marketing-proof-line i { display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #e8f7f2; color: #428c76; font-size: 9px; font-style: normal; font-weight: 800; }
 
 .marketing-hero-visual { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 510px; padding: 0 0 24px 2px; }
-.marketing-hero-visual::before { position: absolute; top: 4%; right: 0; width: 93%; height: 88%; border-radius: 48% 52% 45% 55% / 53% 43% 57% 47%; background: radial-gradient(ellipse at 56% 47%, #eee9ff 0%, #f4f0fc 49%, rgba(243,239,250,0) 74%); content: ""; }
+.marketing-hero-visual::before { position: absolute; top: 4%; right: 0; width: 93%; height: 88%; border-radius: 48% 52% 45% 55% / 53% 43% 57% 47%; background: radial-gradient(ellipse at 56% 47%, #eee9ff 0%, #f4f0fc 49%, rgba(243,239,250,0) 74%); content: ""; pointer-events: none; }
 .marketing-orbit { position: absolute; border: 1px solid rgba(128,111,193,.12); border-radius: 50%; pointer-events: none; }
 .marketing-orbit-one { top: 3%; right: -3%; width: 94%; height: 92%; transform: rotate(-17deg); }
 .marketing-orbit-two { top: 10%; right: 1%; width: 85%; height: 76%; transform: rotate(18deg); }

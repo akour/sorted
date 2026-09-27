@@ -54,10 +54,10 @@ export default function HomePage() {
         </nav>
 
         <div className="marketing-account-nav">
-          <Link className="marketing-sign-in" href="/sign-in">Sign in</Link>
-          <Link className="marketing-header-cta" href="/sign-up">
+          <a className="marketing-sign-in" href="/sign-in">Sign in</a>
+          <a className="marketing-header-cta" href="/sign-up">
             Create account <span aria-hidden="true">→</span>
-          </Link>
+          </a>
         </div>
       </header>
 
@@ -69,9 +69,9 @@ export default function HomePage() {
             Research, store optimization, answer content, creative briefs, and promo events—together in one clear workflow for your mobile products.
           </p>
           <div className="marketing-hero-actions">
-            <Link className="marketing-button marketing-button-primary" href="/workspace">
+            <a className="marketing-button marketing-button-primary" href="/workspace">
               Explore the workspace <span aria-hidden="true">→</span>
-            </Link>
+            </a>
             <a className="marketing-button marketing-button-quiet" href="#how-it-works">
               See how it works <span aria-hidden="true">↓</span>
             </a>
@@ -192,7 +192,7 @@ export default function HomePage() {
           <div className="marketing-section-label"><span>03</span><span>Why Sorted</span></div>
           <h2>Less tab hopping.<br /><em>More connected thinking.</em></h2>
           <p>Sorted keeps the product, its research, and the work that follows in view—so a better decision doesn’t get lost between tools.</p>
-          <Link className="marketing-text-link" href="/workspace">Take a look inside <span aria-hidden="true">→</span></Link>
+          <a className="marketing-text-link" href="/workspace">Take a look inside <span aria-hidden="true">→</span></a>
         </div>
         <div className="principle-list">
           <article><span className="principle-icon">01</span><div><h3>Grounded in your product</h3><p>Use research and current listing details as the starting point for AI-assisted work.</p></div><span className="principle-check">✓</span></article>
@@ -206,7 +206,7 @@ export default function HomePage() {
         <p className="marketing-kicker"><span /> A little more order goes a long way</p>
         <h2>Start with one product.<br /><em>Build from what you know.</em></h2>
         <p>Bring your product context into one place and take the next growth step with clarity.</p>
-        <Link className="marketing-button marketing-button-primary" href="/workspace">Explore the workspace <span aria-hidden="true">→</span></Link>
+        <a className="marketing-button marketing-button-primary" href="/workspace">Explore the workspace <span aria-hidden="true">→</span></a>
       </section>
 
       <footer className="marketing-footer">
