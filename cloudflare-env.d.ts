@@ -10,5 +10,10 @@ declare namespace Cloudflare {
     RESEND_API_KEY?: string;
     SORTED_AUTH_EMAIL_FROM?: string;
     SORTED_AUTH_EMAIL_ENABLED?: string;
+    PAYPAL_CLIENT_ID?: string;
+    PAYPAL_CLIENT_SECRET?: string;
+    PAYPAL_PLAN_ID?: string;
+    PAYPAL_WEBHOOK_ID?: string;
+    PAYPAL_ENVIRONMENT?: string;
   }
 }
