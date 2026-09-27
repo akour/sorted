@@ -71,6 +71,19 @@ export function AccountAuthForm({
       }
       if (result.error) throw new Error(result.error.message || "Could not sign in.");
 
+      if (isOwnerPreview && !isSignUp) {
+        // The private preview already resolves the workspace through its
+        // trusted Sites identity. Linking the Sorted login is only needed for
+        // customer-host access, so it must never block preview sign-in.
+        void fetch("/api/account/link", {
+          method: "POST",
+          cache: "no-store",
+          keepalive: true,
+        }).catch(() => undefined);
+        window.location.assign(safeReturnPath());
+        return;
+      }
+
       if (isOwnerPreview) {
         const linkResponse = await fetch("/api/account/link", { method: "POST", cache: "no-store" });
         const linkData = await linkResponse.json().catch(() => ({})) as { error?: string; emailVerified?: boolean };
