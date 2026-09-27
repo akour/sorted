@@ -24,7 +24,7 @@
 .account-auth-form input { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid #e2dee8; border-radius: 10px; outline: none; background: #fff; color: #2e2b34; font: inherit; font-size: 16px; transition: border-color .15s, box-shadow .15s; }
 .account-auth-form input:focus { border-color: #9c8be0; box-shadow: 0 0 0 3px rgba(131, 111, 204, .13); }
 .account-auth-form label small { margin-top: -2px; color: #77717f; font-size: 12px; font-weight: 450; }
-.account-auth-submit { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; margin-top: 3px; border: 1px solid #7057d9; border-radius: 10px; background: #7057d9; color: #fff; font: inherit; font-size: 14px; font-weight: 730; text-decoration: none; cursor: pointer; box-shadow: 0 8px 18px #7057d922; transition: .16s ease; }
+.account-auth-submit { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 52px; margin-top: 3px; border: 1px solid #7057d9; border-radius: 10px; background: #7057d9; color: #fff; font: inherit; font-size: 14px; font-weight: 730; text-decoration: none; cursor: pointer; box-shadow: 0 8px 18px #7057d922; transition: .16s ease; }
 .account-auth-submit:hover:not(:disabled) { border-color: #5140ad; background: #5f4bc2; transform: translateY(-1px); }
 .account-auth-submit:disabled { opacity: .58; cursor: not-allowed; }
 .account-auth-submit span { font-size: 16px; font-weight: 450; }
@@ -39,6 +39,13 @@
 .account-auth-switch a:hover, .account-auth-footer a:hover { color: #4e3e9d; text-decoration: underline; }
 .account-auth-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 18px 2px 0; color: #827d89; font-size: 12px; }
 .account-auth-footer span { text-align: right; }
+.subscription-price { display: flex; align-items: baseline; gap: 7px; margin: 26px 0 12px; color: #292633; }
+.subscription-price strong { font-size: 44px; line-height: 1; letter-spacing: -.06em; }
+.subscription-price span { color: #777381; font-size: 15px; }
+.subscription-features { display: grid; gap: 10px; margin: 18px 0 24px; padding: 0; list-style: none; color: #514b59; font-size: 14px; line-height: 1.5; }
+.subscription-features li { position: relative; padding-left: 24px; }
+.subscription-features li::before { content: "✓"; position: absolute; left: 0; top: 0; color: #5f4bc2; font-weight: 800; }
+.subscription-note { margin: 12px 0 0; color: #827d89; font-size: 12px; text-align: center; }
 .account-auth-page :is(a, button) { pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: rgba(112, 87, 217, .15); }
 .account-auth-page a:focus-visible, .account-auth-page button:focus-visible, .account-auth-page input:focus-visible { outline: 3px solid #ab9ce9; outline-offset: 3px; }
 @media (max-width: 480px) {
