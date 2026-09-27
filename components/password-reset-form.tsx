@@ -1,7 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-html-link-for-pages -- Auth navigation must work without client-side routing. */
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 
 type PasswordResetMode = "request" | "reset";
@@ -58,10 +58,10 @@ export function PasswordResetForm({
   return (
     <main className="account-auth-page">
       <div className="account-auth-shell">
-        <Link className="account-auth-brand" href="/" aria-label="Sorted home">
+        <a className="account-auth-brand" href="/" aria-label="Sorted home">
           <span className="account-auth-mark" aria-hidden="true"><i /><i /><i /></span>
           <span>sorted</span>
-        </Link>
+        </a>
 
         <section className="account-auth-card" aria-labelledby="password-reset-title">
           <p className="account-auth-kicker">Your growth workspace</p>
@@ -109,12 +109,12 @@ export function PasswordResetForm({
             </form>
           )}
 
-          {notice && <p className="account-auth-switch"><Link href="/sign-in">Back to sign in</Link></p>}
-          {isRequest && !notice && <p className="account-auth-switch"><Link href="/sign-in">Back to sign in</Link></p>}
-          {mode === "reset" && !notice && <p className="account-auth-switch"><Link href="/forgot-password">Request a new reset link</Link></p>}
+          {notice && <p className="account-auth-switch"><a href="/sign-in">Back to sign in</a></p>}
+          {isRequest && !notice && <p className="account-auth-switch"><a href="/sign-in">Back to sign in</a></p>}
+          {mode === "reset" && !notice && <p className="account-auth-switch"><a href="/forgot-password">Request a new reset link</a></p>}
         </section>
 
-        <p className="account-auth-footer"><Link href="/">← Back to Sorted</Link><span>Nothing publishes automatically.</span></p>
+        <p className="account-auth-footer"><a href="/">← Back to Sorted</a><span>Nothing publishes automatically.</span></p>
       </div>
     </main>
   );

@@ -1,8 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-html-link-for-pages -- Auth navigation must work without client-side routing. */
 import { FormEvent, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 type AuthMode = "sign-in" | "sign-up";
@@ -31,7 +30,6 @@ export function AccountAuthForm({
   canUseEmail: boolean;
   canCustomerSignUp?: boolean;
 }) {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,6 +56,12 @@ export function AccountAuthForm({
           })
         : await authClient.signIn.email({ email: email.trim(), password });
 
+      if (isSignUp && result.error?.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+        throw new Error("An account already exists with this email. Sign in or use Forgot password to reset it.");
+      }
+      if (!isSignUp && result.error?.code === "INVALID_EMAIL_OR_PASSWORD") {
+        throw new Error("That email and password don’t match. Try again, or use Forgot password to reset it.");
+      }
       if (result.error?.code === "EMAIL_NOT_VERIFIED" && !isOwnerPreview) {
         setNotice(canUseEmail
           ? "Your email still needs verification. We sent a fresh link; check your inbox."
@@ -91,8 +95,7 @@ export function AccountAuthForm({
         return;
       }
 
-      router.replace(safeReturnPath());
-      router.refresh();
+      window.location.assign(safeReturnPath());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not complete this request.");
     } finally {
@@ -103,10 +106,10 @@ export function AccountAuthForm({
   return (
     <main className="account-auth-page">
       <div className="account-auth-shell">
-        <Link className="account-auth-brand" href="/" aria-label="Sorted home">
+        <a className="account-auth-brand" href="/" aria-label="Sorted home">
           <span className="account-auth-mark" aria-hidden="true"><i /><i /><i /></span>
           <span>sorted</span>
-        </Link>
+        </a>
 
         <section className="account-auth-card" aria-labelledby="account-auth-title">
           <p className="account-auth-kicker">Your growth workspace</p>
@@ -158,7 +161,7 @@ export function AccountAuthForm({
             {!isSignUp && (
               <p className="account-auth-forgot">
                 {canUseEmail
-                  ? <Link href="/forgot-password">Forgot password?</Link>
+                  ? <a href="/forgot-password">Forgot password?</a>
                   : <span>Password recovery will be available after email delivery is configured.</span>}
               </p>
             )}
@@ -168,11 +171,11 @@ export function AccountAuthForm({
 
             {notice ? (
               noticeAction === "workspace" ? (
-                <button className="account-auth-submit" type="button" onClick={() => router.replace(safeReturnPath())}>
+                <button className="account-auth-submit" type="button" onClick={() => window.location.assign(safeReturnPath())}>
                   Open workspace <span aria-hidden="true">→</span>
                 </button>
               ) : (
-                <Link className="account-auth-submit" href="/sign-in">Back to sign in <span aria-hidden="true">→</span></Link>
+                <a className="account-auth-submit" href="/sign-in">Back to sign in <span aria-hidden="true">→</span></a>
               )
             ) : (
               <button className="account-auth-submit" type="submit" disabled={busy || signUpUnavailable}>
@@ -184,11 +187,11 @@ export function AccountAuthForm({
 
           <p className="account-auth-switch">
             {isSignUp ? "Already have an account?" : "New to Sorted?"}{" "}
-            <Link href={isSignUp ? "/sign-in" : "/sign-up"}>{isSignUp ? "Sign in" : "Create an account"}</Link>
+            <a href={isSignUp ? "/sign-in" : "/sign-up"}>{isSignUp ? "Sign in" : "Create an account"}</a>
           </p>
         </section>
 
-        <p className="account-auth-footer"><Link href="/">← Back to Sorted</Link><span>Nothing publishes automatically.</span></p>
+        <p className="account-auth-footer"><a href="/">← Back to Sorted</a><span>Nothing publishes automatically.</span></p>
       </div>
     </main>
   );
