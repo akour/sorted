@@ -17,6 +17,11 @@ export async function sendAuthEmail(input: {
   const apiKey = env.RESEND_API_KEY?.trim();
   const from = env.SORTED_AUTH_EMAIL_FROM?.trim();
   if (!hasAuthEmailDeliveryConfigured() || !apiKey || !from) {
+    console.error("Sorted auth email send was skipped because delivery configuration is incomplete.", {
+      enabled: env.SORTED_AUTH_EMAIL_ENABLED?.trim().toLowerCase() === "true",
+      apiKeyPresent: Boolean(apiKey),
+      senderPresent: Boolean(from),
+    });
     throw new Error("Account email delivery is not configured.");
   }
 
@@ -46,4 +51,9 @@ export async function sendAuthEmail(input: {
     console.error("Sorted transactional email provider rejected a request.", { status: response.status });
     throw new Error("Account email delivery could not be completed.");
   }
+
+  console.info("Sorted transactional email accepted by provider.", {
+    purpose: input.purpose,
+    status: response.status,
+  });
 }
