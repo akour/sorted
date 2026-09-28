@@ -43,17 +43,20 @@ export function AccountAuthForm({
   const isSignUp = mode === "sign-up";
   const signUpUnavailable = isSignUp && !isOwnerPreview && !canCustomerSignUp;
 
+  async function requestVerificationLink() {
+    const result = await authClient.sendVerificationEmail({
+      email: email.trim(),
+      callbackURL: `${window.location.origin}/workspace`,
+    });
+    if (result.error) throw new Error("We couldn’t request another verification link. Try again in a moment.");
+  }
+
   async function resendVerification() {
     setResendingVerification(true);
     setError("");
 
     try {
-      const result = await authClient.sendVerificationEmail({
-        email: email.trim(),
-        callbackURL: `${window.location.origin}/workspace`,
-      });
-      if (result.error) throw new Error("We couldn’t request another verification link. Try again in a moment.");
-
+      await requestVerificationLink();
       setVerificationLinkRequested(true);
       setNotice("If this email has an unverified Sorted account, a fresh link was requested. Check your inbox and spam folder.");
     } catch (caught) {
@@ -87,6 +90,20 @@ export function AccountAuthForm({
       if (!isSignUp && result.error?.code === "INVALID_EMAIL_OR_PASSWORD") {
         throw new Error("That email and password don’t match. Try again, or use Forgot password to reset it.");
       }
+
+      let verificationRequestFailed = false;
+      if (isSignUp && !result.error && canUseEmail) {
+        setResendingVerification(true);
+        try {
+          await requestVerificationLink();
+          setVerificationLinkRequested(true);
+        } catch {
+          verificationRequestFailed = true;
+        } finally {
+          setResendingVerification(false);
+        }
+      }
+
       if (result.error?.code === "EMAIL_NOT_VERIFIED" && !isOwnerPreview) {
         setNotice(canUseEmail
           ? "Your email still needs verification. If a new link doesn’t arrive, request another below."
@@ -118,18 +135,23 @@ export function AccountAuthForm({
           setNoticeAction("workspace");
           return;
         }
+        setVerificationRequired(!linkData.emailVerified);
         setNotice(linkData.emailVerified
           ? "Your Sorted sign-in worked, and this account is connected to your workspace."
           : canUseEmail
-            ? "Your Sorted sign-in worked, and this account is connected. Check your inbox and verify this email before using the account on sort3d.space."
+            ? verificationRequestFailed
+              ? "Your Sorted sign-in worked, and this account is connected, but we couldn’t request a verification link. Retry below before using the account on sort3d.space."
+              : "Your Sorted sign-in worked, and this account is connected. A verification link was requested; check your inbox before using the account on sort3d.space."
             : "Your Sorted sign-in worked, and this account is connected. Customer sign-in will work once email verification is available.");
-        setNoticeAction("workspace");
+        setNoticeAction(verificationRequestFailed ? "resend" : "workspace");
         return;
       }
 
       if (isSignUp) {
         setPassword("");
-        setNotice("If this is a new account, check your inbox for a verification link. If you’ve tried this email before or the message hasn’t arrived, request another below.");
+        setNotice(verificationRequestFailed
+          ? "Your sign-up request was accepted, but Sorted couldn’t request a verification email. Try the button below."
+          : "If this address belongs to a new or unverified Sorted account, a verification link was requested. Check your inbox and spam folder.");
         setNoticeAction("resend");
         return;
       }
