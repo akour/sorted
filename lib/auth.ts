@@ -41,7 +41,10 @@ export function createAuth(host: string | null | undefined) {
         url,
         purpose: "verification",
       }),
-      sendOnSignUp: hasAuthEmailDeliveryConfigured(),
+      // The sign-up screen explicitly requests a link after Better Auth returns.
+      // This also covers its generic-success response for an existing account,
+      // where Better Auth does not run the new-user sign-up callback.
+      sendOnSignUp: false,
       sendOnSignIn: hasAuthEmailDeliveryConfigured(),
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60,
