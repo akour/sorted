@@ -37,14 +37,39 @@ export function AccountAuthForm({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [noticeAction, setNoticeAction] = useState<"workspace" | "sign-in" | null>(null);
+  const [verificationRequired, setVerificationRequired] = useState(false);
+  const [verificationLinkRequested, setVerificationLinkRequested] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
   const isSignUp = mode === "sign-up";
   const signUpUnavailable = isSignUp && !isOwnerPreview && !canCustomerSignUp;
+
+  async function resendVerification() {
+    setResendingVerification(true);
+    setError("");
+
+    try {
+      const result = await authClient.sendVerificationEmail({
+        email: email.trim(),
+        callbackURL: `${window.location.origin}/workspace`,
+      });
+      if (result.error) throw new Error("We couldn’t request another verification link. Try again in a moment.");
+
+      setVerificationLinkRequested(true);
+      setNotice("If this email has an unverified Sorted account, a fresh link was requested. Check your inbox and spam folder.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "We couldn’t request another verification link. Try again in a moment.");
+    } finally {
+      setResendingVerification(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
     setNotice("");
+    setVerificationRequired(false);
+    setVerificationLinkRequested(false);
 
     try {
       const result = isSignUp
@@ -64,9 +89,10 @@ export function AccountAuthForm({
       }
       if (result.error?.code === "EMAIL_NOT_VERIFIED" && !isOwnerPreview) {
         setNotice(canUseEmail
-          ? "Your email still needs verification. We sent a fresh link; check your inbox."
+          ? "Your email still needs verification. If a new link doesn’t arrive, request another below."
           : "Your email still needs verification, but email delivery is unavailable right now. Try again later.");
-        setNoticeAction("sign-in");
+        setVerificationRequired(canUseEmail);
+        setNoticeAction(null);
         return;
       }
       if (result.error) throw new Error(result.error.message || "Could not sign in.");
@@ -103,7 +129,7 @@ export function AccountAuthForm({
 
       if (isSignUp) {
         setPassword("");
-        setNotice("We sent a verification link to your email. Verify it to finish creating your account.");
+        setNotice("If this was a new account, check your inbox for a verification link. If you’ve tried this email before, sign in to request another.");
         setNoticeAction("sign-in");
         return;
       }
@@ -186,6 +212,11 @@ export function AccountAuthForm({
               noticeAction === "workspace" ? (
                 <button className="account-auth-submit" type="button" onClick={() => window.location.assign(safeReturnPath())}>
                   Open workspace <span aria-hidden="true">→</span>
+                </button>
+              ) : verificationRequired ? (
+                <button className="account-auth-submit" type="button" onClick={resendVerification} disabled={resendingVerification}>
+                  {resendingVerification ? "Requesting link…" : verificationLinkRequested ? "Send another link" : "Resend verification link"}
+                  {!resendingVerification && <span aria-hidden="true">→</span>}
                 </button>
               ) : (
                 <a className="account-auth-submit" href="/sign-in">Back to sign in <span aria-hidden="true">→</span></a>
