@@ -36,7 +36,7 @@ export function AccountAuthForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [noticeAction, setNoticeAction] = useState<"workspace" | "sign-in" | null>(null);
+  const [noticeAction, setNoticeAction] = useState<"workspace" | "sign-in" | "resend" | null>(null);
   const [verificationRequired, setVerificationRequired] = useState(false);
   const [verificationLinkRequested, setVerificationLinkRequested] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -129,8 +129,8 @@ export function AccountAuthForm({
 
       if (isSignUp) {
         setPassword("");
-        setNotice("If this was a new account, check your inbox for a verification link. If you’ve tried this email before, sign in to request another.");
-        setNoticeAction("sign-in");
+        setNotice("If this is a new account, check your inbox for a verification link. If you’ve tried this email before or the message hasn’t arrived, request another below.");
+        setNoticeAction("resend");
         return;
       }
 
@@ -212,6 +212,11 @@ export function AccountAuthForm({
               noticeAction === "workspace" ? (
                 <button className="account-auth-submit" type="button" onClick={() => window.location.assign(safeReturnPath())}>
                   Open workspace <span aria-hidden="true">→</span>
+                </button>
+              ) : noticeAction === "resend" ? (
+                <button className="account-auth-submit" type="button" onClick={resendVerification} disabled={resendingVerification}>
+                  {resendingVerification ? "Requesting link…" : verificationLinkRequested ? "Send another link" : "Resend verification link"}
+                  {!resendingVerification && <span aria-hidden="true">→</span>}
                 </button>
               ) : verificationRequired ? (
                 <button className="account-auth-submit" type="button" onClick={resendVerification} disabled={resendingVerification}>
