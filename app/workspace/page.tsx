@@ -1240,6 +1240,7 @@ function OptimizeComparisonView({ product, optimization, loading, saving, genera
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not fetch the current listing.");
       onChange({ ...optimization, currentListing: data.currentListing });
+      setListingError(data.warning ?? "");
     } catch (error) {
       setListingError(error instanceof Error ? error.message : "Could not fetch the current listing.");
     } finally {

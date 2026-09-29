@@ -255,6 +255,7 @@ async function fetchPublicHtml(value: string, maxBytes: number): Promise<PublicH
       const response = await fetch(current.toString(), {
         headers: {
           accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
           "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         },
         redirect: "manual",
@@ -273,9 +274,11 @@ async function fetchPublicHtml(value: string, maxBytes: number): Promise<PublicH
         continue;
       }
 
+      if (!response.ok) return null;
       const contentType = response.headers.get("content-type") ?? "";
-      if (!response.ok || (contentType && !/(?:text\/html|application\/xhtml\+xml)/i.test(contentType))) return null;
-      return { html: await readTextPrefix(response, maxBytes), url: current.toString() };
+      const html = await readTextPrefix(response, maxBytes);
+      if (contentType && !/(?:text\/html|application\/xhtml\+xml)/i.test(contentType) && !/<(?:!doctype\s+html|html\b|head\b)/i.test(html)) return null;
+      return { html, url: current.toString() };
     }
     return null;
   });
