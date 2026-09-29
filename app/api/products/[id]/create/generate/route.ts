@@ -96,7 +96,7 @@ Store subtitle: ${optimization?.storeSubtitle || "not provided"}
 Short description: ${optimization?.storeShortDescription || "not provided"}
 Answer summary: ${optimization?.answerSummary || "not provided"}`;
     const system = "You are a careful organic marketing creative strategist. Output valid JSON only. Do not explain your reasoning; reserve the response for the final JSON object.";
-    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: runtime.baseUrl, transport: runtime.transport, sessionId: `sorted-create-${productId}`, system, prompt, maxTokens: 5000, timeoutMs: 30_000, validate: (text) => { const parsed = parseCreateJson(text); return parsed.primaryMessage && parsed.storeVariants.length && parsed.answerBlocks.length ? parsed : null; } });
+    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: runtime.baseUrl, transport: runtime.transport, sessionId: `sorted-create-${productId}`, system, prompt, maxTokens: 3_600, timeoutMs: 24_000, totalTimeoutMs: 72_000, jsonMode: true, validate: (text) => { const parsed = parseCreateJson(text); return parsed.primaryMessage && parsed.storeVariants.length && parsed.answerBlocks.length ? parsed : null; } });
     const generated = generation.value;
     const usedModel = generation.model ?? activeModel;
     if (!generated) {

@@ -51,10 +51,18 @@ export function openCodeWorkspaceRestrictionMessage(failures: string[]) {
   return null;
 }
 
-export async function requestOpenCodeWithFallback<T>(request: Omit<OpenCodeRequest, "model"> & { models: string[]; validate: (text: string) => T | null }) {
+export async function requestOpenCodeWithFallback<T>(request: Omit<OpenCodeRequest, "model"> & { models: string[]; validate: (text: string) => T | null; totalTimeoutMs?: number }) {
   const failures: string[] = [];
+  const startedAt = Date.now();
+  const attemptTimeoutMs = Math.max(1_000, request.timeoutMs ?? 30_000);
+  const totalTimeoutMs = Math.max(attemptTimeoutMs, request.totalTimeoutMs ?? attemptTimeoutMs * request.models.length);
   for (const model of request.models) {
-    const result = await requestOpenCode({ ...request, model });
+    const remainingMs = totalTimeoutMs - (Date.now() - startedAt);
+    if (remainingMs < 1_000) {
+      failures.push(`${model}: Skipped because the overall generation time limit was reached.`);
+      break;
+    }
+    const result = await requestOpenCode({ ...request, model, timeoutMs: Math.min(attemptTimeoutMs, remainingMs) });
     if (!result.ok) {
       failures.push(`${model}: ${result.errorMessage}`);
       continue;

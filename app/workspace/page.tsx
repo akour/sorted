@@ -129,6 +129,42 @@ function generationErrorMessage(data: { error?: unknown; detail?: unknown }, fal
   return detail ? `${message} Details: ${detail}` : message;
 }
 
+function limitDraftText(value: string, limit: number, fallback: string) {
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  return normalized.length <= limit ? normalized : `${normalized.slice(0, limit - 1).trimEnd()}…`;
+}
+
+function manualOptimizationDraft(product: Product, plan: OptimizationPlan): OptimizationPlan {
+  const listing = plan.currentListing ?? {};
+  const title = limitDraftText(listing.title ?? product.name, 30, product.name);
+  const subtitle = limitDraftText(product.type === "Game" ? "Relaxing offline space game" : product.position || product.audience, 30, "Clarify the product promise");
+  const shortDescription = limitDraftText(listing.shortDescription || product.position || product.name, 80, product.name);
+  const longDescription = listing.longDescription?.trim() || shortDescription;
+  const answerSummary = `${product.name} is ${product.position || product.type.toLowerCase()}. It is for ${product.audience || "people evaluating this product"}. Verify every store claim against the live listing before publishing.`;
+  return {
+    ...plan,
+    focus: "Manual ASO + AEO starter",
+    storeTitle: title,
+    storeSubtitle: subtitle,
+    storeShortDescription: shortDescription,
+    storeLongDescription: longDescription,
+    answerSummary,
+    opportunities: [
+      { title: "Clarify the product promise in the title and short description", area: "ASO", impact: "High", effort: "Low", rationale: "Make the core use case obvious before adding more keywords.", status: "open" },
+      { title: "Expand the long description with supported mechanics and benefits", area: "ASO", impact: "High", effort: "Medium", rationale: "Use the imported listing and product foundation as the factual source.", status: "open" },
+      { title: "Write a factual answer summary for answer engines", area: "AEO", impact: "Medium", effort: "Low", rationale: "State what the product is, who it is for, and what should be verified.", status: "open" },
+      { title: "Verify every claim before publishing", area: "Trust", impact: "High", effort: "Low", rationale: "Keep unsupported features, ratings, and performance claims out of the final copy.", status: "open" },
+    ],
+    nextActions: [
+      { title: "Review the manual title and short description", area: "ASO", status: "open" },
+      { title: "Complete the long-description draft", area: "ASO", status: "open" },
+      { title: "Confirm the factual answer summary", area: "AEO", status: "open" },
+      { title: "Run a final evidence check", area: "Trust", status: "open" },
+    ],
+  };
+}
+
 function ValidationSummary({ checks, title = "Validation" }: { checks: ValidationCheck[]; title?: string }) {
   const failed = checks.filter((check) => !check.valid);
   return <div className={`validation-summary ${failed.length ? "has-errors" : "is-ready"}`}><div className="validation-heading"><div><p className="eyebrow">{title}</p><strong>{failed.length ? `${failed.length} item${failed.length === 1 ? "" : "s"} need attention` : "Ready for review"}</strong></div><span>{checks.length - failed.length}/{checks.length} checks passed</span></div><div className="validation-list">{checks.map((check) => <div className={`validation-check ${check.valid ? "valid" : "invalid"}`} key={check.label}><span>{check.valid ? "✓" : "!"}</span><div><strong>{check.label}</strong><small>{check.detail}</small></div></div>)}</div></div>;
@@ -733,6 +769,9 @@ export default function Home() {
       window.setTimeout(() => setNotice(""), 4200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not build the optimization plan.");
+      setOptimization((current) => manualOptimizationDraft(product, current));
+      setNotice("AI generation failed. A manual starter draft is ready to edit and save.");
+      window.setTimeout(() => setNotice(""), 5200);
     } finally {
       setOptimizationGenerating(false);
     }
@@ -1080,7 +1119,7 @@ export default function Home() {
                 <div className="product-import-copy">
                   <strong>{productPreview.name || (productPreview.sourceLabel + " link")}</strong>
                   <small>{[productPreview.sourceLabel, productPreview.currentListing?.category, productPreview.currentListing?.developer].filter(Boolean).join(" · ")}</small>
-                  {productPreview.currentListing?.longDescription && <p>{productPreview.currentListing.longDescription}</p>}
+                  {productPreview.currentListing?.longDescription && <p>{productPreview.currentListing.longDescription.slice(0, 360)}{productPreview.currentListing.longDescription.length > 360 ? "…" : ""}</p>}
                   <span>{productPreview.message || (productPreview.available
                     ? "Details found. Review the suggested name and type before adding."
                     : "Details weren’t available. Enter the name manually.")}</span>

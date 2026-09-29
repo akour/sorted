@@ -102,6 +102,50 @@ function pageTitle(html: string): string {
   return decodeHtml(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "").replace(/\s+/g, " ").trim();
 }
 
+function htmlText(value: string): string {
+  return decodeHtml(value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|li|section|article|h[1-6])\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, " "))
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function jsonStringFieldValues(html: string, names: string[]): string[] {
+  const keyPattern = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const pattern = new RegExp(`(?:["'])(?:${keyPattern})(?:["'])\\s*:\\s*"((?:\\\\.|[^"\\])*)"`, "gi");
+  const values: string[] = [];
+  for (const match of html.matchAll(pattern)) {
+    const raw = match[1] ?? "";
+    try {
+      const decoded = JSON.parse(`"${raw}"`) as unknown;
+      if (typeof decoded === "string" && decoded.trim()) values.push(htmlText(decoded));
+    } catch {
+      const fallback = htmlText(raw.replace(/\\n/g, "\n").replace(/\\"/g, '"'));
+      if (fallback) values.push(fallback);
+    }
+  }
+  return values;
+}
+
+function longestDescription(html: string, fallback: string): string {
+  const candidates = [
+    ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
+    ...Array.from(html.matchAll(/itemprop=["']description["'][^>]*>([\s\S]{0,60000}?)(?:<\/(?:div|section|article)>|$)/gi), (match) => htmlText(match[1] ?? "")),
+  ].filter((value) => value.length > 0);
+  const minimumLength = Math.max(120, fallback.length + 40);
+  return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? fallback;
+}
+
+function looksLikeGame(category: string, title: string): boolean {
+  return /\b(?:game|games|arcade|action|adventure|board|card|casino|casual|puzzle|racing|role[- ]?playing|simulation|sports|strategy|trivia|word)\b/i.test(`${category} ${title}`);
+}
+
 function openGraphImage(html: string, baseUrl: string): string {
   const candidate = metaValue(html, ["og:image", "og:image:secure_url", "twitter:image"]);
   if (!candidate) return "";
@@ -356,14 +400,15 @@ async function googlePlayListing(link: Extract<StoreLink, { kind: "google-play" 
   const metadata = pageMetadata(page.html, page.url);
   const title = (metadata.title || "").replace(/\s*(?:-|–|—)\s*Apps on Google Play$/i, "").trim();
   const description = metadata.description.trim();
-  const category = metadata.category.trim();
-  const developer = metadata.developer.trim();
+  const fullDescription = longestDescription(page.html, description);
+  const category = metadata.category.trim() || jsonStringFieldValues(page.html, ["genre", "applicationCategory", "category"])[0] || "";
+  const developer = metadata.developer.trim() || jsonStringFieldValues(page.html, ["author", "publisher", "developer"])[0] || "";
   const discoveredIcon = metadata.imageUrl || openGraphImage(page.html, page.url);
   const iconUrl = isSafeProductIconUrl(discoveredIcon) ? discoveredIcon : "";
   if (!title && !description && !iconUrl) {
     return { listing: null, message: "Google Play opened the link but did not provide app details. You can add the product manually and retry later." };
   }
-  return { listing: { title, description, category, developer, iconUrl }, message: "" };
+  return { listing: { title, description, fullDescription, category, developer, iconUrl }, message: "" };
 }
 
 export async function fetchProductMetadata(value: string): Promise<ProductMetadataPreview | null> {
@@ -486,7 +531,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     title,
     subtitle: "",
     shortDescription: description,
-    longDescription: description,
+    longDescription: result.fullDescription.trim() || description,
     sourceUrl: normalizedUrl,
     fetchedAt: new Date().toISOString(),
     ...(category ? { category } : {}),
@@ -498,7 +543,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     sourceType,
     sourceLabel: "Google Play",
     name: title,
-    productType: /game/i.test(category) ? "Game" : "Mobile app",
+    productType: looksLikeGame(category, title) ? "Game" : "Mobile app",
     iconUrl: result.iconUrl,
     available: Boolean(title || result.iconUrl || description),
     message: "Google Play details found. Review the suggested name and type before adding.",

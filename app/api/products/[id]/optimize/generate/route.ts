@@ -83,7 +83,7 @@ Alternatives: ${research.competitors || "not provided"}
 Proof to verify: ${research.proof || "not provided"}
 Notes: ${research.notes || "not provided"}`;
     const system = "You are a precise ASO and AEO strategist. Output valid JSON only. Do not explain your reasoning; reserve the response for the final JSON object.";
-    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: runtime.baseUrl, transport: runtime.transport, sessionId: `sorted-optimize-${productId}`, system, prompt, maxTokens: 5000, timeoutMs: 30_000, validate: (text) => { const parsed = parsePlanJson(text); return parsed.opportunities.length && parsed.nextActions.length ? parsed : null; } });
+    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: runtime.baseUrl, transport: runtime.transport, sessionId: `sorted-optimize-${productId}`, system, prompt, maxTokens: 3_200, timeoutMs: 22_000, totalTimeoutMs: 66_000, jsonMode: true, validate: (text) => { const parsed = parsePlanJson(text); return parsed.opportunities.length && parsed.nextActions.length ? parsed : null; } });
     const generated = generation.value;
     const usedModel = generation.model ?? activeModel;
     if (!generated) {
