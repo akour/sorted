@@ -3,6 +3,48 @@ import { betterAuth } from "better-auth";
 import { AUTH_ALLOWED_HOSTS, AUTH_TRUSTED_ORIGINS, isOwnerOnlySiteHost } from "./auth-hosts";
 import { hasAuthEmailDeliveryConfigured, sendAuthEmail } from "./auth-email";
 
+function logAuthApiError(error: unknown): void {
+  const details = error && typeof error === "object"
+    ? error as Record<string, unknown>
+    : {};
+  const body = details.body && typeof details.body === "object"
+    ? details.body as Record<string, unknown>
+    : {};
+  const errorName = typeof details.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,39}$/.test(details.name)
+    ? details.name
+    : "unknown";
+  const status = typeof details.status === "string" && /^[A-Z_]{1,40}$/.test(details.status)
+    ? details.status
+    : undefined;
+  const statusCode = typeof details.statusCode === "number" && Number.isInteger(details.statusCode)
+    ? details.statusCode
+    : undefined;
+  const rawCode = body.code ?? details.code;
+  const code = typeof rawCode === "string" && /^[A-Za-z0-9_.-]{1,80}$/.test(rawCode)
+    ? rawCode
+    : undefined;
+  const rawMessage = error instanceof Error ? error.message : "";
+  const message = rawMessage
+    .replace(/\b[\w.+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, "[redacted-email]")
+    .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted-url]")
+    .replace(/\bBearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\bre_[A-Za-z0-9_-]+\b/g, "[redacted-key]")
+    .replace(/\b(token|secret|password|api[_-]?key)=([^&\s]+)/gi, "$1=[redacted]")
+    .slice(0, 180);
+
+  // Expected auth errors such as invalid credentials are common; keep the
+  // Worker logs focused on server failures and unknown exceptions.
+  if (statusCode !== undefined && statusCode < 500) return;
+
+  console.error("Sorted Better Auth API request failed.", {
+    errorName,
+    status,
+    statusCode,
+    code,
+    message: message || undefined,
+  });
+}
+
 export function createAuth(host: string | null | undefined) {
   const secret = env.BETTER_AUTH_SECRET?.trim();
   if (!secret || secret.length < 32) {
@@ -17,6 +59,9 @@ export function createAuth(host: string | null | undefined) {
       fallback: "https://sort3d.space",
     },
     trustedOrigins: AUTH_TRUSTED_ORIGINS,
+    onAPIError: {
+      onError: logAuthApiError,
+    },
     secret,
     database: env.DB,
     emailAndPassword: {
