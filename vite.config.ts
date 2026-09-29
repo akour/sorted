@@ -14,6 +14,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
+  name: "sorted",
   main: "vinext/server/fetch-handler",
   compatibility_flags: ["nodejs_compat"],
   keep_vars: true,
