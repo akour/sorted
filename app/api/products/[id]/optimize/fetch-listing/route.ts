@@ -56,15 +56,34 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     return Response.json({ currentListing });
   } catch {
+    try {
+      const productId = Number((await context.params).id);
+      const ownerId = await getOwnerId();
+      if (Number.isSafeInteger(productId) && productId > 0 && ownerId) {
+        const db = getDb();
+        const [savedPlan] = await db.select().from(optimizationPlans)
+          .where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)))
+          .limit(1);
+        const savedListing = parseSavedListing(savedPlan?.currentListing);
+        if (savedListing) {
+          return Response.json({
+            currentListing: savedListing,
+            warning: "The store listing could not be refreshed, so Sorted kept the last saved listing. Try again later to refresh it.",
+          });
+        }
+      }
+    } catch {
+      // Preserve the original response when even the saved-listing fallback is unavailable.
+    }
     return Response.json({ error: "We could not fetch the current listing metadata. Try again." }, { status: 502 });
   }
 }
 
-function parseSavedListing(raw: string | undefined, sourceUrl: string): Record<string, unknown> | null {
+function parseSavedListing(raw: string | undefined, sourceUrl?: string): Record<string, unknown> | null {
   try {
     const listing = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     const savedSourceUrl = typeof listing.sourceUrl === "string" ? normalizeProductUrlInput(listing.sourceUrl) : "";
-    return savedSourceUrl === sourceUrl && typeof listing.platform === "string" && typeof listing.title === "string" && listing.title.trim()
+    return (!sourceUrl || !savedSourceUrl || savedSourceUrl === sourceUrl) && typeof listing.platform === "string" && typeof listing.title === "string" && listing.title.trim()
       ? listing
       : null;
   } catch {
