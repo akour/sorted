@@ -19,6 +19,7 @@ export type OpenCodeRequest = {
   maxTokens?: number;
   timeoutMs?: number;
   jsonMode?: boolean;
+  transport?: OpenCodeTransport;
 };
 
 export function safeOpenCodeFailureDetails(failures: string[], apiKey: string) {
@@ -93,7 +94,7 @@ export function extractOpenCodeText(payload: OpenCodePayload) {
 }
 
 export async function requestOpenCode(request: OpenCodeRequest) {
-  const transport = getOpenCodeTransport(request.model);
+  const transport = request.transport ?? getOpenCodeTransport(request.model);
   const baseUrl = request.baseUrl ?? "https://opencode.ai/zen/go/v1/chat/completions";
   const endpoint = endpointFor(baseUrl, transport);
   const headers: Record<string, string> = {

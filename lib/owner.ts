@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { accountIdentityLinks } from "@/db/schema";
 import { createAuth } from "./auth";
+import { isSuspendedAuthUser } from "./admin";
 import { isCustomerAuthHost, isOwnerOnlySiteHost, normalizeHost } from "./auth-hosts";
 
 const USER_ID_HEADER = "oai-authenticated-user-id";
@@ -43,6 +44,7 @@ export async function getOwnerId(): Promise<string | null> {
   try {
     const session = await createAuth(host).api.getSession({ headers: requestHeaders });
     if (!session) return null;
+    if (await isSuspendedAuthUser(session.user.id)) return null;
 
     const [linkedIdentity] = await getDb()
       .select({ siteUserId: accountIdentityLinks.siteUserId })

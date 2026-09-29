@@ -5,6 +5,7 @@ import { getDb } from "../../../../../../db";
 import { aiSettings, createBriefs, optimizationPlans, products, researchBriefs } from "../../../../../../db/schema";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCodeWithFallback, safeOpenCodeFailureDetails } from "../../../../../../lib/opencode-client";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel } from "../../../../../../lib/opencode-models";
+import { getGenerationModels, getOpenCodeRuntime } from "../../../../../../lib/ai-runtime";
 
 function parseFallbacks(value: string | undefined) {
   try {
@@ -77,13 +78,14 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const [research] = await db.select().from(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId))).limit(1);
     if (!research?.semanticCore) return Response.json({ error: "Complete the research foundation before building creation briefs." }, { status: 400 });
     const [optimization] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
-    const apiKey = env.OPENCODE_API_KEY;
+    const runtime = await getOpenCodeRuntime();
+    const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet. Add an OpenCode API key to Sorted before generating creation briefs." }, { status: 503 });
 
     const [savedAiSettings] = await db.select().from(aiSettings).where(eq(aiSettings.ownerId, ownerId)).limit(1);
     const configuredModel = savedAiSettings?.activeModel || env.OPENCODE_MODEL || DEFAULT_OPENCODE_MODEL;
     const activeModel = getOpenCodeModel(configuredModel)?.id ?? DEFAULT_OPENCODE_MODEL;
-    const candidates = [activeModel, ...parseFallbacks(savedAiSettings?.fallbackModels)].map((id) => getOpenCodeModel(id)?.id).filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index);
+    const candidates = getGenerationModels(runtime, activeModel, parseFallbacks(savedAiSettings?.fallbackModels)).map((id) => runtime.providerId === "opencode" ? getOpenCodeModel(id)?.id : id).filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index);
     const prompt = `Build a first creation brief for this product. Use only the supplied product, research, and optimization facts. Do not invent features, ratings, reviews, outcomes, competitor claims, or audience promises. Do not imply anything is published. Return JSON only with exactly these keys: status, primaryMessage, storeVariants, answerBlocks, promoBrief, creativeBrief. status must be draft. storeVariants must include 3 editable variants with label, platform, title, subtitle, description, status. answerBlocks must include 3 factual question-and-answer blocks with question, answer, status. promoBrief must include theme, hook, body, cta, channels. creativeBrief must include concept, visualDirection, frames (array), proofToShow (array). Keep copy concise, specific, and reviewable. Use only channels that make sense for the supplied product. Do not mention competitor brands unless explicitly provided.
 
 Product
@@ -106,7 +108,7 @@ Store subtitle: ${optimization?.storeSubtitle || "not provided"}
 Short description: ${optimization?.storeShortDescription || "not provided"}
 Answer summary: ${optimization?.answerSummary || "not provided"}`;
     const system = "You are a careful organic marketing creative strategist. Output valid JSON only. Do not explain your reasoning; reserve the response for the final JSON object.";
-    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: env.OPENCODE_BASE_URL, sessionId: `sorted-create-${productId}`, system, prompt, maxTokens: 5000, timeoutMs: 30_000, validate: (text) => { const parsed = parseCreateJson(text); return parsed.primaryMessage && parsed.storeVariants.length && parsed.answerBlocks.length ? parsed : null; } });
+    const generation = await requestOpenCodeWithFallback({ models: candidates, apiKey, baseUrl: runtime.baseUrl, transport: runtime.transport, sessionId: `sorted-create-${productId}`, system, prompt, maxTokens: 5000, timeoutMs: 30_000, validate: (text) => { const parsed = parseCreateJson(text); return parsed.primaryMessage && parsed.storeVariants.length && parsed.answerBlocks.length ? parsed : null; } });
     const generated = generation.value;
     const usedModel = generation.model ?? activeModel;
     if (!generated) {

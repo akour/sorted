@@ -10,5 +10,6 @@ declare namespace Cloudflare {
     RESEND_API_KEY?: string;
     SORTED_AUTH_EMAIL_FROM?: string;
     SORTED_AUTH_EMAIL_ENABLED?: string;
+    SORTED_ADMIN_EMAILS?: string;
   }
 }

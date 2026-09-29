@@ -157,3 +157,47 @@ export const accountIdentityLinks = sqliteTable("account_identity_links", {
   email: text("email").notNull(),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("account_identity_links_site_user_uidx").on(table.siteUserId)]);
+
+// Admin access is bootstrapped by SORTED_ADMIN_EMAILS and can then be managed
+// from the control plane without changing the deployment configuration.
+export const adminUsers = sqliteTable("admin_users", {
+  authUserId: text("auth_user_id").primaryKey().references(() => authUsers.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("admin"),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const adminUserControls = sqliteTable("admin_user_controls", {
+  authUserId: text("auth_user_id").primaryKey().references(() => authUsers.id, { onDelete: "cascade" }),
+  suspended: integer("suspended", { mode: "boolean" }).notNull().default(false),
+  note: text("note").notNull().default(""),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const adminProviderKeys = sqliteTable("admin_provider_keys", {
+  providerId: text("provider_id").primaryKey(),
+  label: text("label").notNull(),
+  baseUrl: text("base_url").notNull(),
+  model: text("model").notNull().default(""),
+  apiKeyCiphertext: text("api_key_ciphertext").notNull(),
+  apiKeyHint: text("api_key_hint").notNull().default(""),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  lastTestedAt: text("last_tested_at"),
+  lastError: text("last_error"),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const adminAuditLog = sqliteTable("admin_audit_log", {
+  id: text("id").primaryKey(),
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id").notNull().default(""),
+  summary: text("summary").notNull(),
+  metadata: text("metadata").notNull().default("{}"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [index("admin_audit_log_created_idx").on(table.createdAt)]);

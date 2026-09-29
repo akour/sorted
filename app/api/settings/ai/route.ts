@@ -4,6 +4,7 @@ import { env } from "cloudflare:workers";
 import { getDb } from "../../../../db";
 import { aiSettings } from "../../../../db/schema";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel, OPENCODE_MODELS } from "../../../../lib/opencode-models";
+import { getOpenCodeRuntime } from "../../../../lib/ai-runtime";
 
 export async function GET() {
   try {
@@ -22,7 +23,7 @@ export async function GET() {
       models: OPENCODE_MODELS,
       activeModel: getOpenCodeModel(configuredModel)?.id ?? DEFAULT_OPENCODE_MODEL,
       fallbackModels: fallbackModels.filter((id) => Boolean(getOpenCodeModel(id))),
-      hasApiKey: Boolean(env.OPENCODE_API_KEY),
+      hasApiKey: Boolean((await getOpenCodeRuntime()).apiKey),
       updatedAt: saved?.updatedAt ?? null,
     });
   } catch (error) {

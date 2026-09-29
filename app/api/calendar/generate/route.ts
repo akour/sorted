@@ -5,6 +5,7 @@ import { getDb } from "../../../../db";
 import { aiSettings, createBriefs, optimizationPlans, products, promoEvents, researchBriefs } from "../../../../db/schema";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCode, safeOpenCodeFailureDetails } from "../../../../lib/opencode-client";
 import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel, getOpenCodeTransport } from "../../../../lib/opencode-models";
+import { getGenerationModels, getOpenCodeRuntime } from "../../../../lib/ai-runtime";
 import { serializeEvent } from "../route";
 
 function parseFallbacks(value: string | undefined) {
@@ -133,6 +134,7 @@ type JsonStageRequest<T> = {
   candidates: string[];
   apiKey: string;
   baseUrl?: string;
+  transport?: import("../../../../lib/opencode-models").OpenCodeTransport;
   sessionId: string;
   system: string;
   prompt: string;
@@ -158,12 +160,13 @@ async function generateJsonStage<T>(request: JsonStageRequest<T>) {
         model: candidate,
         apiKey: request.apiKey,
         baseUrl: request.baseUrl,
+        transport: request.transport,
         sessionId: request.sessionId,
         system: request.system,
         prompt: attemptPrompt,
         maxTokens: isRetry ? request.retryMaxTokens : request.maxTokens,
         timeoutMs: Math.min(isRetry ? 25_000 : 35_000, remaining),
-        jsonMode: isRetry && getOpenCodeTransport(candidate) === "chat",
+        jsonMode: isRetry && (request.transport ?? getOpenCodeTransport(candidate)) === "chat",
       });
       if (!result.ok) {
         failures.push(`${candidate}: ${result.errorMessage || `HTTP ${result.status || "unknown"}.`}`);
@@ -236,13 +239,14 @@ export async function POST(request: Request) {
     if (!eventIdea) return Response.json({ error: "Enter an event name before generating with AI." }, { status: 400 });
     const [optimization] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     const [create] = await db.select().from(createBriefs).where(and(eq(createBriefs.productId, productId), eq(createBriefs.ownerId, ownerId))).limit(1);
-    const apiKey = env.OPENCODE_API_KEY;
+    const runtime = await getOpenCodeRuntime();
+    const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet. Add an OpenCode API key before building event outputs." }, { status: 503 });
     const [savedAiSettings] = await db.select().from(aiSettings).where(eq(aiSettings.ownerId, ownerId)).limit(1);
     const configuredModel = savedAiSettings?.activeModel || env.OPENCODE_MODEL || DEFAULT_OPENCODE_MODEL;
     const activeModel = getOpenCodeModel(configuredModel)?.id ?? DEFAULT_OPENCODE_MODEL;
-    const candidates = [activeModel, ...parseFallbacks(savedAiSettings?.fallbackModels)]
-      .map((id) => getOpenCodeModel(id)?.id)
+    const candidates = getGenerationModels(runtime, activeModel, parseFallbacks(savedAiSettings?.fallbackModels))
+      .map((id) => runtime.providerId === "opencode" ? getOpenCodeModel(id)?.id : id)
       .filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index)
       // Muse is region-limited. Keep it usable when explicitly selected as the active model,
       // but do not spend the fallback budget on it after another model has failed.
@@ -307,7 +311,8 @@ export async function POST(request: Request) {
       const strategyResult = await generateJsonStage({
         candidates,
         apiKey,
-        baseUrl: env.OPENCODE_BASE_URL,
+        baseUrl: runtime.baseUrl,
+        transport: runtime.transport,
         sessionId: "sorted-calendar-strategy-" + productId,
         system: "You are a careful live-ops strategist. Return valid JSON only. Do not explain your reasoning.",
         prompt: strategyPrompt,
@@ -396,7 +401,8 @@ export async function POST(request: Request) {
     const packageResult = await generateJsonStage({
       candidates,
       apiKey,
-      baseUrl: env.OPENCODE_BASE_URL,
+      baseUrl: runtime.baseUrl,
+      transport: runtime.transport,
       sessionId: `sorted-calendar-${channel}-${locale}-${productId}`,
       system: "You are a careful organic marketing production strategist. Return valid JSON only. Do not explain your reasoning or invent unsupported facts.",
       prompt: packagePrompt,

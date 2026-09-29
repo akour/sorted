@@ -1,20 +1,24 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
-import { env } from "cloudflare:workers";
+import { getOpenCodeRuntime } from "../../../../../lib/ai-runtime";
 import { getOpenCodeModel } from "../../../../../lib/opencode-models";
 import { requestOpenCode, safeOpenCodeFailureDetails } from "../../../../../lib/opencode-client";
 
 export async function POST(request: Request) {
   try {
     if (!(await getOwnerId())) return ownerAuthenticationRequired();
-    const apiKey = env.OPENCODE_API_KEY;
+    const runtime = await getOpenCodeRuntime();
+    const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet." }, { status: 503 });
     const body = await request.json() as { model?: string };
-    const model = getOpenCodeModel(body.model);
-    if (!model) return Response.json({ error: "Choose a model from the OpenCode catalog." }, { status: 400 });
+    const model = runtime.source === "managed" && runtime.providerId !== "opencode"
+      ? { id: runtime.model, name: runtime.providerId }
+      : getOpenCodeModel(body.model);
+    if (!model?.id) return Response.json({ error: "Choose a model from the OpenCode catalog or configure a managed provider." }, { status: 400 });
     const result = await requestOpenCode({
       model: model.id,
       apiKey,
-      baseUrl: env.OPENCODE_BASE_URL,
+      baseUrl: runtime.baseUrl,
+      transport: runtime.transport,
       sessionId: `sorted-settings-test-${model.id}`,
       system: "Reply with exactly OK and nothing else.",
       prompt: "Connection test. Reply with exactly OK.",
