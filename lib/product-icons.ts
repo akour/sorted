@@ -118,7 +118,7 @@ function htmlText(value: string): string {
 
 function jsonStringFieldValues(html: string, names: string[]): string[] {
   const keyPattern = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const pattern = new RegExp(`(?:["'])(?:${keyPattern})(?:["'])\\s*:\\s*"((?:\\\\.|[^"\\])*)"`, "gi");
+  const pattern = new RegExp(`(?:["'])(?:${keyPattern})(?:["'])\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "gi");
   const values: string[] = [];
   for (const match of html.matchAll(pattern)) {
     const raw = match[1] ?? "";
@@ -163,13 +163,17 @@ function itempropTextValues(html: string, itemprop: string): string[] {
   return values;
 }
 
-function longestDescription(html: string, fallback: string): string {
+export function extractGooglePlayLongDescription(html: string, fallback: string): string {
   const candidates = [
     ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
     ...itempropTextValues(html, "description"),
   ].filter((value) => value.length > 0);
   const minimumLength = Math.max(120, fallback.length + 40);
   return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? "";
+}
+
+function longestDescription(html: string, fallback: string): string {
+  return extractGooglePlayLongDescription(html, fallback);
 }
 
 function looksLikeGame(category: string, title: string): boolean {
