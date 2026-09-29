@@ -157,3 +157,21 @@ export const accountIdentityLinks = sqliteTable("account_identity_links", {
   email: text("email").notNull(),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("account_identity_links_site_user_uidx").on(table.siteUserId)]);
+
+export const subscriptions = sqliteTable("subscriptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  authUserId: text("auth_user_id").notNull().references(() => authUsers.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("paypal"),
+  providerSubscriptionId: text("provider_subscription_id").notNull(),
+  planId: text("plan_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  payerEmail: text("payer_email").notNull().default(""),
+  currentPeriodStart: text("current_period_start"),
+  nextBillingTime: text("next_billing_time"),
+  cancelledAt: text("cancelled_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("subscriptions_provider_id_uidx").on(table.providerSubscriptionId),
+  index("subscriptions_auth_user_idx").on(table.authUserId),
+]);
