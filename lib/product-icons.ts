@@ -133,6 +133,23 @@ function jsonStringFieldValues(html: string, names: string[]): string[] {
   return values;
 }
 
+function jsonStringValues(html: string): string[] {
+  const values: string[] = [];
+  const pattern = /"((?:\\.|[^"\\]){120,})"/g;
+  for (const match of html.matchAll(pattern)) {
+    const raw = match[1] ?? "";
+    try {
+      const decoded = JSON.parse(`"${raw}"`) as unknown;
+      if (typeof decoded !== "string" || !/(?:<br\b|\n)/i.test(decoded)) continue;
+      const value = htmlText(decoded);
+      if (value) values.push(value);
+    } catch {
+      // Ignore non-JSON strings from scripts and attributes.
+    }
+  }
+  return values;
+}
+
 function attributeTextValues(html: string, attributeName: string, attributeValue: string): string[] {
   const escapedName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const escapedValue = attributeValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -171,6 +188,7 @@ function itempropTextValues(html: string, itemprop: string): string[] {
 export function extractGooglePlayLongDescription(html: string, fallback: string): string {
   const candidates = [
     ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
+    ...jsonStringValues(html),
     ...itempropTextValues(html, "description"),
     ...attributeTextValues(html, "jsname", "bN97Pc"),
   ].filter((value) => value.length > 0);

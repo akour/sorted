@@ -12,3 +12,12 @@ test("extracts the complete nested Google Play description instead of the short 
   assert.match(description, /PLAY OFFLINE ANYWHERE/);
   assert.notEqual(description, shortDescription);
 });
+
+test("extracts Google Play descriptions embedded in escaped page data", () => {
+  const html = `<script>window.data = [[null,"How high can you build your tower?\\u003cbr\\u003e\\u003cbr\\u003eBUILD THE PERFECT TOWER\\u003cbr\\u003eEvery tap counts. Challenge your timing and focus as you construct an endless block tower.\\u003cbr\\u003e\\u003cbr\\u003ePLAY OFFLINE ANYWHERE\\u003cbr\\u003eNo Wi-Fi? No problem. Void Stack is a fully offline tower game."]]</script>`;
+
+  const description = extractGooglePlayLongDescription(html, "A relaxing cosmic journey, one block at a time.");
+
+  assert.match(description, /BUILD THE PERFECT TOWER/);
+  assert.match(description, /PLAY OFFLINE ANYWHERE/);
+});
