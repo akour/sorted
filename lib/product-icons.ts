@@ -133,13 +133,43 @@ function jsonStringFieldValues(html: string, names: string[]): string[] {
   return values;
 }
 
+function itempropTextValues(html: string, itemprop: string): string[] {
+  const escaped = itemprop.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const openingPattern = new RegExp(`<([a-z][\\w:-]*)\\b(?=[^>]*\\bitemprop\\s*=\\s*["']${escaped}["'])[^>]*>`, "gi");
+  const tagPattern = /<\/?([a-z][\w:-]*)(?:\s[^>]*)?>/gi;
+  const values: string[] = [];
+  let opening: RegExpExecArray | null;
+  while ((opening = openingPattern.exec(html))) {
+    const tagName = (opening[1] ?? "").toLowerCase();
+    const contentStart = opening.index + opening[0].length;
+    let depth = 1;
+    let closingIndex = -1;
+    tagPattern.lastIndex = contentStart;
+    let tag: RegExpExecArray | null;
+    while ((tag = tagPattern.exec(html))) {
+      if ((tag[1] ?? "").toLowerCase() !== tagName) continue;
+      if (tag[0].startsWith("</")) depth -= 1;
+      else if (!/\/\s*>$/.test(tag[0])) depth += 1;
+      if (depth === 0) {
+        closingIndex = tag.index;
+        break;
+      }
+    }
+    if (closingIndex >= contentStart) {
+      const value = htmlText(html.slice(contentStart, closingIndex));
+      if (value) values.push(value);
+    }
+  }
+  return values;
+}
+
 function longestDescription(html: string, fallback: string): string {
   const candidates = [
     ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
-    ...Array.from(html.matchAll(/itemprop=["']description["'][^>]*>([\s\S]{0,60000}?)(?:<\/(?:div|section|article)>|$)/gi), (match) => htmlText(match[1] ?? "")),
+    ...itempropTextValues(html, "description"),
   ].filter((value) => value.length > 0);
   const minimumLength = Math.max(120, fallback.length + 40);
-  return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? fallback;
+  return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? "";
 }
 
 function looksLikeGame(category: string, title: string): boolean {
@@ -534,7 +564,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     title,
     subtitle: "",
     shortDescription: description,
-    longDescription: result.fullDescription.trim() || description,
+    longDescription: result.fullDescription.trim(),
     sourceUrl: normalizedUrl,
     fetchedAt: new Date().toISOString(),
     ...(category ? { category } : {}),
