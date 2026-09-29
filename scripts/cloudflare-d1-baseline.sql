@@ -61,3 +61,24 @@ WHERE EXISTS (
   GROUP BY type
   HAVING COUNT(*) = 5
 );
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0011_milky_gertrude_yorkes.sql'
+WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_audit_log')
+  AND EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_provider_keys')
+  AND EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_user_controls')
+  AND EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_users');
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0012_tan_strong_guy.sql'
+WHERE EXISTS (
+  SELECT 1 FROM pragma_table_info('admin_provider_keys') WHERE name = 'fallback_models'
+);
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0013_round_lady_vermin.sql'
+WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'product_connections');
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0014_foamy_jackpot.sql'
+WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_oauth_clients');
