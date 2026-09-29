@@ -20,4 +20,5 @@ test("extracts Google Play descriptions embedded in escaped page data", () => {
 
   assert.match(description, /BUILD THE PERFECT TOWER/);
   assert.match(description, /PLAY OFFLINE ANYWHERE/);
+  assert.doesNotMatch(description, /inert>|<div class=/);
 });

@@ -136,15 +136,18 @@ function jsonStringFieldValues(html: string, names: string[]): string[] {
 function jsonStringValues(html: string): string[] {
   const values: string[] = [];
   const pattern = /"((?:\\.|[^"\\]){120,})"/g;
-  for (const match of html.matchAll(pattern)) {
-    const raw = match[1] ?? "";
-    try {
-      const decoded = JSON.parse(`"${raw}"`) as unknown;
-      if (typeof decoded !== "string" || !/(?:<br\b|\n)/i.test(decoded)) continue;
-      const value = htmlText(decoded);
-      if (value) values.push(value);
-    } catch {
-      // Ignore non-JSON strings from scripts and attributes.
+  for (const script of html.match(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi) ?? []) {
+    const content = script.replace(/^<script\b[^>]*>/i, "").replace(/<\/script\s*>$/i, "");
+    for (const match of content.matchAll(pattern)) {
+      const raw = match[1] ?? "";
+      try {
+        const decoded = JSON.parse(`"${raw}"`) as unknown;
+        if (typeof decoded !== "string" || !/(?:<br\b|\n)/i.test(decoded)) continue;
+        const value = htmlText(decoded);
+        if (value) values.push(value);
+      } catch {
+        // Ignore non-JSON strings from scripts.
+      }
     }
   }
   return values;
