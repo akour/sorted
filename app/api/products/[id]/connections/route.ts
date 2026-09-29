@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../db";
-import { productConnections, products } from "../../../../../db/schema";
+import { productConnections, productOauthConnections, products } from "../../../../../db/schema";
 import { decryptProductConnectionSecret, encryptProductConnectionSecret, secretHint } from "../../../../../lib/admin-secrets";
 import { googlePlayErrorMessage, parseGooglePlayCredentials, testGooglePlayConnection, validateGooglePlayLocale, validateGooglePlayPackageName } from "../../../../../lib/google-play";
+import { revokeGooglePlayRefreshToken } from "../../../../../lib/google-play-oauth";
 import { getOwnerId, ownerAuthenticationRequired } from "../../../../../lib/owner";
 
 const GOOGLE_PLAY_PROVIDER = "google-play";
@@ -25,6 +26,24 @@ function safeConnection(connection: typeof productConnections.$inferSelect | und
   };
 }
 
+function safeOauthConnection(connection: typeof productOauthConnections.$inferSelect | undefined) {
+  if (!connection) return null;
+  return {
+    id: connection.id,
+    provider: connection.provider,
+    packageName: connection.packageName,
+    locale: connection.locale,
+    label: connection.label,
+    accountEmail: connection.accountEmail,
+    refreshTokenHint: connection.refreshTokenHint,
+    status: connection.status,
+    lastSyncedAt: connection.lastSyncedAt,
+    lastError: connection.lastError,
+    createdAt: connection.createdAt,
+    updatedAt: connection.updatedAt,
+  };
+}
+
 async function loadProduct(productId: number, ownerId: string) {
   const [product] = await getDb().select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
   return product;
@@ -39,7 +58,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const product = await loadProduct(productId, ownerId);
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
     const [connection] = await getDb().select().from(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, GOOGLE_PLAY_PROVIDER))).limit(1);
-    return Response.json({ connection: safeConnection(connection) });
+    const [oauthConnection] = await getDb().select().from(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, GOOGLE_PLAY_PROVIDER))).limit(1);
+    return Response.json({ connection: safeConnection(connection), oauthConnection: safeOauthConnection(oauthConnection) });
   } catch {
     return Response.json({ error: "We could not load the product connections." }, { status: 500 });
   }
@@ -116,7 +136,18 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     if (!Number.isSafeInteger(productId) || productId < 1) return Response.json({ error: "Product not found." }, { status: 404 });
     const product = await loadProduct(productId, ownerId);
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
-    await getDb().delete(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, GOOGLE_PLAY_PROVIDER)));
+    const db = getDb();
+    const [oauthConnection] = await db.select().from(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, GOOGLE_PLAY_PROVIDER))).limit(1);
+    if (oauthConnection) {
+      try {
+        const parsed = JSON.parse(await decryptProductConnectionSecret(oauthConnection.refreshTokenCiphertext)) as { refreshToken?: unknown };
+        if (typeof parsed.refreshToken === "string" && parsed.refreshToken) await revokeGooglePlayRefreshToken(parsed.refreshToken);
+      } catch {
+        // Revocation is best-effort; deletion still removes Sorted's copy.
+      }
+    }
+    await db.delete(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, GOOGLE_PLAY_PROVIDER)));
+    await db.delete(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, GOOGLE_PLAY_PROVIDER)));
     return Response.json({ ok: true });
   } catch {
     return Response.json({ error: "We could not disconnect Google Play." }, { status: 500 });

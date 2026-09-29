@@ -1,9 +1,10 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../../db";
-import { optimizationPlans, productConnections, products } from "../../../../../../db/schema";
-import { decryptProductConnectionSecret } from "../../../../../../lib/admin-secrets";
+import { adminOAuthClients, optimizationPlans, productConnections, productOauthConnections, products } from "../../../../../../db/schema";
+import { decryptAdminSecret, decryptProductConnectionSecret } from "../../../../../../lib/admin-secrets";
 import { fetchGooglePlayListing, googlePlayErrorMessage, mergeGooglePlayListing, parseGooglePlayCredentials } from "../../../../../../lib/google-play";
+import { fetchGooglePlayListingWithAccessToken, googlePlayOAuthErrorMessage, refreshGooglePlayAccessToken } from "../../../../../../lib/google-play-oauth";
 import { fetchProductMetadata } from "../../../../../../lib/product-icons";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../../../../../lib/product-url";
 
@@ -36,6 +37,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [googlePlayConnection] = linkKind === "google-play"
       ? await db.select().from(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, "google-play"))).limit(1)
       : [];
+    const [googlePlayOAuthConnection] = linkKind === "google-play"
+      ? await db.select().from(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, "google-play"))).limit(1)
+      : [];
     let preview: Awaited<ReturnType<typeof fetchProductMetadata>> = null;
     try {
       preview = await fetchProductMetadata(sourceUrl);
@@ -44,7 +48,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     let currentListing = preview?.currentListing;
     let authenticatedWarning = "";
-    if (googlePlayConnection?.status === "connected") {
+    if (googlePlayOAuthConnection) {
+      try {
+        const [oauthConfig] = await db.select().from(adminOAuthClients).where(eq(adminOAuthClients.providerId, "google-play")).limit(1);
+        if (!oauthConfig || !oauthConfig.enabled) throw new Error("Google Play OAuth is not enabled by the administrator.");
+        const stored = JSON.parse(await decryptProductConnectionSecret(googlePlayOAuthConnection.refreshTokenCiphertext)) as { refreshToken?: unknown };
+        if (typeof stored.refreshToken !== "string" || !stored.refreshToken) throw new Error("The Google Play authorization is incomplete. Reconnect the account.");
+        const accessToken = await refreshGooglePlayAccessToken({ clientId: oauthConfig.clientId, clientSecret: await decryptAdminSecret(oauthConfig.clientSecretCiphertext), refreshToken: stored.refreshToken });
+        const authenticatedListing = await fetchGooglePlayListingWithAccessToken(accessToken, googlePlayOAuthConnection.packageName, googlePlayOAuthConnection.locale);
+        currentListing = { ...authenticatedListing, sourceUrl, category: currentListing?.category, developer: currentListing?.developer, iconUrl: currentListing?.iconUrl, bundleId: currentListing?.bundleId, storeId: currentListing?.storeId };
+        await db.update(productOauthConnections).set({ status: "connected", lastError: null, lastSyncedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).where(eq(productOauthConnections.id, googlePlayOAuthConnection.id));
+      } catch (error) {
+        await db.update(productOauthConnections).set({ status: "error", lastError: googlePlayOAuthErrorMessage(error), updatedAt: new Date().toISOString() }).where(eq(productOauthConnections.id, googlePlayOAuthConnection.id));
+        authenticatedWarning = `The connected Google Play account could not be refreshed (${googlePlayOAuthErrorMessage(error)}), so Sorted used the public listing instead.`;
+      }
+    } else if (googlePlayConnection?.status === "connected") {
       try {
         const credentials = parseGooglePlayCredentials(await decryptProductConnectionSecret(googlePlayConnection.credentialsCiphertext));
         const authenticatedListing = await fetchGooglePlayListing(credentials, googlePlayConnection.packageName, googlePlayConnection.locale);

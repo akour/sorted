@@ -38,6 +38,44 @@ export const productConnections = sqliteTable("product_connections", {
   index("product_connections_owner_idx").on(table.ownerId),
 ]);
 
+// OAuth authorization is stored separately from the existing service-account
+// connection so both paths can coexist without changing the legacy credential
+// format used by the authenticated listing sync.
+export const productOauthConnections = sqliteTable("product_oauth_connections", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  provider: text("provider").notNull(),
+  packageName: text("package_name").notNull(),
+  locale: text("locale").notNull().default("en-US"),
+  label: text("label").notNull().default(""),
+  accountEmail: text("account_email").notNull().default(""),
+  refreshTokenCiphertext: text("refresh_token_ciphertext").notNull(),
+  refreshTokenHint: text("refresh_token_hint").notNull().default(""),
+  status: text("status").notNull().default("connected"),
+  lastSyncedAt: text("last_synced_at"),
+  lastError: text("last_error"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("product_oauth_connections_product_owner_provider_idx").on(table.productId, table.ownerId, table.provider),
+  index("product_oauth_connections_owner_idx").on(table.ownerId),
+]);
+
+// The state value itself is only sent through the browser. D1 stores its hash
+// so a callback can be validated without persisting a reusable bearer value.
+export const googlePlayOAuthStates = sqliteTable("google_play_oauth_states", {
+  stateHash: text("state_hash").primaryKey(),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  packageName: text("package_name").notNull(),
+  locale: text("locale").notNull().default("en-US"),
+  label: text("label").notNull().default(""),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const researchBriefs = sqliteTable("research_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),
