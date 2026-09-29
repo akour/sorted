@@ -216,6 +216,23 @@ export const adminProviderKeys = sqliteTable("admin_provider_keys", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Shared OAuth client configuration is managed centrally by administrators.
+// User/workspace authorization tokens will remain separate from this client
+// configuration when the provider connection flow is added.
+export const adminOAuthClients = sqliteTable("admin_oauth_clients", {
+  providerId: text("provider_id").primaryKey(),
+  label: text("label").notNull(),
+  clientId: text("client_id").notNull(),
+  clientSecretCiphertext: text("client_secret_ciphertext").notNull(),
+  clientSecretHint: text("client_secret_hint").notNull().default(""),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  lastTestedAt: text("last_tested_at"),
+  lastError: text("last_error"),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const adminAuditLog = sqliteTable("admin_audit_log", {
   id: text("id").primaryKey(),
   actorId: text("actor_id").notNull(),

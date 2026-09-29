@@ -50,6 +50,13 @@
       "when": 1790687155512,
       "tag": "0013_round_lady_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1790688656920,
+      "tag": "0014_foamy_jackpot",
+      "breakpoints": true
     }
   ]
 }

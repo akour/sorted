@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type Tab = "overview" | "users" | "providers" | "environment";
+type Tab = "overview" | "users" | "providers" | "integrations" | "environment";
 type Readiness = Record<"betterAuthSecret" | "d1" | "resend" | "openCode" | "adminAllowlist", boolean>;
 type Overview = {
   counts: { users: number; verifiedUsers: number; products: number; configuredProviders: number };
@@ -21,11 +21,18 @@ type Provider = {
 };
 type ProviderDefinition = { id: string; name: string; kind: string; defaultBaseUrl: string; defaultModel: string; models?: Array<{ id: string; name: string }>; description: string };
 type ProviderForm = { providerId: string; label: string; baseUrl: string; model: string; fallbackModels: string[]; apiKey: string; enabled: boolean };
+type GooglePlayOAuthConfig = {
+  configured: boolean; enabled: boolean; label: string; clientId: string; clientSecretHint: string;
+  redirectUri: string; scopes: string[]; lastTestedAt: string | null; lastError: string | null;
+  createdAt: string | null; updatedAt: string | null;
+};
+type GooglePlayOAuthForm = { clientId: string; clientSecret: string; enabled: boolean };
 
 const tabs: Array<{ id: Tab; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: "⌂" },
   { id: "users", label: "Users", icon: "♙" },
   { id: "providers", label: "AI providers", icon: "✦" },
+  { id: "integrations", label: "Integrations", icon: "◎" },
   { id: "environment", label: "Environment", icon: "⚙" },
 ];
 
@@ -52,25 +59,30 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [catalog, setCatalog] = useState<ProviderDefinition[]>([]);
+  const [googlePlayOAuth, setGooglePlayOAuth] = useState<GooglePlayOAuthConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [providerForm, setProviderForm] = useState<ProviderForm>({ providerId: "", label: "", baseUrl: "", model: "", fallbackModels: [], apiKey: "", enabled: true });
+  const [googlePlayOAuthForm, setGooglePlayOAuthForm] = useState<GooglePlayOAuthForm>({ clientId: "", clientSecret: "", enabled: true });
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [overviewData, usersData, providersData] = await Promise.all([
+      const [overviewData, usersData, providersData, googlePlayData] = await Promise.all([
         requestJson<Overview>("/api/admin/overview"),
         requestJson<{ users: User[] }>("/api/admin/users"),
         requestJson<{ providers: Provider[]; catalog: ProviderDefinition[] }>("/api/admin/providers"),
+        requestJson<GooglePlayOAuthConfig>("/api/admin/integrations/google-play"),
       ]);
       setOverview(overviewData);
       setUsers(usersData.users);
       setProviders(providersData.providers);
       setCatalog(providersData.catalog);
+      setGooglePlayOAuth(googlePlayData);
+      setGooglePlayOAuthForm({ clientId: googlePlayData.clientId, clientSecret: "", enabled: googlePlayData.enabled });
       if (!providerForm.providerId && providersData.catalog[0]) {
         const first = providersData.catalog[0];
         const existing = providersData.providers.find((provider) => provider.providerId === first.id);
@@ -146,6 +158,40 @@ export default function AdminPage() {
     finally { setBusy(null); }
   }
 
+  async function saveGooglePlayOAuth(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy("google-play-oauth:save"); setError(""); setNotice("");
+    try {
+      await requestJson<GooglePlayOAuthConfig>("/api/admin/integrations/google-play", { method: "PUT", body: JSON.stringify(googlePlayOAuthForm) });
+      setGooglePlayOAuthForm((current) => ({ ...current, clientSecret: "" }));
+      setNotice("Google Play OAuth configuration saved. The secret is encrypted and will not be shown again.");
+      await loadData();
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "The Google Play OAuth configuration could not be saved."); }
+    finally { setBusy(null); }
+  }
+
+  async function testGooglePlayOAuth() {
+    setBusy("google-play-oauth:test"); setError(""); setNotice("");
+    try {
+      const result = await requestJson<{ detail: string }>("/api/admin/integrations/google-play", { method: "POST" });
+      setNotice(result.detail); await loadData();
+    } catch (testError) { setError(testError instanceof Error ? testError.message : "The Google Play OAuth configuration could not be checked."); await loadData(); }
+    finally { setBusy(null); }
+  }
+
+  async function removeGooglePlayOAuth() {
+    if (!window.confirm("Remove the shared Google Play OAuth configuration? Existing product connections will remain until they are changed, but new authorization cannot start.")) return;
+    setBusy("google-play-oauth:remove"); setError(""); setNotice("");
+    try {
+      await requestJson("/api/admin/integrations/google-play", { method: "DELETE" });
+      setGooglePlayOAuth(null);
+      setGooglePlayOAuthForm({ clientId: "", clientSecret: "", enabled: true });
+      setNotice("Google Play OAuth configuration removed.");
+      await loadData();
+    } catch (removeError) { setError(removeError instanceof Error ? removeError.message : "The Google Play OAuth configuration could not be removed."); }
+    finally { setBusy(null); }
+  }
+
   if (loading && !overview) return <main className="admin-loading"><div className="admin-loading-orbit">✦</div><p>Loading Sorted administration…</p></main>;
 
   return (
@@ -168,6 +214,7 @@ export default function AdminPage() {
           {tab === "overview" && overview && <OverviewPanel overview={overview} onNavigate={setTab} />}
           {tab === "users" && <UsersPanel users={users} busy={busy} onAction={runUserAction} />}
           {tab === "providers" && <ProvidersPanel providers={providers} catalog={catalog} form={providerForm} busy={busy} selectedDefinition={selectedDefinition} onSelect={selectProvider} onChange={setProviderForm} onSave={saveProvider} onTest={testProvider} onRemove={removeProvider} />}
+          {tab === "integrations" && <IntegrationsPanel config={googlePlayOAuth} form={googlePlayOAuthForm} busy={busy} onChange={setGooglePlayOAuthForm} onSave={saveGooglePlayOAuth} onTest={testGooglePlayOAuth} onRemove={removeGooglePlayOAuth} />}
           {tab === "environment" && overview && <EnvironmentPanel overview={overview} />}
         </div>
       </main>
@@ -229,6 +276,29 @@ function ProvidersPanel({ providers, catalog, form, busy, selectedDefinition, on
     <section className="admin-section">
       <div className="admin-section-heading"><div><p className="eyebrow">Configured keys</p><h2>Provider status</h2></div><span className="admin-muted">Secrets are never displayed</span></div>
       <div className="admin-provider-list">{providers.map((provider) => <div className="admin-provider-row" key={provider.providerId}><div className="admin-provider-icon">✦</div><div className="admin-provider-copy"><strong>{provider.label}</strong><small>{provider.providerId} · {provider.model}</small>{provider.fallbackModels.length > 0 && <small>Fallbacks: {provider.fallbackModels.join(", ")}</small>}<small>{provider.apiKeyHint} · tested {formatDate(provider.lastTestedAt)}</small>{provider.lastError && <em>{provider.lastError}</em>}</div><div className="admin-provider-actions"><StatusPill good={provider.enabled}>{provider.enabled ? "Enabled" : "Paused"}</StatusPill><button className="secondary-button compact" disabled={busy === testKey(provider.model)} onClick={() => onTest(provider.providerId)}>{busy === testKey(provider.model) ? "Testing…" : "Test"}</button><button className="icon-action danger" disabled={busy === "provider:remove:" + provider.providerId} onClick={() => onRemove(provider)} title="Remove provider">×</button></div></div>)}{!providers.length && <p className="admin-empty">No managed providers yet. The existing deployment key remains available until you add one.</p>}</div>
+    </section>
+  </div>;
+}
+
+function IntegrationsPanel({ config, form, busy, onChange, onSave, onTest, onRemove }: { config: GooglePlayOAuthConfig | null; form: GooglePlayOAuthForm; busy: string | null; onChange: React.Dispatch<React.SetStateAction<GooglePlayOAuthForm>>; onSave: (event: React.FormEvent) => void; onTest: () => void; onRemove: () => void }) {
+  const configured = Boolean(config?.configured);
+  return <div className="admin-integration-layout">
+    <section className="admin-section">
+      <div className="admin-section-heading"><div><p className="eyebrow">Shared app configuration</p><h2>Google Play OAuth</h2><p>Configure this once for Sorted. Each product owner will later authorize their own Google Play account; this client setup does not grant access by itself.</p></div><StatusPill good={configured && Boolean(config?.enabled)}>{configured ? (config?.enabled ? "Configured" : "Paused") : "Not configured"}</StatusPill></div>
+      <form className="admin-provider-form" onSubmit={onSave}>
+        <label>OAuth client ID<input value={form.clientId} onChange={(event) => onChange((current) => ({ ...current, clientId: event.target.value }))} placeholder="1234567890-…apps.googleusercontent.com" autoComplete="off" /></label>
+        <label>Client secret <span className="admin-optional">({configured ? "leave blank to keep the saved secret" : "required for first setup"})</span><input type="password" value={form.clientSecret} onChange={(event) => onChange((current) => ({ ...current, clientSecret: event.target.value }))} placeholder={configured ? `Saved ${config?.clientSecretHint || "secret"}` : "Paste the Google OAuth client secret"} autoComplete="new-password" /></label>
+        <label className="admin-checkbox"><input type="checkbox" checked={form.enabled} onChange={(event) => onChange((current) => ({ ...current, enabled: event.target.checked }))} />Allow Sorted users to connect Google Play accounts</label>
+        <div className="admin-form-actions"><button className="primary-button" disabled={busy === "google-play-oauth:save"}>{busy === "google-play-oauth:save" ? "Saving…" : "Save configuration"}</button><span>Secrets are encrypted before they are stored.</span></div>
+      </form>
+      {config?.lastError && <p className="admin-integration-error">{config.lastError}</p>}
+    </section>
+    <section className="admin-section">
+      <div className="admin-section-heading"><div><p className="eyebrow">Google Cloud setup</p><h2>OAuth details</h2><p>Use these exact values when you create the web OAuth client in Google Cloud.</p></div></div>
+      <div className="admin-secret-field"><span>Authorized redirect URI</span><code>{config?.redirectUri || "https://sort3d.space/api/connections/google-play/callback"}</code></div>
+      <div className="admin-secret-field"><span>Requested scopes</span><div className="admin-scope-list">{(config?.scopes ?? ["openid", "email", "https://www.googleapis.com/auth/androidpublisher"]).map((scope) => <code key={scope}>{scope}</code>)}</div></div>
+      <div className="admin-integration-note"><strong>What happens next</strong><p>After this is saved, we will add the user-facing “Connect Google Play” action. Authorization will be stored per product and never shared between workspaces.</p></div>
+      <div className="admin-form-actions admin-integration-actions">{configured && <button className="secondary-button" type="button" disabled={busy === "google-play-oauth:test"} onClick={onTest}>{busy === "google-play-oauth:test" ? "Checking…" : "Check configuration"}</button>}{configured && <button className="icon-action danger" type="button" disabled={busy === "google-play-oauth:remove"} onClick={onRemove} title="Remove Google Play OAuth configuration">×</button>}<span>{config?.lastTestedAt ? `Checked ${formatDate(config.lastTestedAt)}` : "Not checked yet"}</span></div>
     </section>
   </div>;
 }
