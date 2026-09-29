@@ -1,7 +1,7 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
-import { createBriefs, optimizationPlans, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
+import { createBriefs, optimizationPlans, productConnections, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
 import { getInitialProductIconUrl } from "../../../../lib/product-icon-url";
 import { normalizeProductUrlInput } from "../../../../lib/product-url";
 
@@ -52,6 +52,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     await db.delete(promoEvents).where(and(eq(promoEvents.productId, productId), eq(promoEvents.ownerId, ownerId)));
     await db.delete(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId)));
     await db.delete(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)));
+    await db.delete(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId)));
     await db.delete(createBriefs).where(and(eq(createBriefs.productId, productId), eq(createBriefs.ownerId, ownerId)));
     await db.delete(publishPlans).where(and(eq(publishPlans.productId, productId), eq(publishPlans.ownerId, ownerId)));
     await db.delete(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId)));

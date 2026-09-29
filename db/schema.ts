@@ -14,6 +14,30 @@ export const products = sqliteTable("products", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Product-level connections are deliberately separate from the admin AI
+// provider settings. A product owner can connect a store account for one app
+// without exposing that credential to other products or to the admin UI.
+export const productConnections = sqliteTable("product_connections", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  provider: text("provider").notNull(),
+  packageName: text("package_name").notNull(),
+  locale: text("locale").notNull().default("en-US"),
+  label: text("label").notNull().default(""),
+  credentialsCiphertext: text("credentials_ciphertext").notNull(),
+  credentialHint: text("credential_hint").notNull().default(""),
+  status: text("status").notNull().default("connected"),
+  lastTestedAt: text("last_tested_at"),
+  lastSyncedAt: text("last_synced_at"),
+  lastError: text("last_error"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("product_connections_product_owner_provider_idx").on(table.productId, table.ownerId, table.provider),
+  index("product_connections_owner_idx").on(table.ownerId),
+]);
+
 export const researchBriefs = sqliteTable("research_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),

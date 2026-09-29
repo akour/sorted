@@ -33,6 +33,7 @@ type OptimizationOpportunity = { title: string; area: string; impact: string; ef
 type OptimizationAction = { title: string; area: string; status: "open" | "done" };
 type CurrentListing = { platform?: string; title?: string; subtitle?: string; shortDescription?: string; longDescription?: string; sourceUrl?: string; fetchedAt?: string; category?: string; developer?: string; iconUrl?: string; bundleId?: string; storeId?: string };
 type ProductLinkPreview = { url: string; sourceType: "website" | "google-play" | "app-store"; sourceLabel: string; name: string; productType: string; iconUrl: string; available: boolean; message?: string; currentListing?: CurrentListing };
+type GooglePlayConnection = { id: number; provider: "google-play"; packageName: string; locale: string; label: string; credentialHint: string; status: "connected" | "testing" | "error"; lastTestedAt?: string | null; lastSyncedAt?: string | null; lastError?: string | null; createdAt?: string; updatedAt?: string };
 type OptimizationPlan = { productId: number; focus: string; storeTitle: string; storeSubtitle: string; storeShortDescription: string; storeLongDescription: string; answerSummary: string; currentListing: CurrentListing; opportunities: OptimizationOpportunity[]; nextActions: OptimizationAction[]; updatedAt?: string };
 type CreateVariant = { label: string; platform: string; title: string; subtitle: string; description: string; status: "draft" | "needs-edit" | "approved" };
 type AnswerBlock = { question: string; answer: string; status: "draft" | "needs-edit" | "approved" };
@@ -66,6 +67,7 @@ const workspaceNavItems: NavigationItem[] = [
 
 const productNavItems: NavigationItem[] = [
   { label: "Workspace", icon: "⌂", view: "Product workspace" },
+  { label: "Connections", icon: "◎", view: "Connections" },
   { label: "Research", icon: "⌕", view: "Research" },
   { label: "Optimize", icon: "↗", view: "Optimize" },
   { label: "Create", icon: "✦", view: "Create" },
@@ -280,6 +282,10 @@ export default function Home() {
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchSaving, setResearchSaving] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [connection, setConnection] = useState<GooglePlayConnection | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [connectionSaving, setConnectionSaving] = useState(false);
+  const [connectionSyncing, setConnectionSyncing] = useState(false);
   const [optimization, setOptimization] = useState<OptimizationPlan>(blankOptimization);
   const [optimizationLoading, setOptimizationLoading] = useState(false);
   const [optimizationSaving, setOptimizationSaving] = useState(false);
@@ -383,6 +389,27 @@ export default function Home() {
     const timer = window.setTimeout(() => { void loadResearch(activeProduct.id); }, 0);
     return () => window.clearTimeout(timer);
   }, [activeProduct, loadResearch, view]);
+
+  const loadConnection = useCallback(async (productId: number) => {
+    setConnectionLoading(true);
+    try {
+      const response = await fetch(`/api/products/${productId}/connections`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not load the product connections.");
+      setConnection(data.connection ?? null);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load the product connections.");
+    } finally {
+      setConnectionLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeProduct || view !== "Connections") return;
+    const timer = window.setTimeout(() => { void loadConnection(activeProduct.id); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [activeProduct, loadConnection, view]);
 
   const loadOptimization = useCallback(async (productId: number) => {
     setOptimizationLoading(true);
@@ -713,6 +740,58 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Could not save the research brief.");
     } finally {
       setResearchSaving(false);
+    }
+  }
+
+  async function saveGooglePlayConnection(payload: { packageName: string; locale: string; label: string; serviceAccountJson: string }) {
+    if (!activeProduct) return;
+    setConnectionSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/products/${activeProduct.id}/connections`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ provider: "google-play", ...payload }) });
+      const data = await response.json();
+      if (data.connection) setConnection(data.connection);
+      if (!response.ok) throw new Error(data.error ?? "Could not connect Google Play.");
+      setNotice(data.message ?? "Google Play connection saved.");
+      window.setTimeout(() => setNotice(""), 4200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not connect Google Play.");
+    } finally {
+      setConnectionSaving(false);
+    }
+  }
+
+  async function syncGooglePlayConnection() {
+    if (!activeProduct) return;
+    setConnectionSyncing(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/products/${activeProduct.id}/connections/google-play/sync`, { method: "POST" });
+      const data = await response.json();
+      if (data.connection) setConnection(data.connection);
+      if (!response.ok) throw new Error(data.error ?? "Could not sync the Google Play listing.");
+      if (data.currentListing) setOptimization((current) => ({ ...current, productId: activeProduct.id, currentListing: data.currentListing }));
+      setNotice("Authenticated Google Play listing synced into Optimize.");
+      window.setTimeout(() => setNotice(""), 4200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sync the Google Play listing.");
+    } finally {
+      setConnectionSyncing(false);
+    }
+  }
+
+  async function disconnectGooglePlay() {
+    if (!activeProduct || !window.confirm("Disconnect Google Play from this product? The saved listing will remain in Optimize, but future refreshes will use public data.")) return;
+    setError("");
+    try {
+      const response = await fetch(`/api/products/${activeProduct.id}/connections`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not disconnect Google Play.");
+      setConnection(null);
+      setNotice("Google Play disconnected. Existing workspace data was kept.");
+      window.setTimeout(() => setNotice(""), 4200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not disconnect Google Play.");
     }
   }
 
@@ -1082,7 +1161,7 @@ export default function Home() {
           {notice && <div className="notice" role="status" aria-live="polite" aria-atomic="true"><span aria-hidden="true">✓</span><span className="notice-message">{notice}</span><button type="button" className="banner-dismiss" onClick={() => setNotice("")} aria-label="Dismiss confirmation">×</button></div>}
           {error && !modalOpen && <div className="error-banner" role="alert" aria-atomic="true"><div><strong>Something needs attention.</strong> {error}</div><button type="button" className="banner-dismiss" onClick={() => setError("")} aria-label="Dismiss error">×</button></div>}
 
-          {activeProduct ? view === "Research" ? <ResearchView product={activeProduct} research={research} loading={researchLoading} saving={researchSaving} generating={aiGenerating} onChange={setResearch} onSave={saveResearch} onSaveAndContinue={() => void saveResearch(undefined, "Optimize")} onGenerate={() => generateResearch(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Optimize" ? <OptimizeView product={activeProduct} optimization={optimization} loading={optimizationLoading} saving={optimizationSaving} generating={optimizationGenerating} onChange={setOptimization} onSave={saveOptimization} onSaveAndContinue={() => void saveOptimization(undefined, "Create")} onGenerate={() => generateOptimization(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Create" ? <CreateView product={activeProduct} create={createBrief} loading={createLoading} saving={createSaving} generating={createGenerating} onChange={setCreateBrief} onSave={saveCreate} onSaveAndContinue={() => void saveCreate(undefined, "Calendar")} onGenerate={() => generateCreate(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Publish" ? <PublishView product={activeProduct} publish={publish} readiness={publishReadiness} loading={publishLoading} saving={publishSaving} onChange={setPublish} onSave={savePublish} onExport={() => exportPublishPacket(activeProduct, publish)} onBack={() => setView("Product workspace")} /> : view === "Calendar" ? <CalendarView key={visibleCalendarDraft.id ?? `new-${visibleCalendarDraft.productId}`} products={calendarProducts} events={visibleCalendarEvents} draft={visibleCalendarDraft} loading={calendarLoading} saving={calendarSaving} generating={calendarGenerating} onNew={openNewEvent} onSelect={openCalendarEvent} onChange={updateCalendarDraft} onSave={saveCalendarEvent} onSaveAndContinue={saveCalendarEventAndContinue} onGenerateStrategy={generateCalendarStrategy} onGenerateChannel={generateCalendarChannel} onExport={exportCalendarEvent} onDelete={deleteCalendarEvent} /> : <ProductWorkspace product={activeProduct} report={reports.products.find((item) => item.id === activeProduct.id)} loading={reportsLoading} onNavigate={chooseProductView} onRetry={() => void loadReports()} /> : view === "Calendar" ? <CalendarView key={visibleCalendarDraft.id ?? `new-${visibleCalendarDraft.productId}`} products={calendarProducts} events={visibleCalendarEvents} draft={visibleCalendarDraft} loading={calendarLoading} saving={calendarSaving} generating={calendarGenerating} onNew={openNewEvent} onSelect={openCalendarEvent} onChange={updateCalendarDraft} onSave={saveCalendarEvent} onSaveAndContinue={saveCalendarEventAndContinue} onGenerateStrategy={generateCalendarStrategy} onGenerateChannel={generateCalendarChannel} onExport={exportCalendarEvent} onDelete={deleteCalendarEvent} /> : view === "Products" ? <ProductsView products={products} loading={loading} onOpen={(product) => { setActiveProduct(product); setView("Product workspace"); }} onEdit={openEdit} onDelete={deleteProduct} onAdd={() => openNewProduct()} onTry={() => openNewProduct({ name: "Void Stack", type: "Game", position: "A fast, satisfying stack-building game", audience: "Players who want a quick challenge" })} /> : view === "Reports" ? <ReportsView reports={reports} loading={reportsLoading} onOpen={(product) => { setActiveProduct(product); setView(product.nextAction.view); }} onAdd={() => openNewProduct()} /> : <OverviewView products={products} loading={loading} reports={reports} reportsLoading={reportsLoading} onAdd={() => openNewProduct()} onOpen={(product) => { setActiveProduct(product); setView("Product workspace"); }} onProducts={() => chooseView("Products")} />}
+          {activeProduct ? view === "Connections" ? <GooglePlayConnectionView key={connection ? `${connection.id}:${connection.status}:${connection.updatedAt ?? ""}` : "none"} product={activeProduct} connection={connection} loading={connectionLoading} saving={connectionSaving} syncing={connectionSyncing} onSave={saveGooglePlayConnection} onSync={syncGooglePlayConnection} onDisconnect={disconnectGooglePlay} onBack={() => setView("Product workspace")} /> : view === "Research" ? <ResearchView product={activeProduct} research={research} loading={researchLoading} saving={researchSaving} generating={aiGenerating} onChange={setResearch} onSave={saveResearch} onSaveAndContinue={() => void saveResearch(undefined, "Optimize")} onGenerate={() => generateResearch(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Optimize" ? <OptimizeView product={activeProduct} optimization={optimization} loading={optimizationLoading} saving={optimizationSaving} generating={optimizationGenerating} onChange={setOptimization} onSave={saveOptimization} onSaveAndContinue={() => void saveOptimization(undefined, "Create")} onGenerate={() => generateOptimization(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Create" ? <CreateView product={activeProduct} create={createBrief} loading={createLoading} saving={createSaving} generating={createGenerating} onChange={setCreateBrief} onSave={saveCreate} onSaveAndContinue={() => void saveCreate(undefined, "Calendar")} onGenerate={() => generateCreate(activeProduct)} onBack={() => setView("Product workspace")} /> : view === "Publish" ? <PublishView product={activeProduct} publish={publish} readiness={publishReadiness} loading={publishLoading} saving={publishSaving} onChange={setPublish} onSave={savePublish} onExport={() => exportPublishPacket(activeProduct, publish)} onBack={() => setView("Product workspace")} /> : view === "Calendar" ? <CalendarView key={visibleCalendarDraft.id ?? `new-${visibleCalendarDraft.productId}`} products={calendarProducts} events={visibleCalendarEvents} draft={visibleCalendarDraft} loading={calendarLoading} saving={calendarSaving} generating={calendarGenerating} onNew={openNewEvent} onSelect={openCalendarEvent} onChange={updateCalendarDraft} onSave={saveCalendarEvent} onSaveAndContinue={saveCalendarEventAndContinue} onGenerateStrategy={generateCalendarStrategy} onGenerateChannel={generateCalendarChannel} onExport={exportCalendarEvent} onDelete={deleteCalendarEvent} /> : <ProductWorkspace product={activeProduct} report={reports.products.find((item) => item.id === activeProduct.id)} loading={reportsLoading} onNavigate={chooseProductView} onRetry={() => void loadReports()} /> : view === "Calendar" ? <CalendarView key={visibleCalendarDraft.id ?? `new-${visibleCalendarDraft.productId}`} products={calendarProducts} events={visibleCalendarEvents} draft={visibleCalendarDraft} loading={calendarLoading} saving={calendarSaving} generating={calendarGenerating} onNew={openNewEvent} onSelect={openCalendarEvent} onChange={updateCalendarDraft} onSave={saveCalendarEvent} onSaveAndContinue={saveCalendarEventAndContinue} onGenerateStrategy={generateCalendarStrategy} onGenerateChannel={generateCalendarChannel} onExport={exportCalendarEvent} onDelete={deleteCalendarEvent} /> : view === "Products" ? <ProductsView products={products} loading={loading} onOpen={(product) => { setActiveProduct(product); setView("Product workspace"); }} onEdit={openEdit} onDelete={deleteProduct} onAdd={() => openNewProduct()} onTry={() => openNewProduct({ name: "Void Stack", type: "Game", position: "A fast, satisfying stack-building game", audience: "Players who want a quick challenge" })} /> : view === "Reports" ? <ReportsView reports={reports} loading={reportsLoading} onOpen={(product) => { setActiveProduct(product); setView(product.nextAction.view); }} onAdd={() => openNewProduct()} /> : <OverviewView products={products} loading={loading} reports={reports} reportsLoading={reportsLoading} onAdd={() => openNewProduct()} onOpen={(product) => { setActiveProduct(product); setView("Product workspace"); }} onProducts={() => chooseView("Products")} />}
         </div>
       </section>
 
@@ -1538,6 +1617,27 @@ function CalendarView({ products, events, draft, loading, saving, generating, on
       </>}</div>
     </div>
   </section>;
+}
+
+function GooglePlayConnectionView({ product, connection, loading, saving, syncing, onSave, onSync, onDisconnect, onBack }: { product: Product; connection: GooglePlayConnection | null; loading: boolean; saving: boolean; syncing: boolean; onSave: (payload: { packageName: string; locale: string; label: string; serviceAccountJson: string }) => Promise<void>; onSync: () => Promise<void>; onDisconnect: () => Promise<void>; onBack: () => void }) {
+  const inferredPackageName = useMemo(() => {
+    try {
+      return new URL(product.url).searchParams.get("id") ?? "";
+    } catch {
+      return "";
+    }
+  }, [product.url]);
+  const [packageName, setPackageName] = useState(connection?.packageName ?? inferredPackageName);
+  const [locale, setLocale] = useState(connection?.locale ?? "en-US");
+  const [label, setLabel] = useState(connection?.label ?? "");
+  const [serviceAccountJson, setServiceAccountJson] = useState("");
+  const connected = connection?.status === "connected";
+  const statusLabel = connection?.status === "error" ? "Needs attention" : connected ? "Connected" : connection?.status === "testing" ? "Testing" : "Not connected";
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await onSave({ packageName, locale, label, serviceAccountJson });
+  };
+  return <section className="connection-view"><div className="research-toolbar"><button className="back-button" type="button" onClick={onBack}>← {product.name}</button><span>{connected ? "Google Play connected" : "Store connection"}</span></div><div className="research-layout"><div className="research-main"><div className="section-intro"><div><p className="eyebrow">Product connection</p><h2>Connect Google Play</h2><p>Bring the authenticated listing for {product.name} into Sorted so Optimize works from the data you control in Play Console.</p></div><span className={`connection-status ${connection?.status ?? "disconnected"}`}>{statusLabel}</span></div>{loading ? <div className="loading-line">Loading the connection…</div> : <form className="research-form" onSubmit={submit}><div className="research-two-col"><label>Android package name<span className="field-help">The application ID from Google Play Console, for example com.example.app.</span><input value={packageName} onChange={(event) => setPackageName(event.target.value)} placeholder="com.example.app" required /></label><label>Listing language<span className="field-help">Sorted reads this localized listing. Start with en-US.</span><input value={locale} onChange={(event) => setLocale(event.target.value)} placeholder="en-US" required /></label></div><label>Connection label <span className="optional">optional</span><input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Production Google Play" /></label><label>Google service-account JSON key<span className="field-help">Create a service account in Google Cloud, invite its email to this app in Play Console, then paste the complete JSON key here. {connected ? "Leave this blank to keep the saved key." : "The key is encrypted before it is stored and is never displayed again."}</span><textarea value={serviceAccountJson} onChange={(event) => setServiceAccountJson(event.target.value)} placeholder={connected ? "Leave blank to keep the saved key" : "Paste the service-account JSON key"} rows={9} spellCheck={false} autoComplete="off" /></label><div className="research-actions"><span>{connection?.credentialHint ? `Saved account ${connection.credentialHint}` : "No Google account saved yet."}</span><button className="primary-button" type="submit" disabled={saving}>{saving ? "Testing…" : connected ? "Save & test changes" : "Save & test connection"}</button></div></form>}{connection?.lastError && <div className="connection-error" role="alert"><strong>Google Play reported a problem</strong><span>{connection.lastError}</span></div>}{connection && <div className="connection-actions"><button className="secondary-button" type="button" onClick={() => void onSync()} disabled={syncing || saving || !connected}>{syncing ? "Syncing listing…" : "Sync authenticated listing"}</button><button className="danger-button" type="button" onClick={() => void onDisconnect()} disabled={saving || syncing}>Disconnect</button></div>}</div><aside className="research-sidebar"><div className="research-side-card"><p className="eyebrow">What this unlocks</p><h3>One trusted store source.</h3><p>Sorted can refresh the title, short description, and full description from the authenticated Google Play listing, while retaining public category and icon context where available.</p><div className="connection-checklist"><span>✓</span><span>Private per-product credential</span><span>✓</span><span>Read-only listing sync</span><span>✓</span><span>No publish or edit action</span></div></div><div className="research-side-card muted-card"><span className="module-icon">◎</span><h3>Keep your key safe</h3><p>Only paste the key into this secured form. Sorted stores an encrypted copy and shows only a non-secret account hint.</p></div></aside></div></section>;
 }
 
 function ResearchView({ product, research, loading, saving, generating, onChange, onSave, onSaveAndContinue, onGenerate, onBack }: { product: Product; research: ResearchBrief; loading: boolean; saving: boolean; generating: boolean; onChange: (next: ResearchBrief) => void; onSave: (event: FormEvent<HTMLFormElement>) => void; onSaveAndContinue: () => void; onGenerate: () => void; onBack: () => void }) {

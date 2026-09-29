@@ -1,7 +1,9 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../../db";
-import { optimizationPlans, products } from "../../../../../../db/schema";
+import { optimizationPlans, productConnections, products } from "../../../../../../db/schema";
+import { decryptProductConnectionSecret } from "../../../../../../lib/admin-secrets";
+import { fetchGooglePlayListing, googlePlayErrorMessage, mergeGooglePlayListing, parseGooglePlayCredentials } from "../../../../../../lib/google-play";
 import { fetchProductMetadata } from "../../../../../../lib/product-icons";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../../../../../lib/product-url";
 
@@ -31,13 +33,27 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [existing] = await db.select().from(optimizationPlans)
       .where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)))
       .limit(1);
+    const [googlePlayConnection] = linkKind === "google-play"
+      ? await db.select().from(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, "google-play"))).limit(1)
+      : [];
     let preview: Awaited<ReturnType<typeof fetchProductMetadata>> = null;
     try {
       preview = await fetchProductMetadata(sourceUrl);
     } catch {
       // Store pages can change shape without warning. Keep the last saved listing usable.
     }
-    if (!preview?.currentListing) {
+    let currentListing = preview?.currentListing;
+    let authenticatedWarning = "";
+    if (googlePlayConnection?.status === "connected") {
+      try {
+        const credentials = parseGooglePlayCredentials(await decryptProductConnectionSecret(googlePlayConnection.credentialsCiphertext));
+        const authenticatedListing = await fetchGooglePlayListing(credentials, googlePlayConnection.packageName, googlePlayConnection.locale);
+        currentListing = mergeGooglePlayListing(authenticatedListing, sourceUrl, currentListing ?? parseSavedListing(existing?.currentListing, sourceUrl) ?? undefined);
+      } catch (error) {
+        authenticatedWarning = `The connected Google Play listing could not be refreshed (${googlePlayErrorMessage(error)}), so Sorted used the public listing instead.`;
+      }
+    }
+    if (!currentListing) {
       const savedListing = parseSavedListing(existing?.currentListing, sourceUrl);
       if (savedListing) {
         return Response.json({
@@ -47,14 +63,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       }
       return Response.json({ error: `We could not read the ${preview?.sourceLabel ?? "store"} listing. Try again or continue with the available product details.` }, { status: 502 });
     }
-    const currentListing = preview.currentListing;
     if (existing) {
       await db.update(optimizationPlans).set({ currentListing: JSON.stringify(currentListing), updatedAt: new Date().toISOString() })
         .where(eq(optimizationPlans.id, existing.id));
     } else {
       await db.insert(optimizationPlans).values({ productId, ownerId, currentListing: JSON.stringify(currentListing) });
     }
-    return Response.json({ currentListing });
+    return Response.json({ currentListing, ...(authenticatedWarning ? { warning: authenticatedWarning } : {}) });
   } catch {
     try {
       const productId = Number((await context.params).id);
