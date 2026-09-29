@@ -133,9 +133,10 @@ function jsonStringFieldValues(html: string, names: string[]): string[] {
   return values;
 }
 
-function itempropTextValues(html: string, itemprop: string): string[] {
-  const escaped = itemprop.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const openingPattern = new RegExp(`<([a-z][\\w:-]*)\\b(?=[^>]*\\bitemprop\\s*=\\s*["']${escaped}["'])[^>]*>`, "gi");
+function attributeTextValues(html: string, attributeName: string, attributeValue: string): string[] {
+  const escapedName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedValue = attributeValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const openingPattern = new RegExp(`<([a-z][\\w:-]*)\\b(?=[^>]*\\b${escapedName}\\s*=\\s*["']${escapedValue}["'])[^>]*>`, "gi");
   const tagPattern = /<\/?([a-z][\w:-]*)(?:\s[^>]*)?>/gi;
   const values: string[] = [];
   let opening: RegExpExecArray | null;
@@ -163,10 +164,15 @@ function itempropTextValues(html: string, itemprop: string): string[] {
   return values;
 }
 
+function itempropTextValues(html: string, itemprop: string): string[] {
+  return attributeTextValues(html, "itemprop", itemprop);
+}
+
 export function extractGooglePlayLongDescription(html: string, fallback: string): string {
   const candidates = [
     ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
     ...itempropTextValues(html, "description"),
+    ...attributeTextValues(html, "jsname", "bN97Pc"),
   ].filter((value) => value.length > 0);
   const minimumLength = Math.max(120, fallback.length + 40);
   return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? "";
