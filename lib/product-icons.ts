@@ -219,6 +219,21 @@ export function extractGooglePlayLongDescription(html: string, fallback: string,
   return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? "";
 }
 
+function googlePlayCategory(html: string, context: DescriptionContext): string {
+  const pattern = /\["((?:\\.|[^"\\])*)",\s*\[null,null,null,null,\[null,null,"\/store\/apps\/category\/[^"\\]*"\]\],\s*"[^"\\]*"\]/g;
+  for (const source of scriptContents(html, context)) {
+    for (const match of source.matchAll(pattern)) {
+      try {
+        const value = JSON.parse(`"${match[1] ?? ""}"`) as unknown;
+        if (typeof value === "string" && value.trim()) return value.trim();
+      } catch {
+        // Ignore malformed page-data entries and keep the structured-data fallback.
+      }
+    }
+  }
+  return "";
+}
+
 function looksLikeGame(category: string, title: string): boolean {
   return /\b(?:game|games|arcade|action|adventure|board|card|casino|casual|puzzle|racing|role[- ]?playing|simulation|sports|strategy|trivia|word)\b/i.test(`${category} ${title}`);
 }
@@ -484,7 +499,10 @@ async function googlePlayListing(link: Extract<StoreLink, { kind: "google-play" 
   const description = metadata.description.trim();
   const descriptionContext = { appId: requestUrl.searchParams.get("id") ?? "", title };
   const fullDescription = extractGooglePlayLongDescription(page.html, description, descriptionContext);
-  const category = metadata.category.trim() || jsonStringFieldValues(page.html, ["genre", "applicationCategory", "category"], descriptionContext)[0] || "";
+  const category = googlePlayCategory(page.html, descriptionContext)
+    || metadata.category.trim()
+    || jsonStringFieldValues(page.html, ["genre", "applicationCategory", "category"], descriptionContext)[0]
+    || "";
   const developer = metadata.developer.trim() || jsonStringFieldValues(page.html, ["author", "publisher", "developer"], descriptionContext)[0] || "";
   const discoveredIcon = metadata.imageUrl || openGraphImage(page.html, page.url);
   const iconUrl = isSafeProductIconUrl(discoveredIcon) ? discoveredIcon : "";
@@ -620,6 +638,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     ...(category ? { category } : {}),
     ...(developer ? { developer } : {}),
     ...(result.iconUrl ? { iconUrl: result.iconUrl } : {}),
+    storeId: requestUrl.searchParams.get("id") ?? "",
   };
   return {
     url: normalizedUrl,
