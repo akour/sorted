@@ -23,6 +23,7 @@ const localBindingConfig = {
           binding: d1,
           database_name: "sorted-prod",
           database_id: SORTED_PRODUCTION_D1_DATABASE_ID,
+          migrations_dir: "drizzle",
         },
       ]
     : [],
