@@ -48,7 +48,13 @@ export function AccountAuthForm({
       email: email.trim(),
       callbackURL: `${window.location.origin}/workspace`,
     });
-    if (result.error) throw new Error("We couldn’t request another verification link. Try again in a moment.");
+    if (result.error) {
+      const status = Number.isInteger(result.error.status) ? `HTTP ${result.error.status}` : null;
+      const rawCode = result.error.code;
+      const code = typeof rawCode === "string" && /^[A-Z0-9_]{1,80}$/i.test(rawCode) ? rawCode : null;
+      const details = [status, code].filter(Boolean).join(" · ");
+      throw new Error(`We couldn’t request a verification link${details ? ` (${details})` : ""}. Try again in a moment.`);
+    }
   }
 
   async function resendVerification() {
@@ -91,14 +97,16 @@ export function AccountAuthForm({
         throw new Error("That email and password don’t match. Try again, or use Forgot password to reset it.");
       }
 
-      let verificationRequestFailed = false;
+      let verificationRequestFailure = "";
       if (isSignUp && !result.error && canUseEmail) {
         setResendingVerification(true);
         try {
           await requestVerificationLink();
           setVerificationLinkRequested(true);
-        } catch {
-          verificationRequestFailed = true;
+        } catch (caught) {
+          verificationRequestFailure = caught instanceof Error
+            ? caught.message
+            : "We couldn’t request a verification link. Try again in a moment.";
         } finally {
           setResendingVerification(false);
         }
@@ -139,18 +147,18 @@ export function AccountAuthForm({
         setNotice(linkData.emailVerified
           ? "Your Sorted sign-in worked, and this account is connected to your workspace."
           : canUseEmail
-            ? verificationRequestFailed
-              ? "Your Sorted sign-in worked, and this account is connected, but we couldn’t request a verification link. Retry below before using the account on sort3d.space."
+            ? verificationRequestFailure
+              ? `Your Sorted sign-in worked, and this account is connected, but we couldn’t request a verification link. ${verificationRequestFailure}`
               : "Your Sorted sign-in worked, and this account is connected. A verification link was requested; check your inbox before using the account on sort3d.space."
             : "Your Sorted sign-in worked, and this account is connected. Customer sign-in will work once email verification is available.");
-        setNoticeAction(verificationRequestFailed ? "resend" : "workspace");
+        setNoticeAction(verificationRequestFailure ? "resend" : "workspace");
         return;
       }
 
       if (isSignUp) {
         setPassword("");
-        setNotice(verificationRequestFailed
-          ? "Your sign-up request was accepted, but Sorted couldn’t request a verification email. Try the button below."
+        setNotice(verificationRequestFailure
+          ? `Your sign-up request was accepted, but Sorted couldn’t request a verification email. ${verificationRequestFailure}`
           : "If this address belongs to a new or unverified Sorted account, a verification link was requested. Check your inbox and spam folder.");
         setNoticeAction("resend");
         return;
