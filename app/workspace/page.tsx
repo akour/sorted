@@ -768,9 +768,20 @@ export default function Home() {
       setNotice(`AI built an optimization plan with ${completedModelLabel(data.model, data.fallbacksUsed)}. Review it before publishing anything.`);
       window.setTimeout(() => setNotice(""), 4200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not build the optimization plan.");
-      setOptimization((current) => manualOptimizationDraft(product, current));
-      setNotice("AI generation failed. A manual starter draft is ready to edit and save.");
+      const generationError = err instanceof Error ? err.message : "Could not build the optimization plan.";
+      const manualDraft = manualOptimizationDraft(product, optimization);
+      setError(generationError);
+      setOptimization(manualDraft);
+      try {
+        const saveResponse = await fetch(`/api/products/${product.id}/optimize`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(manualDraft) });
+        const saveData = await saveResponse.json();
+        if (!saveResponse.ok) throw new Error(saveData.error ?? "Could not save the manual starter draft.");
+        setOptimization(saveData.optimization);
+        setNotice("AI generation failed, so Sorted saved an editable manual starter draft.");
+      } catch (saveError) {
+        setNotice("AI generation failed. A manual starter draft is ready to edit and save.");
+        setError(`${generationError} The manual starter could not be saved automatically: ${saveError instanceof Error ? saveError.message : "unknown save error"}`);
+      }
       window.setTimeout(() => setNotice(""), 5200);
     } finally {
       setOptimizationGenerating(false);
