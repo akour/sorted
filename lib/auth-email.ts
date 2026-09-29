@@ -27,6 +27,7 @@ export async function sendAuthEmail(input: {
 
   const content = createAuthEmailContent(input.purpose, input.url);
   let response: Response;
+  console.info("Sorted transactional email request started.", { purpose: input.purpose });
   try {
     response = await fetch(RESEND_EMAILS_ENDPOINT, {
       method: "POST",
@@ -48,7 +49,18 @@ export async function sendAuthEmail(input: {
   }
 
   if (!response.ok) {
-    console.error("Sorted transactional email provider rejected a request.", { status: response.status });
+    const providerError = await response.clone().json().catch(() => null) as {
+      code?: unknown;
+      name?: unknown;
+    } | null;
+    const rawCode = providerError?.name ?? providerError?.code;
+    const code = typeof rawCode === "string" && /^[a-z0-9_.-]{1,64}$/i.test(rawCode)
+      ? rawCode
+      : undefined;
+    console.error("Sorted transactional email provider rejected a request.", {
+      status: response.status,
+      code,
+    });
     throw new Error("Account email delivery could not be completed.");
   }
 
