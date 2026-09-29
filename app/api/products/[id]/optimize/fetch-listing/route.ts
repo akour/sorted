@@ -31,7 +31,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [existing] = await db.select().from(optimizationPlans)
       .where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)))
       .limit(1);
-    const preview = await fetchProductMetadata(sourceUrl);
+    let preview: Awaited<ReturnType<typeof fetchProductMetadata>> = null;
+    try {
+      preview = await fetchProductMetadata(sourceUrl);
+    } catch {
+      // Store pages can change shape without warning. Keep the last saved listing usable.
+    }
     if (!preview?.currentListing) {
       const savedListing = parseSavedListing(existing?.currentListing, sourceUrl);
       if (savedListing) {
@@ -58,7 +63,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 function parseSavedListing(raw: string | undefined, sourceUrl: string): Record<string, unknown> | null {
   try {
     const listing = JSON.parse(raw ?? "{}") as Record<string, unknown>;
-    return listing.sourceUrl === sourceUrl && typeof listing.platform === "string" && typeof listing.title === "string" && listing.title.trim()
+    const savedSourceUrl = typeof listing.sourceUrl === "string" ? normalizeProductUrlInput(listing.sourceUrl) : "";
+    return savedSourceUrl === sourceUrl && typeof listing.platform === "string" && typeof listing.title === "string" && listing.title.trim()
       ? listing
       : null;
   } catch {
