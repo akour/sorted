@@ -1,20 +1,10 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { env } from "cloudflare:workers";
 import { getDb } from "../../../../../../db";
-import { aiSettings, createBriefs, optimizationPlans, products, researchBriefs } from "../../../../../../db/schema";
+import { createBriefs, optimizationPlans, products, researchBriefs } from "../../../../../../db/schema";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCodeWithFallback, safeOpenCodeFailureDetails } from "../../../../../../lib/opencode-client";
-import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel } from "../../../../../../lib/opencode-models";
+import { getOpenCodeModel } from "../../../../../../lib/opencode-models";
 import { getGenerationModels, getOpenCodeRuntime } from "../../../../../../lib/ai-runtime";
-
-function parseFallbacks(value: string | undefined) {
-  try {
-    const parsed = JSON.parse(value ?? "[]") as string[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function parseCreateJson(raw: string) {
   const candidate = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
@@ -82,10 +72,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet. Add an OpenCode API key to Sorted before generating creation briefs." }, { status: 503 });
 
-    const [savedAiSettings] = await db.select().from(aiSettings).where(eq(aiSettings.ownerId, ownerId)).limit(1);
-    const configuredModel = savedAiSettings?.activeModel || env.OPENCODE_MODEL || DEFAULT_OPENCODE_MODEL;
-    const activeModel = getOpenCodeModel(configuredModel)?.id ?? DEFAULT_OPENCODE_MODEL;
-    const candidates = getGenerationModels(runtime, activeModel, parseFallbacks(savedAiSettings?.fallbackModels)).map((id) => runtime.providerId === "opencode" ? getOpenCodeModel(id)?.id : id).filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index);
+    const candidates = getGenerationModels(runtime).map((id) => runtime.providerId === "opencode" ? getOpenCodeModel(id)?.id : id).filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index);
+    const activeModel = candidates[0] ?? runtime.model ?? "configured model";
     const prompt = `Build a first creation brief for this product. Use only the supplied product, research, and optimization facts. Do not invent features, ratings, reviews, outcomes, competitor claims, or audience promises. Do not imply anything is published. Return JSON only with exactly these keys: status, primaryMessage, storeVariants, answerBlocks, promoBrief, creativeBrief. status must be draft. storeVariants must include 3 editable variants with label, platform, title, subtitle, description, status. answerBlocks must include 3 factual question-and-answer blocks with question, answer, status. promoBrief must include theme, hook, body, cta, channels. creativeBrief must include concept, visualDirection, frames (array), proofToShow (array). Keep copy concise, specific, and reviewable. Use only channels that make sense for the supplied product. Do not mention competitor brands unless explicitly provided.
 
 Product

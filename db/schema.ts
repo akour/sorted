@@ -181,6 +181,7 @@ export const adminProviderKeys = sqliteTable("admin_provider_keys", {
   label: text("label").notNull(),
   baseUrl: text("base_url").notNull(),
   model: text("model").notNull().default(""),
+  fallbackModels: text("fallback_models").notNull().default("[]"),
   apiKeyCiphertext: text("api_key_ciphertext").notNull(),
   apiKeyHint: text("api_key_hint").notNull().default(""),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),

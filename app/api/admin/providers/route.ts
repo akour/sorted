@@ -6,11 +6,19 @@ import { isAdminResponse, requireAdmin, writeAdminAudit } from "../../../../lib/
 import { AI_PROVIDER_CATALOG, getAiProviderDefinition } from "../../../../lib/ai-providers";
 
 function safeProvider(row: typeof adminProviderKeys.$inferSelect) {
+  let fallbackModels: string[] = [];
+  try {
+    const parsed = JSON.parse(row.fallbackModels ?? "[]") as unknown;
+    fallbackModels = Array.isArray(parsed) ? parsed.filter((model): model is string => typeof model === "string" && Boolean(model.trim())) : [];
+  } catch {
+    fallbackModels = [];
+  }
   return {
     providerId: row.providerId,
     label: row.label,
     baseUrl: row.baseUrl,
     model: row.model,
+    fallbackModels,
     enabled: row.enabled,
     apiKeyHint: row.apiKeyHint,
     lastTestedAt: row.lastTestedAt,
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
   if (isAdminResponse(admin)) return admin;
 
   try {
-    const body = await request.json() as { providerId?: string; label?: string; baseUrl?: string; model?: string; apiKey?: string; enabled?: boolean };
+    const body = await request.json() as { providerId?: string; label?: string; baseUrl?: string; model?: string; fallbackModels?: string[]; apiKey?: string; enabled?: boolean };
     const providerId = body.providerId?.trim() ?? "";
     const definition = getAiProviderDefinition(providerId);
     if (!definition) return Response.json({ error: "Choose a supported AI provider." }, { status: 400 });
@@ -59,6 +67,12 @@ export async function POST(request: Request) {
     if (definition.models?.length && !definition.models.some((option) => option.id === model)) {
       return Response.json({ error: "Choose a model from the selected provider's catalog." }, { status: 400 });
     }
+    const fallbackModels = definition.models?.length
+      ? (Array.isArray(body.fallbackModels) ? body.fallbackModels : [])
+        .filter((candidate): candidate is string => typeof candidate === "string" && definition.models?.some((option) => option.id === candidate) && candidate !== model)
+        .filter((candidate, index, list) => list.indexOf(candidate) === index)
+        .slice(0, 3)
+      : [];
     const db = getDb();
     const [existing] = await db.select().from(adminProviderKeys).where(eq(adminProviderKeys.providerId, providerId)).limit(1);
     const apiKey = body.apiKey?.trim() ?? "";
@@ -71,6 +85,7 @@ export async function POST(request: Request) {
       label,
       baseUrl,
       model,
+      fallbackModels: JSON.stringify(fallbackModels),
       apiKeyCiphertext: encryptedKey,
       apiKeyHint: apiKey ? secretHint(apiKey) : existing?.apiKeyHint ?? "••••",
       enabled: body.enabled ?? existing?.enabled ?? true,
@@ -86,6 +101,7 @@ export async function POST(request: Request) {
         label: values.label,
         baseUrl: values.baseUrl,
         model: values.model,
+        fallbackModels: values.fallbackModels,
         apiKeyCiphertext: values.apiKeyCiphertext,
         apiKeyHint: values.apiKeyHint,
         enabled: values.enabled,

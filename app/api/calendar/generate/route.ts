@@ -1,21 +1,11 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
-import { env } from "cloudflare:workers";
 import { getDb } from "../../../../db";
-import { aiSettings, createBriefs, optimizationPlans, products, promoEvents, researchBriefs } from "../../../../db/schema";
+import { createBriefs, optimizationPlans, products, promoEvents, researchBriefs } from "../../../../db/schema";
 import { openCodeWorkspaceRestrictionMessage, requestOpenCode, safeOpenCodeFailureDetails } from "../../../../lib/opencode-client";
-import { DEFAULT_OPENCODE_MODEL, getOpenCodeModel, getOpenCodeTransport } from "../../../../lib/opencode-models";
+import { getOpenCodeModel, getOpenCodeTransport } from "../../../../lib/opencode-models";
 import { getGenerationModels, getOpenCodeRuntime } from "../../../../lib/ai-runtime";
 import { serializeEvent } from "../route";
-
-function parseFallbacks(value: string | undefined) {
-  try {
-    const parsed = JSON.parse(value ?? "[]") as string[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
   try {
@@ -242,10 +232,7 @@ export async function POST(request: Request) {
     const runtime = await getOpenCodeRuntime();
     const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet. Add an OpenCode API key before building event outputs." }, { status: 503 });
-    const [savedAiSettings] = await db.select().from(aiSettings).where(eq(aiSettings.ownerId, ownerId)).limit(1);
-    const configuredModel = savedAiSettings?.activeModel || env.OPENCODE_MODEL || DEFAULT_OPENCODE_MODEL;
-    const activeModel = getOpenCodeModel(configuredModel)?.id ?? DEFAULT_OPENCODE_MODEL;
-    const candidates = getGenerationModels(runtime, activeModel, parseFallbacks(savedAiSettings?.fallbackModels))
+    const candidates = getGenerationModels(runtime)
       .map((id) => runtime.providerId === "opencode" ? getOpenCodeModel(id)?.id : id)
       .filter((id, index, list): id is string => Boolean(id) && list.indexOf(id) === index)
       // Muse is region-limited. Keep it usable when explicitly selected as the active model,

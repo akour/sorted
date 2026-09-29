@@ -36,6 +36,13 @@
       "when": 1790665125988,
       "tag": "0011_milky_gertrude_yorkes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1790675373153,
+      "tag": "0012_tan_strong_guy",
+      "breakpoints": true
     }
   ]
 }
