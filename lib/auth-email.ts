@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { APIError } from "better-auth/api";
 import { createAuthEmailContent, type AuthEmailPurpose } from "./auth-email-content";
 
 const RESEND_EMAILS_ENDPOINT = "https://api.resend.com/emails";
@@ -43,9 +44,24 @@ export async function sendAuthEmail(input: {
         html: content.html,
       }),
     });
-  } catch {
-    console.error("Sorted transactional email request failed before a response was received.");
-    throw new Error("Account email delivery could not be completed.");
+  } catch (error) {
+    const errorName = error instanceof Error && /^[A-Za-z][A-Za-z0-9]{0,39}$/.test(error.name)
+      ? error.name
+      : "unknown";
+    const rawMessage = error instanceof Error ? error.message : "";
+    const message = rawMessage
+      .replace(/\b[\w.+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, "[redacted-email]")
+      .replace(/\bBearer\s+\S+/gi, "Bearer [redacted]")
+      .replace(/\bre_[A-Za-z0-9_-]+\b/g, "[redacted-key]")
+      .slice(0, 160);
+    console.error("Sorted transactional email request failed before a response was received.", {
+      errorName,
+      message: message || undefined,
+    });
+    throw APIError.fromStatus("BAD_GATEWAY", {
+      message: "Email provider could not be reached.",
+      code: "RESEND_NO_RESPONSE",
+    });
   }
 
   if (!response.ok) {
@@ -61,7 +77,13 @@ export async function sendAuthEmail(input: {
       status: response.status,
       code,
     });
-    throw new Error("Account email delivery could not be completed.");
+    const safeCode = code
+      ? `RESEND_${response.status}_${code}`
+      : `RESEND_HTTP_${response.status}`;
+    throw APIError.fromStatus("BAD_GATEWAY", {
+      message: "Email provider rejected the request.",
+      code: safeCode,
+    });
   }
 
   console.info("Sorted transactional email accepted by provider.", {
