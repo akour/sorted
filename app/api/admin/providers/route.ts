@@ -56,6 +56,9 @@ export async function POST(request: Request) {
     if (!baseUrl) return Response.json({ error: "Enter a valid provider URL." }, { status: 400 });
     const label = body.label?.trim().slice(0, 80) || definition.name;
     const model = body.model?.trim().slice(0, 160) || definition.defaultModel;
+    if (definition.models?.length && !definition.models.some((option) => option.id === model)) {
+      return Response.json({ error: "Choose a model from the selected provider's catalog." }, { status: 400 });
+    }
     const db = getDb();
     const [existing] = await db.select().from(adminProviderKeys).where(eq(adminProviderKeys.providerId, providerId)).limit(1);
     const apiKey = body.apiKey?.trim() ?? "";

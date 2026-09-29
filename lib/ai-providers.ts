@@ -1,4 +1,5 @@
 import { safeOpenCodeFailureDetails } from "@/lib/opencode-client";
+import { OPENCODE_MODELS } from "@/lib/opencode-models";
 
 export type AiProviderKind = "openai-compatible" | "anthropic";
 
@@ -9,10 +10,11 @@ export type AiProviderDefinition = {
   defaultBaseUrl: string;
   defaultModel: string;
   description: string;
+  models?: Array<{ id: string; name: string }>;
 };
 
 export const AI_PROVIDER_CATALOG: AiProviderDefinition[] = [
-  { id: "opencode", name: "OpenCode", kind: "openai-compatible", defaultBaseUrl: "https://opencode.ai/zen/go/v1", defaultModel: "deepseek-v4.1-flash", description: "Current Sorted model gateway with the existing model catalog." },
+  { id: "opencode", name: "OpenCode", kind: "openai-compatible", defaultBaseUrl: "https://opencode.ai/zen/go/v1", defaultModel: "deepseek-v4.1-flash", models: OPENCODE_MODELS.map(({ id, name }) => ({ id, name })), description: "Current Sorted model gateway with the existing model catalog." },
   { id: "openai", name: "OpenAI", kind: "openai-compatible", defaultBaseUrl: "https://api.openai.com/v1", defaultModel: "gpt-4.1-mini", description: "OpenAI’s direct API." },
   { id: "anthropic", name: "Anthropic", kind: "anthropic", defaultBaseUrl: "https://api.anthropic.com/v1", defaultModel: "claude-sonnet-4-5", description: "Anthropic’s Messages API." },
   { id: "google", name: "Google AI", kind: "openai-compatible", defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", defaultModel: "gemini-2.5-flash", description: "Google’s OpenAI-compatible Gemini endpoint." },
@@ -43,6 +45,9 @@ export async function testAiProvider(input: { definition: AiProviderDefinition; 
     body = { model: input.model, max_tokens: 16, system: "Reply with exactly OK and nothing else.", messages: [{ role: "user", content: "Connection test. Reply with exactly OK." }] };
   } else {
     headers.authorization = `Bearer ${input.apiKey}`;
+    if (input.definition.id === "opencode") {
+      headers["x-opencode-session"] = `sorted-admin-provider-test-${crypto.randomUUID()}`;
+    }
     body = { model: input.model, max_tokens: 16, temperature: 0, messages: [{ role: "system", content: "Reply with exactly OK and nothing else." }, { role: "user", content: "Connection test. Reply with exactly OK." }] };
   }
   try {
