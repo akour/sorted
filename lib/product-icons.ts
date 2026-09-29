@@ -453,7 +453,9 @@ async function googlePlayListing(link: Extract<StoreLink, { kind: "google-play" 
   const requestUrl = new URL(link.url);
   if (!requestUrl.searchParams.has("hl")) requestUrl.searchParams.set("hl", "en");
   if (!requestUrl.searchParams.has("gl")) requestUrl.searchParams.set("gl", "US");
-  const page = await fetchPublicHtml(requestUrl.toString(), 1_000_000);
+  // Google Play places the full description in a later page-data script, after
+  // the title and short summary. Keep enough of the public response to reach it.
+  const page = await fetchPublicHtml(requestUrl.toString(), 2_000_000);
   if (!page) {
     return { listing: null, message: "Google Play did not return a readable listing page. Check that the app is live and the link includes its app ID." };
   }
