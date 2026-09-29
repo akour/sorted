@@ -116,28 +116,48 @@ function htmlText(value: string): string {
     .trim();
 }
 
-function jsonStringFieldValues(html: string, names: string[]): string[] {
+type DescriptionContext = { appId?: string; title?: string };
+
+function scriptContents(html: string, context?: DescriptionContext): string[] {
+  const scripts = html.match(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi) ?? [];
+  if (!context || (!context.appId && !context.title)) {
+    return scripts.map((script) => script.replace(/^<script\b[^>]*>/i, "").replace(/<\/script\s*>$/i, ""));
+  }
+
+  const tokens = [context.appId, context.title]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => value.toLowerCase());
+  return scripts
+    .map((script) => script.replace(/^<script\b[^>]*>/i, "").replace(/<\/script\s*>$/i, ""))
+    .filter((content) => {
+      const lower = content.toLowerCase();
+      return tokens.some((token) => lower.includes(token));
+    });
+}
+
+function jsonStringFieldValues(html: string, names: string[], context?: DescriptionContext): string[] {
   const keyPattern = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
   const pattern = new RegExp(`(?:["'])(?:${keyPattern})(?:["'])\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "gi");
   const values: string[] = [];
-  for (const match of html.matchAll(pattern)) {
-    const raw = match[1] ?? "";
-    try {
-      const decoded = JSON.parse(`"${raw}"`) as unknown;
-      if (typeof decoded === "string" && decoded.trim()) values.push(htmlText(decoded));
-    } catch {
-      const fallback = htmlText(raw.replace(/\\n/g, "\n").replace(/\\"/g, '"'));
-      if (fallback) values.push(fallback);
+  for (const source of context ? scriptContents(html, context) : [html]) {
+    for (const match of source.matchAll(pattern)) {
+      const raw = match[1] ?? "";
+      try {
+        const decoded = JSON.parse(`"${raw}"`) as unknown;
+        if (typeof decoded === "string" && decoded.trim()) values.push(htmlText(decoded));
+      } catch {
+        const fallback = htmlText(raw.replace(/\\n/g, "\n").replace(/\\"/g, '"'));
+        if (fallback) values.push(fallback);
+      }
     }
   }
   return values;
 }
 
-function jsonStringValues(html: string): string[] {
+function jsonStringValues(html: string, context?: DescriptionContext): string[] {
   const values: string[] = [];
   const pattern = /"((?:\\.|[^"\\]){120,})"/g;
-  for (const script of html.match(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi) ?? []) {
-    const content = script.replace(/^<script\b[^>]*>/i, "").replace(/<\/script\s*>$/i, "");
+  for (const content of scriptContents(html, context)) {
     for (const match of content.matchAll(pattern)) {
       const raw = match[1] ?? "";
       try {
@@ -188,19 +208,15 @@ function itempropTextValues(html: string, itemprop: string): string[] {
   return attributeTextValues(html, "itemprop", itemprop);
 }
 
-export function extractGooglePlayLongDescription(html: string, fallback: string): string {
+export function extractGooglePlayLongDescription(html: string, fallback: string, context?: DescriptionContext): string {
   const candidates = [
-    ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"]),
-    ...jsonStringValues(html),
+    ...jsonStringFieldValues(html, ["description", "fullDescription", "longDescription"], context),
+    ...jsonStringValues(html, context),
     ...itempropTextValues(html, "description"),
     ...attributeTextValues(html, "jsname", "bN97Pc"),
   ].filter((value) => value.length > 0);
   const minimumLength = Math.max(120, fallback.length + 40);
   return candidates.filter((value) => value.length >= minimumLength).sort((a, b) => b.length - a.length)[0] ?? "";
-}
-
-function longestDescription(html: string, fallback: string): string {
-  return extractGooglePlayLongDescription(html, fallback);
 }
 
 function looksLikeGame(category: string, title: string): boolean {
@@ -466,9 +482,10 @@ async function googlePlayListing(link: Extract<StoreLink, { kind: "google-play" 
   const metadata = pageMetadata(page.html, page.url);
   const title = (metadata.title || "").replace(/\s*(?:-|–|—)\s*Apps on Google Play$/i, "").trim();
   const description = metadata.description.trim();
-  const fullDescription = longestDescription(page.html, description);
-  const category = metadata.category.trim() || jsonStringFieldValues(page.html, ["genre", "applicationCategory", "category"])[0] || "";
-  const developer = metadata.developer.trim() || jsonStringFieldValues(page.html, ["author", "publisher", "developer"])[0] || "";
+  const descriptionContext = { appId: requestUrl.searchParams.get("id") ?? "", title };
+  const fullDescription = extractGooglePlayLongDescription(page.html, description, descriptionContext);
+  const category = metadata.category.trim() || jsonStringFieldValues(page.html, ["genre", "applicationCategory", "category"], descriptionContext)[0] || "";
+  const developer = metadata.developer.trim() || jsonStringFieldValues(page.html, ["author", "publisher", "developer"], descriptionContext)[0] || "";
   const discoveredIcon = metadata.imageUrl || openGraphImage(page.html, page.url);
   const iconUrl = isSafeProductIconUrl(discoveredIcon) ? discoveredIcon : "";
   if (!title && !description && !iconUrl) {
