@@ -7,6 +7,7 @@ import { canMarkPublishReady } from "../../lib/publish-readiness";
 import { getInitialProductIconUrl } from "../../lib/product-icon-url";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../lib/product-url";
 import { analyzeGooglePlayListing } from "../../lib/google-play-aso";
+import { buildGooglePlayPromoHandoff, validateGooglePlayPromoHandoff } from "../../lib/google-play-promo";
 import { GooglePlayExperimentPanel } from "../../components/GooglePlayExperimentPanel";
 
 type Product = {
@@ -177,8 +178,9 @@ function ValidationSummary({ checks, title = "Validation" }: { checks: Validatio
 }
 
 function CharacterCounter({ id, value, limit }: { id: string; value: string; limit: number }) {
-  const overLimit = value.length > limit;
-  return <span id={id} className={`char-count ${overLimit ? "over" : ""}`}>{value.length}/{limit}</span>;
+  const count = Array.from(value).length;
+  const overLimit = count > limit;
+  return <span id={id} className={`char-count ${overLimit ? "over" : ""}`}>{count}/{limit}</span>;
 }
 
 function promoValidationErrors(event: PromoEvent) {
@@ -190,9 +192,9 @@ function promoValidationErrors(event: PromoEvent) {
   const selectedDescription = typeof selected?.description === "string" ? selected.description : "";
   if (options.length !== 3) errors.push("Google Play must contain exactly 3 options.");
   if (!selectedTagline.trim()) errors.push("Select a Google Play option with a tagline.");
-  if (selectedTagline.length > 80) errors.push("Selected Google Play tagline exceeds 80 characters.");
+  if (Array.from(selectedTagline).length > 80) errors.push("Selected Google Play tagline exceeds 80 characters.");
   if (!selectedDescription.trim()) errors.push("Selected Google Play description is empty.");
-  if (selectedDescription.length > 500) errors.push("Selected Google Play description exceeds 500 characters.");
+  if (Array.from(selectedDescription).length > 500) errors.push("Selected Google Play description exceeds 500 characters.");
   if (selectedDescription.includes("\n")) errors.push("Google Play description must be a single paragraph.");
   if (["play now", "buy now", "install now"].some((phrase) => selectedDescription.toLowerCase().includes(phrase))) errors.push("Google Play description contains a generic CTA.");
   for (const locale of (Array.isArray(event.localization) ? event.localization : []).filter((item) => item && ["en", "ar"].includes(item.locale))) {
@@ -200,9 +202,9 @@ function promoValidationErrors(event: PromoEvent) {
     const tagline = typeof locale.tagline === "string" ? locale.tagline : "";
     const description = typeof locale.description === "string" ? locale.description : "";
     if (!tagline.trim()) errors.push(`${name} localization tagline is empty.`);
-    if (tagline.length > 80) errors.push(`${name} localization tagline exceeds 80 characters.`);
+    if (Array.from(tagline).length > 80) errors.push(`${name} localization tagline exceeds 80 characters.`);
     if (!description.trim()) errors.push(`${name} localization description is empty.`);
-    if (description.length > 500) errors.push(`${name} localization description exceeds 500 characters.`);
+    if (Array.from(description).length > 500) errors.push(`${name} localization description exceeds 500 characters.`);
     if (description.includes("\n")) errors.push(`${name} localization description must be a single paragraph.`);
   }
   const appleEvent = event.appleEvent ?? {};
@@ -1127,7 +1129,27 @@ export default function Home() {
     }
   }
 
-  function exportCalendarEvent(event: PromoEvent) {
+  function exportCalendarEvent(event: PromoEvent, target: "full-package" | "google-play" = "full-package") {
+    if (target === "google-play") {
+      const errors = validateGooglePlayPromoHandoff(event);
+      if (errors.length) {
+        setError(`Cannot export the Google Play handoff yet: ${errors.slice(0, 3).join(" ")}${errors.length > 3 ? " Fix the remaining items first." : ""}`);
+        return;
+      }
+      const productName = products.find((product) => product.id === event.productId)?.name ?? event.productName ?? "";
+      const markdown = buildGooglePlayPromoHandoff(event, productName);
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "google-play-promo"}-play-console-handoff.md`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setError("");
+      setNotice("Google Play handoff downloaded. Finish setup and submit in Play Console.");
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
+    }
     const validationErrors = promoValidationErrors(event);
     if (validationErrors.length) {
       setError(`Cannot export yet: ${validationErrors.slice(0, 3).join(" ")}${validationErrors.length > 3 ? " Fix the remaining validation items first." : ""}`);
@@ -1546,7 +1568,7 @@ function CreateView({ product, create, loading, saving, generating, onChange, on
   return <section className="create-view"><div className="research-toolbar"><button className="back-button" onClick={onBack}>← {product.name}</button><span>{create.updatedAt ? `Saved ${formatDate(create.updatedAt)}` : "Not built yet"}</span></div><div className="section-intro create-intro"><div><p className="eyebrow">Creation workspace</p><h2>Turn strategy into usable briefs</h2><p>Shape store copy, answer-engine responses, promo messaging, and creative direction from the same product truth.</p></div><button className="primary-button ai-button" type="button" onClick={onGenerate} disabled={generating}>{generating ? "Building…" : "✦ Build with AI"}</button></div>{loading ? <div className="loading-line">Loading the creation brief…</div> : <form className="create-form" onSubmit={onSave}><div className="create-card create-message-card"><div className="create-card-heading"><div><p className="eyebrow">Message foundation</p><h3>What should every surface communicate?</h3></div><select className="status-select" value={create.status} onChange={(event) => onChange({ ...create, status: event.target.value as CreateBrief["status"] })}><option value="draft">Draft</option><option value="review">In review</option><option value="approved">Approved</option></select></div><label>Primary message<span className="field-help">A short, durable idea that keeps every output aligned.</span><textarea value={create.primaryMessage} onChange={(event) => onChange({ ...create, primaryMessage: event.target.value })} placeholder="The clearest reason this product deserves attention" rows={3} /></label></div><div className="create-card"><div className="create-card-heading"><div><p className="eyebrow">Store copy variants</p><h3>Draft the words people will see</h3></div><span className="product-count">{create.storeVariants.length} variants</span></div>{create.storeVariants.length ? <div className="variant-list">{create.storeVariants.map((variant, index) => <article className="variant-card" key={`${variant.label}-${index}`}><div className="variant-heading"><strong>{variant.label || `Variant ${index + 1}`}</strong><select className="status-select" value={variant.status} onChange={(event) => updateVariant(index, { status: event.target.value as CreateVariant["status"] })}><option value="draft">Draft</option><option value="needs-edit">Needs edit</option><option value="approved">Approved</option></select></div><div className="variant-meta"><input value={variant.label} onChange={(event) => updateVariant(index, { label: event.target.value })} placeholder="Variant label" /><input value={variant.platform} onChange={(event) => updateVariant(index, { platform: event.target.value })} placeholder="Platform" /></div><label>Title<input value={variant.title} onChange={(event) => updateVariant(index, { title: event.target.value })} placeholder="A clear, specific title" /></label><label>Subtitle / hook<input value={variant.subtitle} onChange={(event) => updateVariant(index, { subtitle: event.target.value })} placeholder="The next line people should understand" /></label><label>Description<textarea value={variant.description} onChange={(event) => updateVariant(index, { description: event.target.value })} placeholder="Reviewable copy direction" rows={4} /></label></article>)}</div> : <div className="empty-create">Build with AI after completing the research foundation.</div>}</div><div className="create-card"><div className="create-card-heading"><div><p className="eyebrow">Answer-engine blocks</p><h3>Prepare useful, factual answers</h3></div><span className="product-count">{create.answerBlocks.length} blocks</span></div>{create.answerBlocks.length ? <div className="answer-list">{create.answerBlocks.map((block, index) => <article className="answer-block" key={`${block.question}-${index}`}><div className="answer-heading"><span>Q{index + 1}</span><select className="status-select" value={block.status} onChange={(event) => updateAnswer(index, { status: event.target.value as AnswerBlock["status"] })}><option value="draft">Draft</option><option value="needs-edit">Needs edit</option><option value="approved">Approved</option></select></div><label>Question<input value={block.question} onChange={(event) => updateAnswer(index, { question: event.target.value })} placeholder="What might someone ask about this product?" /></label><label>Answer<textarea value={block.answer} onChange={(event) => updateAnswer(index, { answer: event.target.value })} placeholder="A concise answer grounded in what you know" rows={4} /></label></article>)}</div> : <div className="empty-create">AI will turn the foundation into concise answer blocks.</div>}</div><div className="create-grid"><div className="create-card"><div className="create-card-heading"><div><p className="eyebrow">Promo brief</p><h3>Give campaigns a usable angle</h3></div></div><div className="promo-grid"><label>Theme<input value={create.promoBrief.theme} onChange={(event) => updatePromo({ theme: event.target.value })} placeholder="Campaign idea" /></label><label>CTA<input value={create.promoBrief.cta} onChange={(event) => updatePromo({ cta: event.target.value })} placeholder="Try it, explore it, learn more" /></label></div><label>Hook<input value={create.promoBrief.hook} onChange={(event) => updatePromo({ hook: event.target.value })} placeholder="The first line that earns attention" /></label><label>Body<textarea value={create.promoBrief.body} onChange={(event) => updatePromo({ body: event.target.value })} placeholder="Short promo direction" rows={4} /></label><label>Channels<input value={create.promoBrief.channels.join(", ")} onChange={(event) => updatePromo({ channels: event.target.value.split(",").map((item) => item.trim()).filter(Boolean) })} placeholder="Google Play, App Store, social" /></label></div><div className="create-card"><div className="create-card-heading"><div><p className="eyebrow">Creative direction</p><h3>Make the idea easy to produce</h3></div></div><label>Concept<input value={create.creativeBrief.concept} onChange={(event) => updateCreative({ concept: event.target.value })} placeholder="The visual idea" /></label><label>Visual direction<textarea value={create.creativeBrief.visualDirection} onChange={(event) => updateCreative({ visualDirection: event.target.value })} placeholder="Mood, composition, motion, or framing" rows={3} /></label><label>Frames / moments<span className="field-help">One idea per line.</span><textarea value={create.creativeBrief.frames.join("\n")} onChange={(event) => updateCreative({ frames: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean) })} placeholder="Opening frame\nProduct moment\nClosing frame" rows={4} /></label><label>Proof to show<span className="field-help">Only evidence that can be verified.</span><textarea value={create.creativeBrief.proofToShow.join("\n")} onChange={(event) => updateCreative({ proofToShow: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean) })} placeholder="Real feature, review, result, or fact" rows={4} /></label></div></div><div className="research-actions"><span>Everything stays editable. Nothing publishes automatically.</span><div className="workflow-action-buttons"><button className="secondary-button" type="submit" disabled={saving || generating}>Save creation brief</button><button className="primary-button" type="button" onClick={onSaveAndContinue} disabled={!canContinue || saving || generating} aria-describedby={!canContinue ? "create-continue-help" : undefined}>{saving ? "Saving…" : "Save & continue to Promo Events →"}</button></div></div>{!canContinue && <p className="workflow-action-help" id="create-continue-help">Add a primary message before continuing to Promo Events.</p>}</form>}</section>;
 }
 
-function CalendarView({ products, events, draft, loading, saving, generating, onNew, onSelect, onChange, onSave, onSaveAndContinue, onGenerateStrategy, onGenerateChannel, onExport, onDelete }: { products: Product[]; events: PromoEvent[]; draft: PromoEvent; loading: boolean; saving: boolean; generating: boolean; onNew: () => void; onSelect: (event: PromoEvent) => void; onChange: (event: PromoEvent) => void; onSave: (event: PromoEvent, quiet?: boolean) => Promise<PromoEvent | null>; onSaveAndContinue: (event: PromoEvent) => void; onGenerateStrategy: (event: PromoEvent) => void; onGenerateChannel: (event: PromoEvent, channel: PromoChannel, locale?: "en" | "ar") => void; onExport: (event: PromoEvent) => void; onDelete: (event: PromoEvent) => void }) {
+function CalendarView({ products, events, draft, loading, saving, generating, onNew, onSelect, onChange, onSave, onSaveAndContinue, onGenerateStrategy, onGenerateChannel, onExport, onDelete }: { products: Product[]; events: PromoEvent[]; draft: PromoEvent; loading: boolean; saving: boolean; generating: boolean; onNew: () => void; onSelect: (event: PromoEvent) => void; onChange: (event: PromoEvent) => void; onSave: (event: PromoEvent, quiet?: boolean) => Promise<PromoEvent | null>; onSaveAndContinue: (event: PromoEvent) => void; onGenerateStrategy: (event: PromoEvent) => void; onGenerateChannel: (event: PromoEvent, channel: PromoChannel, locale?: "en" | "ar") => void; onExport: (event: PromoEvent, target?: "full-package" | "google-play") => void; onDelete: (event: PromoEvent) => void }) {
   const [tab, setTab] = useState<PromoStageKey>("plan");
   const briefFields: Array<[keyof PromoEvent["eventBrief"], string]> = [["whatNew", "What is new?"], ["userValue", "Why should people care?"], ["participation", "How do people participate?"], ["requirements", "Requirements"], ["rewards", "Rewards or unlocks"], ["content", "Content to reveal"], ["missions", "Missions or actions"], ["bonuses", "Bonuses"], ["notes", "Notes for review"]];
   const selectedOption = draft.googlePlay.selectedOption ?? 0;
@@ -1616,7 +1638,7 @@ function CalendarView({ products, events, draft, loading, saving, generating, on
     const blockedArabic = channel === "localization" && locale === "ar" && !hasEnglish;
     const disabledReason = generating ? "A draft is generating. Wait for it to finish." : saving ? "The event is saving. Wait for it to finish." : blockedArabic ? "Generate and save English first." : !hasStrategy ? "Generate and save the event strategy first." : "";
     const reasonId = `channel-action-${channel}-${locale ?? "default"}-reason`;
-    return <span className="channel-action-control"><button className="secondary-button" type="button" onClick={() => onGenerateChannel(draft, channel, locale)} disabled={Boolean(disabledReason)} title={disabledReason || undefined} aria-describedby={disabledReason ? reasonId : undefined} aria-busy={generating}>{generating ? "Generating…" : `${hasDraft ? "Retry" : "Generate"} ${label}`}</button>{disabledReason && <small className="channel-action-reason" id={reasonId}>{disabledReason}</small>}</span>;
+    return <span className="channel-action-control"><button className="secondary-button" type="button" onClick={() => onGenerateChannel(draft, channel, locale)} disabled={Boolean(disabledReason)} title={disabledReason || undefined} aria-describedby={disabledReason ? reasonId : undefined} aria-busy={generating}>{generating ? "Generating…" : `${hasDraft ? "Retry" : "Generate"} ${label}`}</button>{channel === "googlePlay" && <button className="secondary-button" type="button" onClick={() => onExport(draft, "google-play")} disabled={saving || generating}>↓ Play Console handoff</button>}{disabledReason && <small className="channel-action-reason" id={reasonId}>{disabledReason}</small>}</span>;
   }
 
   return <section className="calendar-view">
