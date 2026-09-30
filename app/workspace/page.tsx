@@ -73,7 +73,7 @@ const productNavItems: NavigationItem[] = [
   { label: "Research", icon: "⌕", view: "Research" },
   { label: "Optimize", icon: "↗", view: "Optimize" },
   { label: "Create", icon: "✦", view: "Create" },
-  { label: "Promo", icon: "□", view: "Calendar" },
+  { label: "Promotions", icon: "□", view: "Calendar" },
   { label: "Publish", icon: "⇧", view: "Publish" },
 ];
 
@@ -531,7 +531,6 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [activeProduct, loadReports, products, view]);
 
-  const activeProductSection = activeProduct ? productNavItems.find((item) => item.view === view)?.label ?? "Workspace" : "";
   const calendarProducts = activeProduct ? [activeProduct] : products;
   const visibleCalendarEvents = activeProduct
     ? calendarEvents.filter((event) => event.productId === activeProduct.id)
@@ -1157,6 +1156,17 @@ export default function Home() {
     setView(next);
   }
 
+  function selectWorkspaceScope(product: Product | null) {
+    const currentViewIsProductTool = productNavItems.some((item) => item.view === view);
+    if (product) {
+      setActiveProduct(product);
+      if (!currentViewIsProductTool) setView("Product workspace");
+      return;
+    }
+    setActiveProduct(null);
+    if (activeProduct && currentViewIsProductTool) setView(view === "Calendar" ? "Calendar" : "Overview");
+  }
+
   return (
     <main className="sorted-app">
       <aside className="sorted-sidebar">
@@ -1164,31 +1174,46 @@ export default function Home() {
           <span className="brand-mark">3</span>
           <span><strong>sort3d</strong><small>organic growth workspace</small></span>
         </button>
+        <ProductSwitcher products={products} activeProduct={activeProduct} onSelectProduct={selectWorkspaceScope} onManageProducts={() => chooseView("Products")} />
         <nav className="sorted-nav" aria-label="Primary navigation">
-          <p className="nav-label">Workspace</p>
+          <p className="nav-label">Account</p>
           {workspaceNavItems.map((item) => {
-            const isCurrent = activeProduct ? item.view === "Products" : view === item.view;
+            const isCurrent = !activeProduct && view === item.view;
             return <button className={`nav-item ${isCurrent ? "active" : ""}`} key={item.view} onClick={() => chooseView(item.view)} aria-current={isCurrent ? activeProduct ? "location" : "page" : undefined}><span className="nav-icon">{item.icon}</span>{item.label}</button>;
           })}
           {activeProduct && <>
             <div className="nav-divider" />
-            <p className="nav-label product-nav-label">Product workflow</p>
-            <div className="product-nav-context"><ProductAvatar product={activeProduct} /><span><strong>{activeProduct.name}</strong><small>Selected product</small></span></div>
+            <p className="nav-label product-nav-label">Product tools</p>
             {productNavItems.map((item) => <button className={`nav-item product-nav-item ${view === item.view ? "active" : ""}`} key={item.view} onClick={() => chooseProductView(item.view)} aria-current={view === item.view ? "page" : undefined}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}
           </>}
         </nav>
       </aside>
 
       <section className="sorted-main">
-          <header className="sorted-topbar"><div className="crumb">Workspace <span>/</span> {activeProduct ? <>{activeProduct.name}<span>/</span>{activeProductSection}</> : view}</div><div className="top-actions"><button className="icon-button" type="button" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>⌕</button></div></header>
+          <header className="sorted-topbar"><nav className="crumb" aria-label="Breadcrumb">
+            <button className="breadcrumb-link" type="button" onClick={() => chooseView("Overview")}>Workspace</button>
+            <span className="crumb-separator" aria-hidden="true">/</span>
+            {activeProduct ? <>
+              <button className="breadcrumb-link breadcrumb-product" type="button" onClick={() => setView("Product workspace")} aria-current={view === "Product workspace" ? "page" : undefined}>{activeProduct.name}</button>
+              <span className="crumb-separator" aria-hidden="true">/</span>
+              <label className="breadcrumb-section">
+                <span className="sr-only">Product section</span>
+                <select value={view} onChange={(event) => chooseProductView(event.target.value)} aria-label="Switch product section">
+                  {productNavItems.map((item) => <option value={item.view} key={item.view}>{item.label}</option>)}
+                </select>
+                <span className="breadcrumb-section-arrow" aria-hidden="true">⌄</span>
+              </label>
+            </> : <span className="breadcrumb-current" aria-current="page">{view}</span>}
+          </nav><div className="top-actions"><button className="icon-button" type="button" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>⌕</button></div></header>
           <nav className="mobile-navigation" aria-label="Workspace navigation">
-            <div className="mobile-nav-group" role="group" aria-label="Workspace sections">
+            <ProductSwitcher products={products} activeProduct={activeProduct} onSelectProduct={selectWorkspaceScope} onManageProducts={() => chooseView("Products")} mobile />
+            <div className="mobile-nav-group" role="group" aria-label="Account sections">
               {workspaceNavItems.map((item) => {
-                const isCurrent = activeProduct ? item.view === "Products" : view === item.view;
+                const isCurrent = !activeProduct && view === item.view;
                 return <button type="button" className={`mobile-nav-item ${isCurrent ? "active" : ""}`} key={item.view} onClick={() => chooseView(item.view)} aria-current={isCurrent ? activeProduct ? "location" : "page" : undefined}><span>{item.icon}</span>{item.label}</button>;
               })}
             </div>
-            {activeProduct && <div className="mobile-product-navigation"><span className="mobile-nav-context">{activeProduct.name}</span><div className="mobile-nav-group" role="group" aria-label={`${activeProduct.name} sections`}>
+            {activeProduct && <div className="mobile-product-navigation"><div className="mobile-nav-group" role="group" aria-label={`${activeProduct.name} sections`}>
               {productNavItems.map((item) => <button type="button" className={`mobile-nav-item ${view === item.view ? "active" : ""}`} key={item.view} onClick={() => chooseProductView(item.view)} aria-current={view === item.view ? "page" : undefined}><span>{item.icon}</span>{item.label}</button>)}
             </div></div>}
           </nav>
@@ -1714,6 +1739,80 @@ function ProductAvatar({ product, size = "small" }: { product: Product; size?: "
   return <span className={(size === "large" ? "product-avatar" : "row-avatar") + (showIcon ? " has-product-icon" : "")} aria-hidden="true">
     {showIcon ? <Image src={iconUrl} alt="" width={size === "large" ? 46 : 34} height={size === "large" ? 46 : 34} unoptimized loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailedImage({ productKey, url: iconUrl })} /> : product.name.slice(0, 1).toUpperCase()}
   </span>;
+}
+
+function ProductSwitcher({ products, activeProduct, onSelectProduct, onManageProducts, mobile = false }: {
+  products: Product[];
+  activeProduct: Product | null;
+  onSelectProduct: (product: Product | null) => void;
+  onManageProducts: () => void;
+  mobile?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const filteredProducts = products.filter((product) => product.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!open) return;
+    searchRef.current?.focus();
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      setQuery("");
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  function selectProduct(product: Product | null) {
+    setOpen(false);
+    setQuery("");
+    onSelectProduct(product);
+  }
+
+  return <div className={"product-switcher" + (mobile ? " mobile-product-switcher" : "")} ref={rootRef}>
+    <p className="product-switcher-label">Workspace scope</p>
+    <button type="button" className="product-switcher-trigger" ref={triggerRef} aria-expanded={open} aria-haspopup="dialog" onClick={() => { setOpen((current) => !current); setQuery(""); }}>
+      {activeProduct ? <ProductAvatar product={activeProduct} /> : <span className="product-switcher-all-mark" aria-hidden="true">✦</span>}
+      <span className="product-switcher-current">
+        <strong>{activeProduct?.name ?? "All products"}</strong>
+        <small>{activeProduct ? activeProduct.type + " workspace" : "Account workspace"}</small>
+      </span>
+      <span className="product-switcher-chevron" aria-hidden="true">⌄</span>
+    </button>
+    {open && <div className="product-switcher-menu" role="dialog" aria-label="Choose a product">
+      <div className="product-switcher-menu-heading"><strong>Switch product</strong><span>{products.length} total</span></div>
+      <label className="product-switcher-search">
+        <span className="sr-only">Search products</span>
+        <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a product…" />
+      </label>
+      <div className="product-switcher-options" role="group" aria-label="Workspace scope">
+        <button type="button" aria-pressed={!activeProduct} className={"product-switcher-option" + (!activeProduct ? " selected" : "")} onClick={() => selectProduct(null)}>
+          <span className="product-switcher-all-mark small" aria-hidden="true">✦</span>
+          <span className="product-switcher-option-copy"><strong>All products</strong><small>Account-wide workspace</small></span>
+          {!activeProduct && <span className="product-switcher-check" aria-hidden="true">✓</span>}
+        </button>
+        {filteredProducts.map((product) => <button type="button" aria-pressed={activeProduct?.id === product.id} className={"product-switcher-option" + (activeProduct?.id === product.id ? " selected" : "")} key={product.id} onClick={() => selectProduct(product)}>
+          <ProductAvatar product={product} />
+          <span className="product-switcher-option-copy"><strong>{product.name}</strong><small>{product.type}</small></span>
+          {activeProduct?.id === product.id && <span className="product-switcher-check" aria-hidden="true">✓</span>}
+        </button>)}
+        {filteredProducts.length === 0 && <p className="product-switcher-empty">{products.length ? "No products match that search." : "Add a product to start its workspace."}</p>}
+      </div>
+      <button type="button" className="product-switcher-manage" onClick={() => { setOpen(false); setQuery(""); onManageProducts(); }}>Manage products <span aria-hidden="true">→</span></button>
+    </div>}
+  </div>;
 }
 
 function ProductRow({ product, onClick }: { product: Product; onClick: () => void }) { return <button className="product-row" onClick={onClick}><ProductAvatar product={product} /><span className="row-copy"><strong>{product.name}</strong><small>{product.type} · {product.audience || "Audience not set"}</small></span><span className="row-status">{product.position && product.audience ? "Ready" : "Needs foundation"}</span><span className="row-arrow">→</span></button>; }
