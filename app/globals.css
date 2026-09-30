@@ -554,3 +554,28 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
   .promo-calendar-agenda-heading .primary-button { width:100%; }
   .promo-calendar-day-agenda { padding:13px; }
 }
+
+
+/* Unified AI action pattern: one accent, one icon, one pending state, actions anchored to their section headings. */
+.ai-action-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:none; white-space:nowrap; }
+.ai-action-icon { display:inline-grid; place-items:center; font-size:14px; line-height:1; }
+.ai-action-button[aria-busy="true"] { cursor:wait; }
+.ai-action-button:disabled { cursor:not-allowed; }
+.section-intro > .ai-action-button, .event-plan-heading > .ai-action-button { flex:none; }
+.channel-action-control { display:flex; flex:none; flex-direction:column; align-items:flex-end; gap:5px; }
+.channel-action-reason { max-width:220px; color:#85808b; font-size:9px; line-height:1.4; text-align:right; }
+.locale-row { grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) 100px; }
+.locale-controls { grid-column:1 / -1; display:flex; min-height:36px; align-items:center; justify-content:space-between; gap:12px; }
+.locale-row .locale-controls > strong { padding:0; color:#524b5b; font-size:11px; }
+@media (max-width: 900px) {
+  .event-card-heading.channel-heading { align-items:flex-start; flex-direction:row; }
+  .event-card-heading.channel-heading > div { min-width:0; }
+}
+@media (max-width: 640px) {
+  .event-plan-heading, .event-card-heading.channel-heading { align-items:flex-start; flex-direction:column; }
+  .event-plan-heading > .ai-action-button, .event-card-heading.channel-heading > .channel-action-control { align-self:flex-start; }
+  .channel-action-control { align-items:flex-start; }
+  .channel-action-reason { text-align:left; }
+  .locale-controls { align-items:flex-start; flex-direction:column; }
+  .locale-controls .channel-action-control { align-items:flex-start; }
+}
