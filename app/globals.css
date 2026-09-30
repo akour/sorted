@@ -559,7 +559,6 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 /* Unified AI action pattern: one accent, one icon, one pending state, actions anchored to their section headings. */
 .ai-action-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:none; white-space:nowrap; }
 .ai-action-icon { display:inline-grid; place-items:center; font-size:14px; line-height:1; }
-.ai-action-button-compact { min-height:36px; padding:0 12px; font-size:10px; }
 .ai-action-button[aria-busy="true"] { cursor:wait; }
 .ai-action-button:disabled { cursor:not-allowed; }
 .section-intro > .ai-action-button, .event-plan-heading > .ai-action-button { flex:none; }
