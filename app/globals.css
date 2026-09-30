@@ -445,3 +445,110 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 @media (prefers-reduced-motion: reduce) { .promo-calendar-event { transition:none; } }
 
 
+
+
+/* Calendar schedule, day agenda, and event editing */
+.calendar-layout { grid-template-columns:minmax(0,1fr); }
+.calendar-studio { margin-top:0; }
+.calendar-studio-closed { padding:0; border:0; background:transparent; box-shadow:none; }
+.calendar-studio-closed .studio-empty { min-height:0; padding:16px; border:1px dashed #dfe2e8; border-radius:12px; background:#fff; text-align:center; }
+.calendar-studio-closed .studio-empty .empty-orbit { display:none; }
+.calendar-studio-closed .studio-empty strong { margin:0; }
+.calendar-studio-closed .studio-empty p { max-width:none; margin:5px 0 0; }
+.promo-calendar-toolbar { grid-template-columns:minmax(0,1fr) minmax(180px,1.2fr) minmax(0,1fr); }
+.promo-calendar-controls { display:flex; align-items:center; justify-self:end; gap:9px; }
+.promo-calendar-product-filter { display:flex; align-items:center; gap:6px; color:#777f8d; font-size:10px; }
+.promo-calendar-product-filter select { max-width:170px; min-height:34px; padding:0 25px 0 9px; border:1px solid #e1e5ec; border-radius:8px; background:#fff; color:#4c5563; font-size:10px; }
+.promo-calendar-view-toggle button { min-width:48px; }
+.promo-calendar-subtoolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0 8px; }
+.promo-calendar-subtoolbar .promo-calendar-hint { margin:0; }
+.promo-calendar-example-toggle, .promo-calendar-back-to-month { padding:5px 8px; border:0; border-radius:6px; background:transparent; color:#6756b5; font-size:10px; font-weight:700; }
+.promo-calendar-example-toggle:hover, .promo-calendar-back-to-month:hover { background:#f4f1ff; }
+.promo-calendar-legend { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:0 0 11px; color:#707988; font-size:9px; }
+.promo-calendar-legend > span { display:inline-flex; align-items:center; gap:5px; }
+.promo-calendar-legend i, .promo-calendar-upcoming-event > i { width:8px; height:8px; border-radius:50%; background:#6d59ce; }
+.promo-calendar-legend i.type-seasonal { background:#c88730; }
+.promo-calendar-legend i.type-offer { background:#298570; }
+.promo-calendar-legend i.type-content { background:#3977b2; }
+.promo-calendar-legend > strong { color:#8b6a27; font-weight:600; }
+.promo-calendar-scroll { overflow-x:auto; }
+.promo-calendar-grid { min-width:760px; }
+.promo-calendar-grid.week { min-width:980px; }
+.promo-calendar-week-row { position:relative; isolation:isolate; display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border-bottom:1px solid #e7eaf0; }
+.promo-calendar-grid.month .promo-calendar-week-row { min-height:124px; }
+.promo-calendar-grid.week .promo-calendar-week-row { min-height:440px; }
+.promo-calendar-day { position:relative; z-index:0; grid-column:span 1; min-width:0; min-height:100%; padding:0 4px 5px; border-right:1px solid #e7eaf0; border-bottom:0; background:#fff; }
+.promo-calendar-day.outside-month { background:#fafbfc; }
+.promo-calendar-day.today { background:#fcfbff; }
+.promo-calendar-day.is-drop-target { background:#f0edff; box-shadow:inset 0 0 0 2px #8a76e1; }
+.promo-calendar-day-heading { min-height:31px; padding:2px 1px; }
+.promo-calendar-date { width:25px; height:25px; }
+.promo-calendar-add { opacity:0; }
+.promo-calendar-event { position:relative; z-index:2; display:flex; flex-direction:row; align-items:center; gap:6px; width:auto; min-width:0; min-height:20px; margin:1px 3px; padding:2px 4px 2px 7px; overflow:hidden; border:0; border-left:3px solid #6f5acb; border-radius:5px; background:#efedfb; color:#49406f; cursor:grab; text-align:left; }
+.promo-calendar-event:active { cursor:grabbing; }
+.promo-calendar-event.type-offer { border-left-color:#298570; background:#e7f5f0; color:#286c5d; }
+.promo-calendar-event.type-seasonal { border-left-color:#c88730; background:#fff3df; color:#80561f; }
+.promo-calendar-event.type-content { border-left-color:#3977b2; background:#eaf3fb; color:#315d82; }
+.promo-calendar-event.selected { box-shadow:inset 0 0 0 1px currentColor, 0 1px 4px #2222; }
+.promo-calendar-event.continues-before { margin-left:0; border-radius:0 5px 5px 0; }
+.promo-calendar-event.continues-after { margin-right:0; border-radius:5px 0 0 5px; }
+.promo-calendar-event.example-event { border-style:dashed; opacity:.82; cursor:pointer; }
+.promo-calendar-event-copy { display:flex; min-width:0; flex:1; align-items:center; gap:5px; overflow:hidden; }
+.promo-calendar-event-title { display:block; min-width:0; overflow:hidden; font-size:9px; font-weight:700; line-height:1.35; text-overflow:ellipsis; white-space:nowrap; }
+.promo-calendar-event-meta { display:block; min-width:0; overflow:hidden; font-size:8px; line-height:1.3; opacity:.78; text-overflow:ellipsis; white-space:nowrap; }
+.promo-calendar-resize-handle { flex:none; align-self:stretch; width:14px; padding:0; border:0; border-radius:3px; background:transparent; color:inherit; cursor:ew-resize; font-size:10px; opacity:.6; }
+.promo-calendar-resize-handle:hover, .promo-calendar-resize-handle:focus-visible { background:#fff9; opacity:1; }
+.promo-calendar-grid.week .promo-calendar-event { min-height:26px; padding:3px 5px 3px 8px; }
+.promo-calendar-grid.week .promo-calendar-event-copy { align-items:flex-start; flex-direction:column; gap:1px; }
+.promo-calendar-grid.week .promo-calendar-event-title { font-size:10px; }
+.promo-calendar-grid.week .promo-calendar-event-meta { font-size:9px; }
+.promo-calendar-empty-note { margin:11px 0 0; padding:9px 11px; border-radius:8px; background:#f7f7fa; color:#737c8a; font-size:10px; }
+.promo-calendar-day-agenda { padding:18px; border:1px solid #e5e8ee; border-radius:12px; background:#fff; }
+.promo-calendar-day-agenda.is-drop-target { background:#f5f2ff; outline:2px dashed #8a76e1; outline-offset:-5px; }
+.promo-calendar-agenda-heading, .promo-calendar-upcoming-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.promo-calendar-agenda-heading .eyebrow, .promo-calendar-upcoming-heading .eyebrow { margin:0 0 4px; }
+.promo-calendar-agenda-heading h4, .promo-calendar-upcoming-heading h4, .promo-calendar-unscheduled h4 { margin:0; color:#353b47; font-size:17px; letter-spacing:-.03em; }
+.promo-calendar-agenda-heading > div > span, .promo-calendar-upcoming-heading > span { display:block; margin-top:4px; color:#7a8391; font-size:10px; }
+.promo-calendar-agenda-list, .promo-calendar-unscheduled > div { display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+.promo-calendar-agenda-event { display:flex; flex-direction:column; gap:5px; width:100%; padding:12px 14px; border:0; border-left:4px solid #6f5acb; border-radius:8px; background:#f2f0fc; color:#4b426d; cursor:pointer; text-align:left; }
+.promo-calendar-agenda-event.type-offer { border-left-color:#298570; background:#eaf7f2; color:#286c5d; }
+.promo-calendar-agenda-event.type-seasonal { border-left-color:#c88730; background:#fff5e6; color:#80561f; }
+.promo-calendar-agenda-event.type-content { border-left-color:#3977b2; background:#edf5fc; color:#315d82; }
+.promo-calendar-agenda-event.example-event { outline:1px dashed currentColor; }
+.promo-calendar-agenda-event-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.promo-calendar-agenda-event-top strong { font-size:13px; }
+.promo-calendar-agenda-event-top span { font-size:10px; font-weight:700; white-space:nowrap; }
+.promo-calendar-agenda-event > span:nth-child(2), .promo-calendar-agenda-event small { font-size:10px; opacity:.82; }
+.promo-calendar-agenda-event small { opacity:.68; }
+.promo-calendar-agenda-empty { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:30px 8px; color:#7a8391; }
+.promo-calendar-agenda-empty strong { color:#454c58; font-size:13px; }
+.promo-calendar-agenda-empty span { font-size:11px; }
+.promo-calendar-back-to-month { margin-top:12px; }
+.promo-calendar-upcoming, .promo-calendar-unscheduled { margin-top:17px; padding-top:15px; border-top:1px solid #e9ebf0; }
+.promo-calendar-upcoming-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:7px; margin-top:11px; }
+.promo-calendar-upcoming-event { display:grid; grid-template-columns:9px minmax(0,1fr) auto; align-items:center; gap:8px; min-width:0; padding:9px; border:1px solid #e9e6f3; border-radius:8px; background:#fbfaff; color:#4c4661; cursor:pointer; text-align:left; }
+.promo-calendar-upcoming-event.type-offer { border-color:#d8eee7; background:#f7fcfa; }
+.promo-calendar-upcoming-event.type-seasonal { border-color:#f1e4ce; background:#fffaf2; }
+.promo-calendar-upcoming-event.type-content { border-color:#dce8f3; background:#f7fbfe; }
+.promo-calendar-upcoming-event > i { background:#6d59ce; }
+.promo-calendar-upcoming-event.type-offer > i { background:#298570; }
+.promo-calendar-upcoming-event.type-seasonal > i { background:#c88730; }
+.promo-calendar-upcoming-event.type-content > i { background:#3977b2; }
+.promo-calendar-upcoming-event > span:nth-child(2) { display:flex; min-width:0; flex-direction:column; gap:2px; }
+.promo-calendar-upcoming-event strong, .promo-calendar-upcoming-event small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.promo-calendar-upcoming-event strong { font-size:10px; }
+.promo-calendar-upcoming-event small { color:#7a8391; font-size:9px; }
+.promo-calendar-upcoming-date { color:#626c7b; font-size:9px; font-weight:700; white-space:nowrap; }
+.promo-calendar-unscheduled h4 span { margin-left:4px; color:#858d9a; font-size:11px; }
+@media (max-width: 760px) {
+  .promo-calendar-toolbar { grid-template-columns:1fr auto; }
+  .promo-calendar-heading { grid-column:1 / -1; grid-row:1; }
+  .promo-calendar-navigation { grid-column:1; grid-row:2; }
+  .promo-calendar-controls { grid-column:2; grid-row:2; }
+  .promo-calendar-product-filter { display:none; }
+  .promo-calendar-view-toggle button { min-width:0; padding:0 7px; }
+  .promo-calendar-subtoolbar, .promo-calendar-agenda-heading, .promo-calendar-agenda-event-top { align-items:flex-start; flex-direction:column; }
+  .promo-calendar-subtoolbar { gap:6px; }
+  .promo-calendar-agenda-heading .primary-button { width:100%; }
+  .promo-calendar-day-agenda { padding:13px; }
+}
