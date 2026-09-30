@@ -388,3 +388,11 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .connection-checklist span:nth-child(odd) { display:grid; place-items:center; width:22px; height:22px; border-radius:7px; background:#eaf8f4; color:#397668; font-weight:800; }
 @media (max-width: 640px) { .connection-actions { align-items:stretch; flex-direction:column; }.connection-actions button { width:100%; } }
 @media (max-width: 640px) { .oauth-connect-card { align-items:flex-start; flex-direction:column; }.oauth-connect-card .primary-button { width:100%; } }
+
+.google-play-submission { margin-top:22px; padding-top:20px; border-top:1px solid #f0edf2; }
+.google-play-submission .event-card-heading { margin-bottom:14px; }
+.google-play-submission .event-card-heading h3 { margin:0; color:#393340; font-size:15px; }
+.google-play-submission .event-card-heading span { display:block; margin-top:6px; color:#8b8492; font-size:10px; line-height:1.5; white-space:normal; }
+.google-play-submission .google-play-countries { grid-column:1 / -1; }
+.google-play-setup-status { margin:12px 0 0; color:#a75050; font-size:10px; line-height:1.55; }
+.google-play-setup-status.ready { color:#397668; }
