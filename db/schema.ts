@@ -185,6 +185,28 @@ export const promoEvents = sqliteTable("promo_events", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("promo_events_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Imported Play reports stay scoped to the owning promo event and are keyed
+// by date/country so re-importing an updated CSV safely refreshes the same rows.
+export const promoEventPerformance = sqliteTable("promo_event_performance", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  promoEventId: integer("promo_event_id").notNull().references(() => promoEvents.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  playEventId: text("play_event_id").notNull(),
+  reportDate: text("report_date").notNull(),
+  countryCode: text("country_code").notNull().default("ALL"),
+  dailyViewers: integer("daily_viewers"),
+  rolling28Viewers: integer("rolling28_viewers"),
+  dailyConverters: integer("daily_converters"),
+  rolling28Converters: integer("rolling28_converters"),
+  dailyConversionRate: text("daily_conversion_rate"),
+  rolling28ConversionRate: text("rolling28_conversion_rate"),
+  importedAt: text("imported_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("promo_event_performance_owner_event_date_country_idx").on(table.ownerId, table.promoEventId, table.reportDate, table.countryCode),
+  index("promo_event_performance_product_owner_date_idx").on(table.productId, table.ownerId, table.reportDate),
+]);
+
 // Better Auth's native D1 adapter uses these four core tables. Keep their
 // physical names and camel-case columns aligned with Better Auth's defaults.
 export const authUsers = sqliteTable("user", {
