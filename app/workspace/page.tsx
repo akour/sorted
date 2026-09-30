@@ -1650,7 +1650,7 @@ function CalendarView({ products, events, draft, loading, saving, generating, ed
     const blockedArabic = channel === "localization" && locale === "ar" && !hasEnglish;
     const disabledReason = generating ? "A draft is generating. Wait for it to finish." : saving ? "The event is saving. Wait for it to finish." : blockedArabic ? "Generate and save English first." : !hasStrategy ? "Generate and save the event strategy first." : "";
     const reasonId = `channel-action-${channel}-${locale ?? "default"}-reason`;
-    return <span className="channel-action-control"><AiActionButton label={`${hasDraft ? "Regenerate" : "Generate"} ${label}` generating={generating} onClick={() => onGenerateChannel(draft, channel, locale)} disabled={Boolean(disabledReason)} title={disabledReason || undefined} describedBy={disabledReason ? reasonId : undefined} />{disabledReason && <small className="channel-action-reason" id={reasonId}>{disabledReason}</small>}</span>;
+    return <span className="channel-action-control"><AiActionButton label={`${hasDraft ? "Regenerate" : "Generate"} ${label}`} generating={generating} onClick={() => onGenerateChannel(draft, channel, locale)} disabled={Boolean(disabledReason)} title={disabledReason || undefined} describedBy={disabledReason ? reasonId : undefined} />{disabledReason && <small className="channel-action-reason" id={reasonId}>{disabledReason}</small>}</span>;
   }
 
   return <section className="calendar-view">
