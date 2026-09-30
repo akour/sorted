@@ -13,7 +13,9 @@ export async function POST(request: Request) {
     const preview = await fetchProductMetadata(url);
     if (!preview) return Response.json({ error: "We could not identify that product link." }, { status: 400 });
     return Response.json({ preview });
-  } catch {
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+    console.error("Product preview metadata fetch failed", { errorName });
     return Response.json({ error: "We could not read details from that link. You can still add the product manually." }, { status: 502 });
   }
 }
