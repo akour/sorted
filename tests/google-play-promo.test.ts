@@ -14,6 +14,33 @@ const validEvent = {
     startTimeUtc: "10:30",
     endTimeUtc: "12:00",
     countryCodes: "US, CA",
+    primaryImage: {
+      fileName: "promo-primary.jpg",
+      mimeType: "image/jpeg",
+      width: 1920,
+      height: 1080,
+      sizeBytes: 640000,
+      playConsoleReference: "primary-console-asset-42",
+      aiGeneratedOrEdited: false,
+      editorialChecks: { uniqueToEvent: true, noAddedTextOrUi: true, safeZoneReviewed: true },
+    },
+    squareImage: {
+      fileName: "promo-square.png",
+      mimeType: "image/png",
+      width: 1024,
+      height: 1024,
+      sizeBytes: 310000,
+      pngBitDepth: 8,
+      pngColorType: 2,
+      playConsoleReference: "square-console-asset-21",
+      aiGeneratedOrEdited: true,
+      editorialChecks: { uniqueToEvent: true, noAddedTextOrUi: true, safeZoneReviewed: true },
+    },
+    video: {
+      url: "https://youtu.be/abcdefghijk",
+      playConsoleReference: "abcdefghijk",
+      checks: { publicOrUnlisted: true, embeddable: true, monetizationOff: true, landscape: true, localized: true },
+    },
     options: [
       { tagline: "Unused option", description: "Unused description" },
       { tagline: "Spring puzzle challenge", description: "Solve fresh seasonal levels to unlock a new challenge and earn a limited-time reward." },
@@ -32,6 +59,10 @@ test("Google Play handoff only requires the selected Play copy and event basics"
   assert.match(handoff, /COMPETITION_CHALLENGE/);
   assert.match(handoff, /Target countries\/regions: US; CA/);
   assert.match(handoff, /Start time \(UTC\): 2026-10-10 10:30/);
+  assert.match(handoff, /promo-primary\.jpg/);
+  assert.match(handoff, /primary-console-asset-42/);
+  assert.match(handoff, /square-console-asset-21/);
+  assert.match(handoff, /monetization off/);
   assert.match(handoff, /### ar/);
   assert.match(handoff, /review handoff, not a publish action/i);
 });

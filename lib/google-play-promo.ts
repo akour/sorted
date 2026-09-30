@@ -1,3 +1,5 @@
+import { validateGooglePlayAssetSet, type GooglePlayAssetSet } from "./google-play-assets";
+
 export type GooglePlayPromoHandoffInput = {
   title?: string;
   eventType?: string;
@@ -12,7 +14,7 @@ export type GooglePlayPromoHandoffInput = {
     endTimeUtc?: string;
     countryCodes?: string[] | string;
     userEligibility?: string;
-  };
+  } & GooglePlayAssetSet;
   localization?: Array<{ locale?: string; tagline?: string; description?: string }>;
   creative?: {
     concept?: string;
@@ -138,7 +140,7 @@ export function validateGooglePlayPromoHandoff(event: GooglePlayPromoHandoffInpu
     errors.push("The Google Play description repeats the tagline; Google asks for distinct copy.");
   }
 
-  return [...errors, ...validateGooglePlayPromoSetup(event)];
+  return [...errors, ...validateGooglePlayPromoSetup(event), ...validateGooglePlayAssetSet(event.googlePlay ?? {})];
 }
 
 function fenced(value: string | undefined) {
@@ -162,6 +164,20 @@ export function buildGooglePlayPromoHandoff(
       : [];
   const start = parseDate(event.startDate);
   const countries = countryCodes(event.googlePlay?.countryCodes);
+  const imageSummary = (label: string, image: GooglePlayAssetSet["primaryImage"]) => {
+    if (!image?.fileName) return `- ${label}: (not inspected)`;
+    const dimensions = image.width && image.height ? `${image.width} × ${image.height}` : "dimensions not recorded";
+    const format = image.mimeType === "image/jpeg" ? "JPEG" : image.mimeType === "image/png" ? `PNG ${image.pngBitDepth ?? "?"}-bit` : "format not recorded";
+    const size = image.sizeBytes ? `${Math.round(image.sizeBytes / 1024)} KB` : "size not recorded";
+    const checks = image.editorialChecks;
+    const review = [checks?.uniqueToEvent && "event-specific", checks?.noAddedTextOrUi && "no added text/UI", checks?.safeZoneReviewed && "safe zone reviewed"].filter(Boolean).join(", ") || "editorial checks incomplete";
+    const ai = image.aiGeneratedOrEdited === undefined ? "not recorded" : image.aiGeneratedOrEdited ? "yes" : "no";
+    return `- ${label}: ${singleLine(image.fileName)} · ${dimensions} · ${format} · ${size}; Play Console reference: ${singleLine(image.playConsoleReference, "not added")}\n  - Editorial checks: ${review}; AI-generated/edited: ${ai}`;
+  };
+  const video = event.googlePlay?.video;
+  const videoSummary = video?.url?.trim()
+    ? `- YouTube video: ${singleLine(video.url)}; Play Console reference: ${singleLine(video.playConsoleReference, "not added")}\n  - Confirmed in YouTube/Play Console: ${[video.checks?.publicOrUnlisted && "public/unlisted", video.checks?.embeddable && "embeddable", video.checks?.monetizationOff && "monetization off", video.checks?.landscape && "landscape", video.checks?.localized && "localized"].filter(Boolean).join(", ") || "checks not complete"}`
+    : "- YouTube video: not provided (optional, highly recommended)";
   const todayUtc = Date.UTC(exportedAt.getUTCFullYear(), exportedAt.getUTCMonth(), exportedAt.getUTCDate());
   const daysUntilStart = start ? Math.ceil((start.getTime() - todayUtc) / 86_400_000) : null;
   const timingNote = daysUntilStart === null
@@ -205,6 +221,12 @@ ${fenced(copy?.description)}
 
 ${localization}
 
+## Google Play asset references
+
+${imageSummary("Primary image", event.googlePlay?.primaryImage)}
+${imageSummary("Square image", event.googlePlay?.squareImage)}
+${videoSummary}
+
 ## Creative handoff
 
 - Concept: ${singleLine(event.creative?.concept)}
@@ -215,7 +237,8 @@ ${localization}
 
 - Confirm the app is eligible. Promotional content is available to all games; apps must meet Google's Premium growth tools eligibility criteria.
 - Confirm the countries/regions and UTC schedule above match the markets and launch plan in Play Console. Google allows a maximum event duration of four weeks.
-- Add the required primary and square images. Check Google's current image specifications and safe areas; artwork must not contain text, logos, slogans, or app/game names. A public YouTube video is highly recommended.
+- Upload the checked primary and square images to Play Console, then review the final crop/preview there. Sorted checks the square image's 1:1 ratio; confirm final resolution and crop in Console.
+- Review Play Console's per-asset declaration for AI-generated or AI-edited content when applicable.
 - Make sure the tagline is event-specific and the description clearly explains the user value and how to participate. Do not repeat the tagline in the description. For offers, state the value and relevant eligibility or redemption conditions.
 - Review the exact language for each market and confirm that event details and creative claims are accurate and distinct from other live events.
 - ${timingNote}
@@ -226,8 +249,9 @@ ${localization}
 
 - [Create promotional content in Play Console](https://support.google.com/googleplay/android-developer/answer/12932541?hl=en)
 - [Google Play promotional content quality guidelines](https://support.google.com/googleplay/android-developer/answer/12929944?hl=en)
+- [Declare AI-generated content in Play Console](https://support.google.com/googleplay/android-developer/answer/17262077?hl=en)
 
-Sorted captures the core event type, subtype, target countries, UTC schedule, and selected offer eligibility. Asset upload/IDs and final submission remain in Play Console.
+Sorted checks image file metadata locally and carries filenames, recorded Console references, and editorial confirmations into this packet. Sorted does not upload or retain the image/video assets; upload them and confirm final acceptance in Play Console.
 
 This is a review handoff, not a publish action. Create, review, and submit the event in Play Console.
 `;

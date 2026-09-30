@@ -11,6 +11,7 @@ import { buildGooglePlayPromoHandoff, validateGooglePlayPromoHandoff } from "../
 import { GooglePlayExperimentPanel } from "../../components/GooglePlayExperimentPanel";
 import { GooglePlayPerformancePanel } from "../../components/GooglePlayPerformancePanel";
 import { GooglePlaySubmissionDetails } from "../../components/GooglePlaySubmissionDetails";
+import type { GooglePlayAssetSet } from "../../lib/google-play-assets";
 
 type Product = {
   id: number;
@@ -54,7 +55,7 @@ type PromoOption = { tagline: string; description: string };
 type PromoLocale = { locale: string; tagline: string; description: string; status: string };
 type PromoChannel = "googlePlay" | "appleEvent" | "siteEntry" | "localization" | "creative";
 type PromoStageKey = "plan" | "google" | "localization" | "apple" | "site" | "creative";
-type PromoEvent = { id?: number; productId: number; productName?: string; title: string; eventType: string; status: string; startDate: string; endDate: string; theme: string; objective: string; eventBrief: Record<string, string>; googlePlay: { options?: PromoOption[]; selectedOption?: number; tagline?: string; description?: string; consoleEventId?: string; officialEventType?: string; eventSubtype?: string; startTimeUtc?: string; endTimeUtc?: string; countryCodes?: string[] | string; userEligibility?: string }; appleEvent: { name?: string; subtitle?: string; description?: string }; siteEntry: { headline?: string; slug?: string; excerpt?: string; body?: string; keywords?: string[] | string; cta?: string }; localization: PromoLocale[]; creative: { concept?: string; prompt?: string; dimensions?: string; safeAreas?: string; proofToShow?: string[] | string }; updatedAt?: string };
+type PromoEvent = { id?: number; productId: number; productName?: string; title: string; eventType: string; status: string; startDate: string; endDate: string; theme: string; objective: string; eventBrief: Record<string, string>; googlePlay: { options?: PromoOption[]; selectedOption?: number; tagline?: string; description?: string; consoleEventId?: string; officialEventType?: string; eventSubtype?: string; startTimeUtc?: string; endTimeUtc?: string; countryCodes?: string[] | string; userEligibility?: string } & GooglePlayAssetSet; appleEvent: { name?: string; subtitle?: string; description?: string }; siteEntry: { headline?: string; slug?: string; excerpt?: string; body?: string; keywords?: string[] | string; cta?: string }; localization: PromoLocale[]; creative: { concept?: string; prompt?: string; dimensions?: string; safeAreas?: string; proofToShow?: string[] | string }; updatedAt?: string };
 type WorkflowStageStatus = "not-started" | "draft" | "needs-review" | "ready";
 type WorkflowStage = { key: string; label: string; view: string; status: WorkflowStageStatus; detail: string };
 type WorkspaceNextAction = { title: string; buttonLabel: string; view: string; detail: string };

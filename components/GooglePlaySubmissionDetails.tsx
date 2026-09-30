@@ -6,8 +6,10 @@ import {
   validateGooglePlayPromoSetup,
   type GooglePlayPromoEventType,
 } from "../lib/google-play-promo";
+import { GooglePlayAssetsPanel } from "./GooglePlayAssetsPanel";
+import type { GooglePlayAssetSet } from "../lib/google-play-assets";
 
-type GooglePlaySetup = {
+type GooglePlaySetup = GooglePlayAssetSet & {
   officialEventType?: string;
   eventSubtype?: string;
   startTimeUtc?: string;
@@ -74,6 +76,7 @@ export function GooglePlaySubmissionDetails({
         </label>}
       </div>
       {errors.length ? <p className="google-play-setup-status" role="status">Handoff setup still needs: {errors.join(" ")}</p> : <p className="google-play-setup-status ready">Required Play event details are ready for review.</p>}
+      <GooglePlayAssetsPanel value={value} onChange={onChange} />
     </section>
   );
 }
