@@ -7,6 +7,7 @@ import { canMarkPublishReady } from "../../lib/publish-readiness";
 import { getInitialProductIconUrl } from "../../lib/product-icon-url";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../lib/product-url";
 import { analyzeGooglePlayListing } from "../../lib/google-play-aso";
+import { GooglePlayExperimentPanel } from "../../components/GooglePlayExperimentPanel";
 
 type Product = {
   id: number;
@@ -1377,7 +1378,8 @@ function OptimizeComparisonView({ product, optimization, loading, saving, genera
 
 function OptimizeTabsView({ product, optimization, loading, saving, generating, onChange, onSave, onSaveAndContinue, canContinue, onGenerate, onBack }: { product: Product; optimization: OptimizationPlan; loading: boolean; saving: boolean; generating: boolean; onChange: (next: OptimizationPlan) => void; onSave: (event: FormEvent<HTMLFormElement>) => void; onSaveAndContinue: () => void; canContinue: boolean; onGenerate: () => void; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<"aso" | "aeo">("aso");
-  return <OptimizeComparisonView product={product} optimization={optimization} loading={loading} saving={saving} generating={generating} onChange={onChange} onSave={onSave} onSaveAndContinue={onSaveAndContinue} canContinue={canContinue} onGenerate={onGenerate} onBack={onBack} />;
+  const isGooglePlay = classifyProductUrl(product.url) === "google-play";
+  return <><OptimizeComparisonView product={product} optimization={optimization} loading={loading} saving={saving} generating={generating} onChange={onChange} onSave={onSave} onSaveAndContinue={onSaveAndContinue} canContinue={canContinue} onGenerate={onGenerate} onBack={onBack} />{isGooglePlay && <GooglePlayExperimentPanel productId={product.id} listing={optimization.currentListing} shortDescriptionDraft={optimization.storeShortDescription} fullDescriptionDraft={optimization.storeLongDescription} />}</>;
   const scopedOpportunities = optimization.opportunities.filter((item) => activeTab === "aeo" ? item.area.toLowerCase().includes("aeo") : !item.area.toLowerCase().includes("aeo"));
   const opportunities = scopedOpportunities.length ? scopedOpportunities : optimization.opportunities;
   function updateOpportunity(title: string) {
