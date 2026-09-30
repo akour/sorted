@@ -1797,13 +1797,13 @@ function ProductSwitcher({ products, activeProduct, onSelectProduct, onManagePro
         <span className="sr-only">Search products</span>
         <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a product…" />
       </label>
-      <div className="product-switcher-options" role="listbox" aria-label="Workspace scope">
-        <button type="button" role="option" aria-selected={!activeProduct} className={"product-switcher-option" + (!activeProduct ? " selected" : "")} onClick={() => selectProduct(null)}>
+      <div className="product-switcher-options" role="group" aria-label="Workspace scope">
+        <button type="button" aria-pressed={!activeProduct} className={"product-switcher-option" + (!activeProduct ? " selected" : "")} onClick={() => selectProduct(null)}>
           <span className="product-switcher-all-mark small" aria-hidden="true">✦</span>
           <span className="product-switcher-option-copy"><strong>All products</strong><small>Account-wide workspace</small></span>
           {!activeProduct && <span className="product-switcher-check" aria-hidden="true">✓</span>}
         </button>
-        {filteredProducts.map((product) => <button type="button" role="option" aria-selected={activeProduct?.id === product.id} className={"product-switcher-option" + (activeProduct?.id === product.id ? " selected" : "")} key={product.id} onClick={() => selectProduct(product)}>
+        {filteredProducts.map((product) => <button type="button" aria-pressed={activeProduct?.id === product.id} className={"product-switcher-option" + (activeProduct?.id === product.id ? " selected" : "")} key={product.id} onClick={() => selectProduct(product)}>
           <ProductAvatar product={product} />
           <span className="product-switcher-option-copy"><strong>{product.name}</strong><small>{product.type}</small></span>
           {activeProduct?.id === product.id && <span className="product-switcher-check" aria-hidden="true">✓</span>}
