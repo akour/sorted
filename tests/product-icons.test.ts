@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { extractGooglePlayLongDescription } from "../lib/product-icons.ts";
+import { extractGooglePlayLongDescription, fetchProductMetadata } from "../lib/product-icons.ts";
 
 test("extracts the complete nested Google Play description instead of the short summary", () => {
   const shortDescription = "A relaxing cosmic journey, one block at a time.";
@@ -33,4 +33,26 @@ test("keeps descriptions tied to the requested Google Play app", () => {
 
   assert.match(description, /BUILD THE PERFECT TOWER/);
   assert.doesNotMatch(description, /Vertical Mayhem|VERTICAL ACTION/);
+});
+
+
+test("imports an active Google Play listing and retains its package ID", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    `<html><head>
+      <meta property="og:title" content="Khalas - Tame your ADHD - Apps on Google Play">
+      <meta name="description" content="Khalas turns everyday routines into small chains of clear steps.">
+    </head><body></body></html>`,
+    { headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+  try {
+    const preview = await fetchProductMetadata("https://play.google.com/store/apps/details?id=com.habibiapps.routines");
+    assert.ok(preview);
+    assert.equal(preview.available, true);
+    assert.equal(preview.name, "Khalas - Tame your ADHD");
+    assert.equal(preview.currentListing?.storeId, "com.habibiapps.routines");
+    assert.equal(preview.currentListing?.sourceUrl, "https://play.google.com/store/apps/details?id=com.habibiapps.routines");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
