@@ -225,5 +225,46 @@
 .play-aso-recommendation p { margin:5px 0 8px; color:#716b79; font-size:10px; line-height:1.5; }
 .play-aso-recommendation > div { display:flex; flex-wrap:wrap; gap:6px 12px; }
 .play-aso-recommendation a, .listing-source a { color:var(--violet-dark); font-size:10px; font-weight:700; text-decoration:underline; text-underline-offset:2px; }
+.play-experiment-panel { margin-top:16px; padding:22px; }
+.play-experiment-header, .play-experiment-record-heading, .play-experiment-history-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.play-experiment-header h2 { margin:2px 0 6px; color:#302b38; font-size:21px; letter-spacing:-.045em; }
+.play-experiment-header p:last-child { margin:0; color:#898290; font-size:12px; line-height:1.5; }
+.play-experiment-guidance { display:grid; gap:5px; margin:16px 0; padding:13px 15px; border:1px solid #e7e1f2; border-radius:12px; background:#faf8ff; }
+.play-experiment-guidance strong { color:#504762; font-size:12px; }
+.play-experiment-guidance span { color:#7f7887; font-size:11px; line-height:1.5; }
+.play-experiment-guidance a, .play-experiment-actions a { width:max-content; color:var(--violet-dark); font-size:11px; font-weight:700; text-decoration:underline; text-underline-offset:2px; }
+.play-experiment-source-warning, .play-experiment-error { margin:12px 0; padding:10px 12px; border:1px solid #eed4d4; border-radius:10px; background:#fff8f8; color:#a45151; font-size:11px; line-height:1.5; }
+.play-experiment-notice { margin:12px 0; padding:10px 12px; border:1px solid #d6ebe4; border-radius:10px; background:#f4fbf8; color:#397668; font-size:11px; line-height:1.5; }
+.play-experiment-form { display:grid; gap:13px; }
+.play-experiment-form label, .play-experiment-running-actions label { display:grid; gap:6px; color:#514b58; font-size:12px; font-weight:700; }
+.play-experiment-form input, .play-experiment-form textarea, .play-experiment-form select, .play-experiment-running-actions textarea, .play-experiment-running-actions select { width:100%; min-width:0; padding:10px 11px; border:1px solid #ded8e6; border-radius:9px; background:#fff; color:#393441; font:inherit; font-size:12px; line-height:1.5; }
+.play-experiment-form textarea, .play-experiment-running-actions textarea { resize:vertical; }
+.play-experiment-form textarea[readonly] { background:#faf9fb; color:#77717f; }
+.play-experiment-versions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.play-experiment-versions small { color:#96909d; font-size:10px; font-weight:400; }
+.play-experiment-actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px 14px; }
+.play-experiment-history { display:grid; gap:10px; margin-top:21px; }
+.play-experiment-history-heading { align-items:center; padding-bottom:7px; border-bottom:1px solid #eeeaf2; }
+.play-experiment-history-heading h3 { margin:0; color:#494351; font-size:14px; }
+.play-experiment-record { display:grid; gap:9px; padding:13px; border:1px solid #eeeaf2; border-radius:11px; background:#fff; }
+.play-experiment-record-heading { align-items:center; }
+.play-experiment-record-heading strong, .play-experiment-record-heading small { display:block; }
+.play-experiment-record-heading strong { color:#4b4553; font-size:12px; }
+.play-experiment-record-heading small { margin-top:4px; color:#85808c; font-size:10px; line-height:1.45; }
+.play-experiment-status { flex:none; padding:5px 8px; border-radius:999px; background:#f0edf4; color:#77717f; font-size:9px; font-weight:800; }
+.play-experiment-status.running { background:#eef2ff; color:#5c54a8; }
+.play-experiment-status.completed { background:#eaf8f4; color:#397668; }
+.play-experiment-status.cancelled { background:#f8eeee; color:#a46b6b; }
+.play-experiment-metric, .play-experiment-outcome, .play-experiment-notes, .play-experiment-completed { margin:0; color:#817b88; font-size:10px; line-height:1.5; }
+.play-experiment-outcome strong { color:#544d5d; }
+.play-experiment-details { padding-top:8px; border-top:1px solid #f0edf3; }
+.play-experiment-details summary { color:var(--violet-dark); font-size:10px; font-weight:700; cursor:pointer; }
+.play-experiment-details > div { margin-top:9px; }
+.play-experiment-details > div strong { color:#5c5663; font-size:10px; }
+.play-experiment-details p { margin:4px 0 0; color:#7e7885; font-size:10px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
+.play-experiment-running-actions { display:grid; gap:10px; padding-top:8px; border-top:1px solid #f0edf3; }
+.play-experiment-running-actions form { display:grid; gap:10px; }
+.play-experiment-actions .text-button, .play-experiment-history-heading .text-button { border:0; background:transparent; color:#817a89; font-size:10px; font-weight:700; cursor:pointer; }
+@media (max-width:700px) { .play-experiment-panel { padding:16px; } .play-experiment-versions { grid-template-columns:1fr; } .play-experiment-header { flex-direction:column; } .play-experiment-record-heading { align-items:flex-start; flex-direction:column; } }
 .listing-source a { overflow-wrap:anywhere; }
 .opportunity-evidence { display:block; margin-top:7px; color:#7e7786; font-size:10px; line-height:1.45; }
