@@ -174,12 +174,13 @@ export async function fetchGooglePlayListing(credentials: GooglePlayCredentials,
   try {
     const data = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}/listings`, accessToken) as { listings?: unknown[] };
     const listings = Array.isArray(data.listings) ? data.listings as Array<Record<string, unknown>> : [];
-    const listing = listings.find((item) => item.language === locale) ?? listings.find((item) => item.language === "en-US") ?? listings[0];
-    if (!listing) throw new Error("Google Play returned no localized listing for this app.");
-    const title = typeof listing.title === "string" ? listing.title.trim() : "";
-    const shortDescription = typeof listing.shortDescription === "string" ? listing.shortDescription.trim() : "";
-    const fullDescription = typeof listing.fullDescription === "string" ? listing.fullDescription.trim() : "";
-    if (!title && !shortDescription && !fullDescription) throw new Error("Google Play returned an empty listing.");
+    const normalizedLocale = locale.replace(/_/g, "-").toLowerCase();
+    const listing = listings.find((item) => typeof item.language === "string" && item.language.replace(/_/g, "-").toLowerCase() === normalizedLocale);
+    if (!listing) throw new Error(`Google Play has no listing for the connected locale (${locale}). Choose a locale that exists in Play Console.`);
+    const title = typeof listing.title === "string" ? listing.title : "";
+    const shortDescription = typeof listing.shortDescription === "string" ? listing.shortDescription : "";
+    const fullDescription = typeof listing.fullDescription === "string" ? listing.fullDescription : "";
+    if (!title.trim() && !shortDescription.trim() && !fullDescription.trim()) throw new Error("Google Play returned an empty listing.");
     return {
       language: typeof listing.language === "string" ? listing.language : locale,
       title,
@@ -198,17 +199,19 @@ export async function fetchGooglePlayListing(credentials: GooglePlayCredentials,
 export function mergeGooglePlayListing(authenticated: GooglePlayListing, sourceUrl: string, fallback?: ProductListing): ProductListing {
   return {
     platform: "Google Play",
-    title: authenticated.title || fallback?.title || "",
-    subtitle: fallback?.subtitle || "",
-    shortDescription: authenticated.shortDescription || fallback?.shortDescription || "",
-    longDescription: authenticated.fullDescription || fallback?.longDescription || "",
+    language: authenticated.language,
+    fetchSource: "google-play-api",
+    title: authenticated.title,
+    subtitle: "",
+    shortDescription: authenticated.shortDescription,
+    longDescription: authenticated.fullDescription,
     sourceUrl,
     fetchedAt: new Date().toISOString(),
     category: fallback?.category,
     developer: fallback?.developer,
     iconUrl: fallback?.iconUrl,
     bundleId: fallback?.bundleId,
-    storeId: fallback?.storeId,
+    storeId: new URL(sourceUrl).searchParams.get("id") ?? fallback?.storeId,
   };
 }
 

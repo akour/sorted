@@ -114,6 +114,32 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("optimization_plans_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Google Play experiment plans and the outcomes reported by Play Console stay
+// product-scoped. Sorted records the workflow but does not launch experiments.
+export const asoExperiments = sqliteTable("aso_experiments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  packageName: text("package_name").notNull(),
+  locale: text("locale").notNull(),
+  field: text("field").notNull(),
+  hypothesis: text("hypothesis").notNull(),
+  baselineText: text("baseline_text").notNull(),
+  variantText: text("variant_text").notNull(),
+  baselineFetchedAt: text("baseline_fetched_at").notNull(),
+  primaryMetric: text("primary_metric").notNull().default("unique_user_install_clicks"),
+  status: text("status").notNull().default("planned"),
+  outcome: text("outcome"),
+  outcomeNotes: text("outcome_notes").notNull().default(""),
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("aso_experiments_product_owner_created_idx").on(table.productId, table.ownerId, table.createdAt),
+  index("aso_experiments_product_owner_locale_status_idx").on(table.productId, table.ownerId, table.locale, table.status),
+]);
+
 export const createBriefs = sqliteTable("create_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),
@@ -158,6 +184,28 @@ export const promoEvents = sqliteTable("promo_events", {
   creative: text("creative").notNull().default("{}"),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("promo_events_product_owner_idx").on(table.productId, table.ownerId)]);
+
+// Imported Play reports stay scoped to the owning promo event and are keyed
+// by date/country so re-importing an updated CSV safely refreshes the same rows.
+export const promoEventPerformance = sqliteTable("promo_event_performance", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  promoEventId: integer("promo_event_id").notNull().references(() => promoEvents.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  playEventId: text("play_event_id").notNull(),
+  reportDate: text("report_date").notNull(),
+  countryCode: text("country_code").notNull().default("ALL"),
+  dailyViewers: integer("daily_viewers"),
+  rolling28Viewers: integer("rolling28_viewers"),
+  dailyConverters: integer("daily_converters"),
+  rolling28Converters: integer("rolling28_converters"),
+  dailyConversionRate: text("daily_conversion_rate"),
+  rolling28ConversionRate: text("rolling28_conversion_rate"),
+  importedAt: text("imported_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("promo_event_performance_owner_event_date_country_idx").on(table.ownerId, table.promoEventId, table.reportDate, table.countryCode),
+  index("promo_event_performance_product_owner_date_idx").on(table.productId, table.ownerId, table.reportDate),
+]);
 
 // Better Auth's native D1 adapter uses these four core tables. Keep their
 // physical names and camel-case columns aligned with Better Auth's defaults.
