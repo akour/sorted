@@ -638,7 +638,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     ...(category ? { category } : {}),
     ...(developer ? { developer } : {}),
     ...(result.iconUrl ? { iconUrl: result.iconUrl } : {}),
-    storeId: requestUrl.searchParams.get("id") ?? "",
+    storeId: link.url.searchParams.get("id") ?? "",
   };
   return {
     url: normalizedUrl,
