@@ -114,6 +114,32 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("optimization_plans_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Google Play experiment plans and the outcomes reported by Play Console stay
+// product-scoped. Sorted records the workflow but does not launch experiments.
+export const asoExperiments = sqliteTable("aso_experiments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  packageName: text("package_name").notNull(),
+  locale: text("locale").notNull(),
+  field: text("field").notNull(),
+  hypothesis: text("hypothesis").notNull(),
+  baselineText: text("baseline_text").notNull(),
+  variantText: text("variant_text").notNull(),
+  baselineFetchedAt: text("baseline_fetched_at").notNull(),
+  primaryMetric: text("primary_metric").notNull().default("unique_user_install_clicks"),
+  status: text("status").notNull().default("planned"),
+  outcome: text("outcome"),
+  outcomeNotes: text("outcome_notes").notNull().default(""),
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  index("aso_experiments_product_owner_created_idx").on(table.productId, table.ownerId, table.createdAt),
+  index("aso_experiments_product_owner_locale_status_idx").on(table.productId, table.ownerId, table.locale, table.status),
+]);
+
 export const createBriefs = sqliteTable("create_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),
