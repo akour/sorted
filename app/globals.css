@@ -361,6 +361,8 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .product-import-status, .product-import-error { margin: -5px 0 12px; font-size: 12px; line-height: 1.5; }
 .product-import-status { color: #726a82; }
 .product-import-error { color: #a75050; }
+.product-import-retry { border: 0; padding: 0; background: transparent; color: #5e4fcf; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.product-import-retry:focus-visible { outline: 2px solid #7157dd; outline-offset: 2px; }
 .product-import-preview { display: flex; align-items: flex-start; gap: 12px; margin: -3px 0 14px; padding: 13px; border: 1px solid #e8e3ef; border-radius: 12px; background: #fbfaff; }
 .product-import-preview .product-avatar { flex: none; overflow: hidden; }
 .product-import-copy { min-width: 0; flex: 1; }

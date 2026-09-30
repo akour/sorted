@@ -1255,7 +1255,7 @@ export default function Home() {
               />
             </label>
             {!activeProduct && productPreviewLoading && <p className="product-import-status" role="status">Checking the live page or store listing…</p>}
-            {!activeProduct && productPreviewError && <p className="product-import-error" role="alert">{productPreviewError} You can still add the product manually.</p>}
+            {!activeProduct && productPreviewError && <p className="product-import-error" role="alert">{productPreviewError} You can still add the product manually. <button type="button" className="product-import-retry" onClick={() => updateProductUrl(form.url)}>Try again</button></p>}
             {!activeProduct && productPreview && (
               <div className="product-import-preview" role="status" aria-live="polite">
                 <ProductAvatar product={{
