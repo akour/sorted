@@ -531,7 +531,6 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [activeProduct, loadReports, products, view]);
 
-  const activeProductSection = activeProduct ? productNavItems.find((item) => item.view === view)?.label ?? "Workspace" : "";
   const calendarProducts = activeProduct ? [activeProduct] : products;
   const visibleCalendarEvents = activeProduct
     ? calendarEvents.filter((event) => event.productId === activeProduct.id)
