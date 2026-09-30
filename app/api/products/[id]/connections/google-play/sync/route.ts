@@ -17,6 +17,15 @@ function parseListing(value: string | undefined): ProductListing | undefined {
   }
 }
 
+function packageNameFromListingUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).searchParams.get("id");
+  } catch {
+    return null;
+  }
+}
+
 function connectionResponse(connection: typeof productConnections.$inferSelect | undefined) {
   if (!connection) return null;
   return {
@@ -65,10 +74,19 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const [connection] = await db.select().from(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, "google-play"))).limit(1);
     const [oauthConnection] = await db.select().from(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, "google-play"))).limit(1);
     if (!connection && !oauthConnection) return Response.json({ error: "Connect Google Play before syncing the listing." }, { status: 404 });
-    const sourceUrl = normalizeProductUrlInput(product.url) || `https://play.google.com/store/apps/details?id=${encodeURIComponent(connection.packageName)}`;
+    const sourceUrl = normalizeProductUrlInput(product.url) || `https://play.google.com/store/apps/details?id=${encodeURIComponent((oauthConnection ?? connection).packageName)}`;
+    if (classifyProductUrl(sourceUrl) !== "google-play") {
+      return Response.json({ error: "This product’s store URL is not a Google Play listing. Update it before syncing the connected app." }, { status: 409 });
+    }
+    const listingPackageName = new URL(sourceUrl).searchParams.get("id");
+    const connectedPackageName = (oauthConnection ?? connection).packageName;
+    if (listingPackageName !== connectedPackageName) {
+      return Response.json({ error: "The connected Google Play app does not match this product’s store URL. Reconnect the correct app before syncing." }, { status: 409 });
+    }
     const [existingPlan] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     const savedListing = parseListing(existingPlan?.currentListing);
-    let publicListing = savedListing;
+    const savedPackageName = savedListing?.storeId ?? packageNameFromListingUrl(savedListing?.sourceUrl);
+    let publicListing = savedPackageName === connectedPackageName ? savedListing : undefined;
     if (classifyProductUrl(sourceUrl) === "google-play") {
       try {
         publicListing = (await fetchProductMetadata(sourceUrl))?.currentListing ?? publicListing;
@@ -84,7 +102,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       if (typeof stored.refreshToken !== "string" || !stored.refreshToken) throw new Error("The Google Play authorization is incomplete. Reconnect the account.");
       const accessToken = await refreshGooglePlayAccessToken({ clientId: oauthConfig.clientId, clientSecret: await decryptAdminSecret(oauthConfig.clientSecretCiphertext), refreshToken: stored.refreshToken });
       const authenticatedListing = await fetchGooglePlayListingWithAccessToken(accessToken, oauthConnection.packageName, oauthConnection.locale);
-      currentListing = { ...authenticatedListing, sourceUrl, category: publicListing?.category, developer: publicListing?.developer, iconUrl: publicListing?.iconUrl, bundleId: publicListing?.bundleId, storeId: publicListing?.storeId };
+      currentListing = { ...authenticatedListing, sourceUrl, fetchSource: "google-play-api", category: publicListing?.category, developer: publicListing?.developer, iconUrl: publicListing?.iconUrl, bundleId: publicListing?.bundleId, storeId: connectedPackageName };
       await db.update(productOauthConnections).set({ status: "connected", lastSyncedAt: new Date().toISOString(), lastError: null, updatedAt: new Date().toISOString() }).where(eq(productOauthConnections.id, oauthConnection.id));
     } else {
       const credentials = parseGooglePlayCredentials(await decryptProductConnectionSecret(connection?.credentialsCiphertext ?? ""));

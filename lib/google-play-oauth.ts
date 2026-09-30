@@ -119,17 +119,19 @@ export async function fetchGooglePlayListingWithAccessToken(accessToken: string,
   try {
     const data = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}/listings`, accessToken) as { listings?: unknown[] };
     const listings = Array.isArray(data.listings) ? data.listings as Array<Record<string, unknown>> : [];
-    const listing = listings.find((item) => item.language === locale) ?? listings.find((item) => item.language === "en-US") ?? listings[0];
-    if (!listing) throw new Error("Google Play returned no localized listing for this app.");
+    const normalizedLocale = locale.replace(/_/g, "-").toLowerCase();
+    const listing = listings.find((item) => typeof item.language === "string" && item.language.replace(/_/g, "-").toLowerCase() === normalizedLocale);
+    if (!listing) throw new Error(`Google Play has no listing for the connected locale (${locale}). Choose a locale that exists in Play Console.`);
     return {
       platform: "Google Play",
       language: typeof listing.language === "string" ? listing.language : locale,
-      title: typeof listing.title === "string" ? listing.title.trim() : "",
+      title: typeof listing.title === "string" ? listing.title : "",
       subtitle: "",
-      shortDescription: typeof listing.shortDescription === "string" ? listing.shortDescription.trim() : "",
-      longDescription: typeof listing.fullDescription === "string" ? listing.fullDescription.trim() : "",
+      shortDescription: typeof listing.shortDescription === "string" ? listing.shortDescription : "",
+      longDescription: typeof listing.fullDescription === "string" ? listing.fullDescription : "",
       sourceUrl: `https://play.google.com/store/apps/details?id=${encodeURIComponent(packageName)}`,
       fetchedAt: new Date().toISOString(),
+      fetchSource: "google-play-api",
     };
   } finally {
     await fetch(`${GOOGLE_PLAY_API_ROOT}/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}`, { method: "DELETE", headers: { authorization: `Bearer ${accessToken}` } }).catch(() => undefined);

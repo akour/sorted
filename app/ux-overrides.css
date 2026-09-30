@@ -206,3 +206,24 @@
 .row-avatar, .product-avatar { overflow:hidden; flex:none; }
 .row-avatar img, .product-avatar img { display:block; width:100%; height:100%; object-fit:cover; }
 .row-avatar.has-product-icon, .product-avatar.has-product-icon { background:#fff; }
+.play-aso-audit { margin:0 0 18px; padding:14px; border:1px solid #e5e1ec; border-radius:12px; background:#fff; }
+.play-aso-audit-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.play-aso-audit-heading .eyebrow { margin:0 0 4px; }
+.play-aso-audit-heading strong { color:#393340; font-size:12px; }
+.play-aso-audit-heading > span { color:#716b79; font-size:10px; text-align:right; }
+.play-aso-audit-note { margin:8px 0 10px; color:#7e7786; font-size:10px; line-height:1.45; }
+.play-aso-audit ul { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+.play-aso-check { display:flex; align-items:flex-start; gap:8px; }
+.play-aso-check > span { display:grid; place-items:center; width:17px; height:17px; flex:none; border-radius:50%; background:#eaf8f4; color:#397668; font-size:10px; font-weight:800; }
+.play-aso-check.attention > span { background:#fff2e2; color:#9b6735; }
+.play-aso-check.verify > span { background:#f0edf5; color:#766b86; }
+.play-aso-check strong, .play-aso-check small { display:block; }
+.play-aso-check strong { color:#514b58; font-size:10px; }
+.play-aso-check small { margin-top:2px; color:#7e7786; font-size:10px; line-height:1.4; }
+.play-aso-recommendation { margin-top:12px; padding:10px; border-radius:9px; background:#f8f6fc; }
+.play-aso-recommendation > strong { color:#4c4654; font-size:10px; }
+.play-aso-recommendation p { margin:5px 0 8px; color:#716b79; font-size:10px; line-height:1.5; }
+.play-aso-recommendation > div { display:flex; flex-wrap:wrap; gap:6px 12px; }
+.play-aso-recommendation a, .listing-source a { color:var(--violet-dark); font-size:10px; font-weight:700; text-decoration:underline; text-underline-offset:2px; }
+.listing-source a { overflow-wrap:anywhere; }
+.opportunity-evidence { display:block; margin-top:7px; color:#7e7786; font-size:10px; line-height:1.45; }

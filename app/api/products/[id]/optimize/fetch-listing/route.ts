@@ -5,7 +5,7 @@ import { adminOAuthClients, optimizationPlans, productConnections, productOauthC
 import { decryptAdminSecret, decryptProductConnectionSecret } from "../../../../../../lib/admin-secrets";
 import { fetchGooglePlayListing, googlePlayErrorMessage, mergeGooglePlayListing, parseGooglePlayCredentials } from "../../../../../../lib/google-play";
 import { fetchGooglePlayListingWithAccessToken, googlePlayOAuthErrorMessage, refreshGooglePlayAccessToken } from "../../../../../../lib/google-play-oauth";
-import { fetchProductMetadata } from "../../../../../../lib/product-icons";
+import { fetchProductMetadata, type ProductListing } from "../../../../../../lib/product-icons";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../../../../../lib/product-url";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -40,14 +40,25 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [googlePlayOAuthConnection] = linkKind === "google-play"
       ? await db.select().from(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, "google-play"))).limit(1)
       : [];
-    let preview: Awaited<ReturnType<typeof fetchProductMetadata>> = null;
-    try {
-      preview = await fetchProductMetadata(sourceUrl);
-    } catch {
-      // Store pages can change shape without warning. Keep the last saved listing usable.
+    const listingPackageName = linkKind === "google-play" ? new URL(sourceUrl).searchParams.get("id") : null;
+    const connectedPackageName = googlePlayOAuthConnection?.packageName ?? googlePlayConnection?.packageName;
+    if (connectedPackageName && listingPackageName && connectedPackageName !== listingPackageName) {
+      return Response.json({ error: "The connected Google Play app does not match this product’s store URL. Reconnect the correct app before syncing so Sorted cannot attach another app’s listing." }, { status: 409 });
     }
-    let currentListing = preview?.currentListing;
-    let authenticatedWarning = "";
+    if (!googlePlayOAuthConnection && googlePlayConnection && googlePlayConnection.status !== "connected") {
+      return Response.json({ error: "The saved Google Play connection is not active. Reconnect it before refreshing this listing." }, { status: 409 });
+    }
+    let preview: Awaited<ReturnType<typeof fetchProductMetadata>> = null;
+    if (!googlePlayOAuthConnection && !googlePlayConnection) {
+      try {
+        preview = await fetchProductMetadata(sourceUrl);
+      } catch {
+        // Store pages can change shape without warning. Keep the last saved listing usable.
+      }
+    }
+    let currentListing: ProductListing | null = preview?.currentListing
+      ? { ...preview.currentListing, fetchSource: "public-store-page" as const }
+      : null;
     if (googlePlayOAuthConnection) {
       try {
         const [oauthConfig] = await db.select().from(adminOAuthClients).where(eq(adminOAuthClients.providerId, "google-play")).limit(1);
@@ -56,11 +67,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         if (typeof stored.refreshToken !== "string" || !stored.refreshToken) throw new Error("The Google Play authorization is incomplete. Reconnect the account.");
         const accessToken = await refreshGooglePlayAccessToken({ clientId: oauthConfig.clientId, clientSecret: await decryptAdminSecret(oauthConfig.clientSecretCiphertext), refreshToken: stored.refreshToken });
         const authenticatedListing = await fetchGooglePlayListingWithAccessToken(accessToken, googlePlayOAuthConnection.packageName, googlePlayOAuthConnection.locale);
-        currentListing = { ...authenticatedListing, sourceUrl, category: currentListing?.category, developer: currentListing?.developer, iconUrl: currentListing?.iconUrl, bundleId: currentListing?.bundleId, storeId: currentListing?.storeId };
+        currentListing = { ...authenticatedListing, sourceUrl, category: currentListing?.category, developer: currentListing?.developer, iconUrl: currentListing?.iconUrl, bundleId: currentListing?.bundleId, storeId: googlePlayOAuthConnection.packageName };
         await db.update(productOauthConnections).set({ status: "connected", lastError: null, lastSyncedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).where(eq(productOauthConnections.id, googlePlayOAuthConnection.id));
       } catch (error) {
         await db.update(productOauthConnections).set({ status: "error", lastError: googlePlayOAuthErrorMessage(error), updatedAt: new Date().toISOString() }).where(eq(productOauthConnections.id, googlePlayOAuthConnection.id));
-        authenticatedWarning = `The connected Google Play account could not be refreshed (${googlePlayOAuthErrorMessage(error)}), so Sorted used the public listing instead.`;
+        return Response.json({ error: `Google Play could not verify the connected listing (${googlePlayOAuthErrorMessage(error)}). The saved listing was left unchanged; Sorted did not substitute public-page text.` }, { status: 502 });
       }
     } else if (googlePlayConnection?.status === "connected") {
       try {
@@ -68,7 +79,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         const authenticatedListing = await fetchGooglePlayListing(credentials, googlePlayConnection.packageName, googlePlayConnection.locale);
         currentListing = mergeGooglePlayListing(authenticatedListing, sourceUrl, currentListing ?? parseSavedListing(existing?.currentListing, sourceUrl) ?? undefined);
       } catch (error) {
-        authenticatedWarning = `The connected Google Play listing could not be refreshed (${googlePlayErrorMessage(error)}), so Sorted used the public listing instead.`;
+        return Response.json({ error: `Google Play could not verify the connected listing (${googlePlayErrorMessage(error)}). The saved listing was left unchanged; Sorted did not substitute public-page text.` }, { status: 502 });
       }
     }
     if (!currentListing) {
@@ -87,17 +98,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     } else {
       await db.insert(optimizationPlans).values({ productId, ownerId, currentListing: JSON.stringify(currentListing) });
     }
-    return Response.json({ currentListing, ...(authenticatedWarning ? { warning: authenticatedWarning } : {}) });
+    return Response.json({ currentListing });
   } catch {
     try {
       const productId = Number((await context.params).id);
       const ownerId = await getOwnerId();
       if (Number.isSafeInteger(productId) && productId > 0 && ownerId) {
         const db = getDb();
+        const [product] = await db.select().from(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId))).limit(1);
         const [savedPlan] = await db.select().from(optimizationPlans)
           .where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)))
           .limit(1);
-        const savedListing = parseSavedListing(savedPlan?.currentListing);
+        const savedSourceUrl = product?.url ? normalizeProductUrlInput(product.url) : "";
+        const savedListing = parseSavedListing(savedPlan?.currentListing, savedSourceUrl || undefined);
         if (savedListing) {
           return Response.json({
             currentListing: savedListing,
@@ -112,12 +125,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 }
 
-function parseSavedListing(raw: string | undefined, sourceUrl?: string): Record<string, unknown> | null {
+function parseSavedListing(raw: string | undefined, sourceUrl?: string): ProductListing | null {
   try {
-    const listing = JSON.parse(raw ?? "{}") as Record<string, unknown>;
+    const listing = JSON.parse(raw ?? "{}") as Partial<ProductListing>;
     const savedSourceUrl = typeof listing.sourceUrl === "string" ? normalizeProductUrlInput(listing.sourceUrl) : "";
-    return (!sourceUrl || !savedSourceUrl || savedSourceUrl === sourceUrl) && typeof listing.platform === "string" && typeof listing.title === "string" && listing.title.trim()
-      ? listing
+    return (!sourceUrl || savedSourceUrl === sourceUrl)
+      && (listing.platform === "Google Play" || listing.platform === "App Store")
+      && typeof listing.title === "string" && listing.title.trim()
+      ? listing as ProductListing
       : null;
   } catch {
     return null;

@@ -13,6 +13,8 @@ export type ProductListing = {
   longDescription: string;
   sourceUrl: string;
   fetchedAt: string;
+  language?: string;
+  fetchSource?: "google-play-api" | "public-store-page";
   category?: string;
   developer?: string;
   iconUrl?: string;
@@ -635,10 +637,12 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     longDescription: result.fullDescription.trim(),
     sourceUrl: normalizedUrl,
     fetchedAt: new Date().toISOString(),
+    fetchSource: "public-store-page",
+    ...(link.url.searchParams.get("hl") ? { language: link.url.searchParams.get("hl")?.replace(/_/g, "-") } : {}),
     ...(category ? { category } : {}),
     ...(developer ? { developer } : {}),
     ...(result.iconUrl ? { iconUrl: result.iconUrl } : {}),
-    storeId: requestUrl.searchParams.get("id") ?? "",
+    storeId: link.url.searchParams.get("id") ?? "",
   };
   return {
     url: normalizedUrl,
