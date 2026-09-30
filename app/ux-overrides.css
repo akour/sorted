@@ -268,3 +268,19 @@
 @media (max-width:700px) { .play-experiment-panel { padding:16px; } .play-experiment-versions { grid-template-columns:1fr; } .play-experiment-header { flex-direction:column; } .play-experiment-record-heading { align-items:flex-start; flex-direction:column; } }
 .listing-source a { overflow-wrap:anywhere; }
 .opportunity-evidence { display:block; margin-top:7px; color:#7e7786; font-size:10px; line-height:1.45; }
+
+.performance-panel { border-color:#e5e0ef; background:linear-gradient(180deg,#fff,#fdfcff); }
+.performance-import-controls { align-items:end; }
+.performance-import-action { display:flex; align-items:flex-start; flex-direction:column; gap:8px; }
+.performance-import-action .field-help { margin-top:0; }
+.performance-latest-heading { display:flex; justify-content:space-between; gap:12px; margin:12px 0 9px; color:#514b58; font-size:11px; }
+.performance-latest-heading span { color:#8e8798; font-size:10px; }
+.performance-table-scroll { width:100%; overflow-x:auto; border:1px solid #ede9f2; border-radius:10px; }
+.performance-table { width:100%; border-collapse:collapse; color:#514b58; font-size:10px; text-align:left; }
+.performance-table th, .performance-table td { padding:10px 11px; border-bottom:1px solid #f0edf2; white-space:nowrap; }
+.performance-table thead th { background:#faf9fc; color:#726b7b; font-size:9px; font-weight:700; }
+.performance-table thead small { color:#96909d; font-size:8px; font-weight:500; }
+.performance-table tbody th { color:#5b5463; font-size:10px; }
+.performance-table tbody tr:last-child th, .performance-table tbody tr:last-child td { border-bottom:0; }
+.performance-panel > .field-help a { color:var(--violet-dark); text-decoration:underline; text-underline-offset:2px; }
+@media (max-width:640px) { .performance-latest-heading { align-items:flex-start; flex-direction:column; gap:3px; }.performance-table th, .performance-table td { padding:8px; } }
