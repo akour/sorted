@@ -274,3 +274,43 @@
   .breadcrumb-section-arrow { right:5px; }
   .top-actions { flex:none; }
 }
+
+/* Keep the workspace comfortable on long pages and make desktop space work harder. */
+@media (min-width: 761px) {
+  .sorted-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+.sorted-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(14px);
+}
+
+.sorted-content {
+  width: 100%;
+  max-width: 1600px;
+  padding: clamp(32px, 3vw, 46px) clamp(24px, 3vw, 48px) 76px;
+}
+
+@media (max-width: 760px) {
+  .mobile-navigation {
+    position: sticky;
+    top: 72px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mobile-navigation {
+    top: 60px;
+  }
+}
