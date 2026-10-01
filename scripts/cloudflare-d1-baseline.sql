@@ -82,3 +82,8 @@ WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'produ
 INSERT OR IGNORE INTO d1_migrations (name)
 SELECT '0014_foamy_jackpot.sql'
 WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_oauth_clients');
+
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0018_workspace_appearance.sql'
+WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_workspace_appearance');
