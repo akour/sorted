@@ -281,3 +281,14 @@ export const adminAuditLog = sqliteTable("admin_audit_log", {
   metadata: text("metadata").notNull().default("{}"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("admin_audit_log_created_idx").on(table.createdAt)]);
+
+
+// Appearance settings are shared by all product workspaces and controlled by admins.
+export const adminWorkspaceAppearance = sqliteTable("admin_workspace_appearance", {
+  id: text("id").primaryKey(),
+  accent: text("accent").notNull().default("violet"),
+  density: text("density").notNull().default("comfortable"),
+  corners: text("corners").notNull().default("soft"),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
