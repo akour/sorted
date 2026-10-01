@@ -8,7 +8,9 @@ import { getOwnerId, ownerAuthenticationRequired } from "../../../../../../../li
 import {
   isGooglePlayTargetLocale,
   listingSourceFingerprint,
+  parseGooglePlayCurrentListing,
   parseLocalizedStoreListings,
+  resolveGooglePlayListingSource,
   validateGooglePlayListingText,
   type GooglePlayListingText,
   type LocalizedStoreListing,
@@ -41,11 +43,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [plan] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     if (!plan) return Response.json({ error: "Build and save the English Google Play listing in Optimize first." }, { status: 400 });
 
-    const source: GooglePlayListingText = {
+    const { listing: source } = resolveGooglePlayListingSource({
       title: plan.storeTitle.trim(),
       shortDescription: plan.storeShortDescription.trim(),
       fullDescription: plan.storeLongDescription.trim(),
-    };
+    }, parseGooglePlayCurrentListing(plan.currentListing));
     const sourceErrors = validateGooglePlayListingText(source);
     if (sourceErrors.length) return Response.json({ error: `Complete the saved English listing first: ${sourceErrors.join(" ")}` }, { status: 400 });
     const sourceHash = listingSourceFingerprint(source);

@@ -8,9 +8,10 @@ import { getOwnerId, ownerAuthenticationRequired } from "../../../../../../lib/o
 import {
   isGooglePlayTargetLocale,
   listingSourceFingerprint,
+  parseGooglePlayCurrentListing,
   parseLocalizedStoreListings,
+  resolveGooglePlayListingSource,
   validateGooglePlayListingText,
-  type GooglePlayListingText,
 } from "../../../../../../lib/google-play-localizations";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -35,11 +36,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const [plan] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     if (!plan) return Response.json({ error: "Build and save the Google Play listing in Optimize first." }, { status: 400 });
 
-    const source: GooglePlayListingText = {
+    const { listing: source } = resolveGooglePlayListingSource({
       title: plan.storeTitle.trim(),
       shortDescription: plan.storeShortDescription.trim(),
       fullDescription: plan.storeLongDescription.trim(),
-    };
+    }, parseGooglePlayCurrentListing(plan.currentListing));
     const localized = parseLocalizedStoreListings(plan.localizedListings);
     const sourceHash = listingSourceFingerprint(source);
     const listings = locales.map((locale) => {
