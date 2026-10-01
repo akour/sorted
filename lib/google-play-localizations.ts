@@ -28,6 +28,48 @@ export type GooglePlayListingText = {
   fullDescription: string;
 };
 
+export type GooglePlayCurrentListing = {
+  title?: string;
+  shortDescription?: string;
+  longDescription?: string;
+};
+
+export function parseGooglePlayCurrentListing(value: unknown): GooglePlayCurrentListing {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return {};
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+  const row = parsed as Record<string, unknown>;
+  return {
+    title: typeof row.title === "string" ? row.title : undefined,
+    shortDescription: typeof row.shortDescription === "string" ? row.shortDescription : undefined,
+    longDescription: typeof row.longDescription === "string" ? row.longDescription : typeof row.fullDescription === "string" ? row.fullDescription : undefined,
+  };
+}
+
+export function resolveGooglePlayListingSource(
+  optimized: GooglePlayListingText,
+  current: GooglePlayCurrentListing = {},
+): { listing: GooglePlayListingText; fullDescriptionSource: "optimize" | "current-listing" } {
+  const optimizedLong = optimized.fullDescription.trim();
+  const optimizedShort = optimized.shortDescription.trim();
+  const currentLong = current.longDescription?.trim() ?? "";
+  const useCurrentLong = Boolean(currentLong) && (!optimizedLong || optimizedLong === optimizedShort);
+  return {
+    listing: {
+      title: optimized.title.trim() || current.title?.trim() || "",
+      shortDescription: optimizedShort || current.shortDescription?.trim() || "",
+      fullDescription: useCurrentLong ? currentLong : optimizedLong,
+    },
+    fullDescriptionSource: useCurrentLong ? "current-listing" : "optimize",
+  };
+}
+
 export function isGooglePlayTargetLocale(value: unknown): value is GooglePlayTargetLocale {
   return typeof value === "string" && GOOGLE_PLAY_TARGET_LOCALES.some((item) => item.locale === value);
 }

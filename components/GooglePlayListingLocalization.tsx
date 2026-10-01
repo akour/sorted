@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GOOGLE_PLAY_TARGET_LOCALES,
   listingSourceFingerprint,
+  resolveGooglePlayListingSource,
   validateGooglePlayListingText,
-  type GooglePlayListingText,
   type LocalizedStoreListing,
 } from "../lib/google-play-localizations";
 
@@ -45,11 +45,11 @@ export function GooglePlayListingLocalization({
   const [selectedLocales, setSelectedLocales] = useState<Set<string>>(() => new Set(["en-US"]));
   const listings = optimization.localizedListings;
   const latestListings = useRef(listings);
-  const source: GooglePlayListingText = {
+  const { listing: source, fullDescriptionSource } = resolveGooglePlayListingSource({
     title: optimization.storeTitle,
     shortDescription: optimization.storeShortDescription,
     fullDescription: optimization.storeLongDescription,
-  };
+  }, optimization.currentListing);
   const sourceErrors = validateGooglePlayListingText(source);
   const sourceHash = listingSourceFingerprint(source);
   const connected = connectionState?.productId === productId && connectionState.connected;
@@ -221,7 +221,7 @@ export function GooglePlayListingLocalization({
       <div><p className="eyebrow">Google Play localization</p><h3>Keep English as the source</h3></div>
       <span>English source + 10 target locales</span>
     </div>
-    <p className="field-help localization-source-note">Translations use the saved title, short description, and full description above. English is never regenerated here. Existing translations that still match English are reused.</p>
+    <p className="field-help localization-source-note">Translations reuse the saved Optimize copy; English is never regenerated here. {fullDescriptionSource === "current-listing" ? "Because the saved long-description draft is only the short hook, Sorted reuses the existing Google Play full description instead." : "Existing translations that still match this English source are reused."}</p>
     <div className="localization-bulk-actions">
       <button type="button" className="secondary-button" onClick={() => void generateMissing()} disabled={Boolean(generatingLocale || bulkProgress || saving || publishing || sourceErrors.length || missingCount === 0)}>
         {bulkProgress || `Translate missing (${missingCount})`}

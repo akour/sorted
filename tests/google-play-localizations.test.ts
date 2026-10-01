@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   GOOGLE_PLAY_TARGET_LOCALES,
   listingSourceFingerprint,
+  resolveGooglePlayListingSource,
   parseLocalizedStoreListings,
   validateGooglePlayListingText,
   validateLocalizedStoreListings,
@@ -20,6 +21,32 @@ test("source fingerprints change only when listing copy changes", () => {
   const listing = { title: "Void Stack", shortDescription: "Build a stack", fullDescription: "A puzzle game." };
   assert.equal(listingSourceFingerprint(listing), listingSourceFingerprint({ ...listing }));
   assert.notEqual(listingSourceFingerprint(listing), listingSourceFingerprint({ ...listing, fullDescription: "A different game." }));
+});
+
+test("localization reuses the fetched full listing when the Optimize long draft is only the short hook", () => {
+  const originalFullDescription = "A complete Google Play description with gameplay details and supported facts.";
+  const resolved = resolveGooglePlayListingSource({
+    title: "Void Stack",
+    shortDescription: "A relaxing cosmic journey.",
+    fullDescription: "A relaxing cosmic journey.",
+  }, {
+    title: "Void Stack",
+    shortDescription: "A relaxing cosmic journey.",
+    longDescription: originalFullDescription,
+  });
+  assert.equal(resolved.fullDescriptionSource, "current-listing");
+  assert.equal(resolved.listing.fullDescription, originalFullDescription);
+});
+
+test("a real saved Optimize long description remains the localization source", () => {
+  const optimizedFullDescription = "An approved, detailed English listing draft.";
+  const resolved = resolveGooglePlayListingSource({
+    title: "Void Stack",
+    shortDescription: "A relaxing cosmic journey.",
+    fullDescription: optimizedFullDescription,
+  }, { longDescription: "The older published Play description." });
+  assert.equal(resolved.fullDescriptionSource, "optimize");
+  assert.equal(resolved.listing.fullDescription, optimizedFullDescription);
 });
 
 test("Google Play listing limits are validated before save or publish", () => {
