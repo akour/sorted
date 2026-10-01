@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   GOOGLE_PLAY_TARGET_LOCALES,
   listingSourceFingerprint,
+  googlePlayListingLengthIssues,
   resolveGooglePlayListingSource,
   parseLocalizedStoreListings,
   validateGooglePlayListingText,
@@ -54,6 +55,18 @@ test("Google Play listing limits are validated before save or publish", () => {
     "App title is required.",
     "Short description exceeds Google Play's 80-character limit.",
     "Full description exceeds Google Play's 4,000-character limit.",
+  ]);
+});
+
+test("translation failures identify exactly which Google Play fields are over limit", () => {
+  assert.deepEqual(googlePlayListingLengthIssues({
+    title: "x".repeat(31),
+    shortDescription: "x".repeat(81),
+    fullDescription: "x".repeat(4001),
+  }), [
+    "Title is 31 characters; Google Play allows at most 30.",
+    "Short description is 81 characters; Google Play allows at most 80.",
+    "Full description is 4001 characters; Google Play allows at most 4000.",
   ]);
 });
 
