@@ -139,8 +139,11 @@ export function GooglePlayListingLocalization({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ locale, force }),
       });
-      const data = await response.json() as { error?: string; localizedListing?: LocalizedStoreListing; reused?: boolean };
-      if (!response.ok || !data.localizedListing) throw new Error(data.error ?? "Could not create this translation.");
+      const data = await response.json() as { error?: string; detail?: string; localizedListing?: LocalizedStoreListing; reused?: boolean };
+      if (!response.ok || !data.localizedListing) {
+        const message = [data.error ?? "Could not create this translation.", data.detail ? `AI provider details: ${data.detail}` : ""].filter(Boolean).join(" ");
+        throw new Error(message);
+      }
       latestListings.current = [...latestListings.current.filter((item) => item.locale !== locale), data.localizedListing];
       onChange({ ...optimization, localizedListings: latestListings.current });
       setNotice(data.reused ? `${locale} is already current; it was not generated again.` : `${locale} translation ready for your review.`);
