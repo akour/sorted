@@ -283,7 +283,6 @@
     align-self: flex-start;
     height: 100vh;
     overflow-y: auto;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
   }
 }
