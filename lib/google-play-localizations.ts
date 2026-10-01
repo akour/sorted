@@ -97,6 +97,18 @@ export function validateGooglePlayListingText(listing: GooglePlayListingText): s
   return errors;
 }
 
+/** Returns safe, field-specific details when generated copy exceeds Play limits. */
+export function googlePlayListingLengthIssues(listing: GooglePlayListingText): string[] {
+  const fields = [
+    { label: "Title", value: listing.title, limit: 30 },
+    { label: "Short description", value: listing.shortDescription, limit: 80 },
+    { label: "Full description", value: listing.fullDescription, limit: 4000 },
+  ];
+  return fields
+    .filter(({ value, limit }) => value.length > limit)
+    .map(({ label, value, limit }) => `${label} is ${value.length} characters; Google Play allows at most ${limit}.`);
+}
+
 export function parseLocalizedStoreListings(value: string | null | undefined): LocalizedStoreListing[] {
   try {
     const parsed: unknown = JSON.parse(value ?? "[]");
