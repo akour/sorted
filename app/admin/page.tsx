@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type Tab = "overview" | "users" | "providers" | "integrations" | "environment";
+type Tab = "overview" | "users" | "providers" | "integrations" | "appearance" | "environment";
 type Readiness = Record<"betterAuthSecret" | "d1" | "resend" | "openCode" | "adminAllowlist", boolean>;
 type Overview = {
   counts: { users: number; verifiedUsers: number; products: number; configuredProviders: number };
@@ -27,12 +27,23 @@ type GooglePlayOAuthConfig = {
   createdAt: string | null; updatedAt: string | null;
 };
 type GooglePlayOAuthForm = { clientId: string; clientSecret: string; enabled: boolean };
+type AppearanceValues = { accent: "violet" | "ocean" | "evergreen" | "terracotta"; density: "comfortable" | "compact"; corners: "soft" | "crisp" };
+type Appearance = AppearanceValues & { updatedAt: string | null };
+
+const defaultAppearance: AppearanceValues = { accent: "violet", density: "comfortable", corners: "soft" };
+const appearanceAccents: Array<{ id: AppearanceValues["accent"]; label: string; color: string; note: string }> = [
+  { id: "violet", label: "Sorted violet", color: "#6154c7", note: "The signature accent" },
+  { id: "ocean", label: "Ocean blue", color: "#2676ad", note: "Cool and focused" },
+  { id: "evergreen", label: "Evergreen", color: "#247b63", note: "Calm and grounded" },
+  { id: "terracotta", label: "Terracotta", color: "#a95032", note: "Warm and energetic" },
+];
 
 const tabs: Array<{ id: Tab; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: "⌂" },
   { id: "users", label: "Users", icon: "♙" },
   { id: "providers", label: "AI providers", icon: "✦" },
   { id: "integrations", label: "Integrations", icon: "◎" },
+  { id: "appearance", label: "Appearance", icon: "◈" },
   { id: "environment", label: "Environment", icon: "⚙" },
 ];
 
@@ -60,6 +71,8 @@ export default function AdminPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [catalog, setCatalog] = useState<ProviderDefinition[]>([]);
   const [googlePlayOAuth, setGooglePlayOAuth] = useState<GooglePlayOAuthConfig | null>(null);
+  const [appearance, setAppearance] = useState<Appearance | null>(null);
+  const [appearanceForm, setAppearanceForm] = useState<AppearanceValues>(defaultAppearance);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -71,17 +84,20 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      const [overviewData, usersData, providersData, googlePlayData] = await Promise.all([
+      const [overviewData, usersData, providersData, googlePlayData, appearanceData] = await Promise.all([
         requestJson<Overview>("/api/admin/overview"),
         requestJson<{ users: User[] }>("/api/admin/users"),
         requestJson<{ providers: Provider[]; catalog: ProviderDefinition[] }>("/api/admin/providers"),
         requestJson<GooglePlayOAuthConfig>("/api/admin/integrations/google-play"),
+        requestJson<{ appearance: Appearance }>("/api/admin/appearance"),
       ]);
       setOverview(overviewData);
       setUsers(usersData.users);
       setProviders(providersData.providers);
       setCatalog(providersData.catalog);
       setGooglePlayOAuth(googlePlayData);
+      setAppearance(appearanceData.appearance);
+      setAppearanceForm({ accent: appearanceData.appearance.accent, density: appearanceData.appearance.density, corners: appearanceData.appearance.corners });
       setGooglePlayOAuthForm({ clientId: googlePlayData.clientId, clientSecret: "", enabled: googlePlayData.enabled });
       if (!providerForm.providerId && providersData.catalog[0]) {
         const first = providersData.catalog[0];
@@ -192,6 +208,18 @@ export default function AdminPage() {
     finally { setBusy(null); }
   }
 
+  async function saveAppearance() {
+    setBusy("appearance:save"); setError(""); setNotice("");
+    try {
+      const result = await requestJson<{ appearance: Appearance }>("/api/admin/appearance", { method: "PUT", body: JSON.stringify(appearanceForm) });
+      setAppearance(result.appearance);
+      setAppearanceForm({ accent: result.appearance.accent, density: result.appearance.density, corners: result.appearance.corners });
+      setNotice("Workspace appearance saved for everyone.");
+      await loadData();
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Workspace appearance could not be saved."); }
+    finally { setBusy(null); }
+  }
+
   if (loading && !overview) return <main className="admin-loading"><div className="admin-loading-orbit">✦</div><p>Loading Sorted administration…</p></main>;
 
   return (
@@ -200,14 +228,14 @@ export default function AdminPage() {
         <a className="admin-brand" href="/workspace"><span className="brand-mark">S</span><span><strong>sorted</strong><small>control plane</small></span></a>
         <p className="admin-sidebar-label">Manage Sorted</p>
         <nav className="admin-nav" aria-label="Admin sections">
-          {tabs.map((item) => <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span>{item.icon}</span>{item.label}</button>)}
+          {tabs.map((item) => <button type="button" key={item.id} className={tab === item.id ? "active" : ""} aria-current={tab === item.id ? "page" : undefined} onClick={() => setTab(item.id)}><span>{item.icon}</span>{item.label}</button>)}
         </nav>
         <div className="admin-sidebar-footer"><span className="admin-shield">✓</span><div><strong>Owner controls</strong><small>Changes are audited</small></div></div>
       </aside>
       <main className="admin-main">
         <header className="admin-topbar"><div><span className="admin-kicker">Sorted / administration</span><strong>{overview?.currentAdmin.name || "Administrator"}</strong></div><div className="admin-top-actions"><a href="/workspace">Back to workspace ↗</a><span className="admin-avatar">{(overview?.currentAdmin.email || "A").slice(0, 1).toUpperCase()}</span></div></header>
         <div className="admin-content">
-          <div className="admin-heading"><div><p className="eyebrow">Private control plane</p><h1>{tabs.find((item) => item.id === tab)?.label}</h1><p>Manage the people, providers, and operating environment behind Sorted.</p></div><StatusPill good={Boolean(overview?.readiness.openCode)}>{overview?.readiness.openCode ? "AI runtime ready" : "AI runtime needs setup"}</StatusPill></div>
+          <div className="admin-heading"><div><p className="eyebrow">Private control plane</p><h1>{tabs.find((item) => item.id === tab)?.label}</h1><p>{tab === "appearance" ? "Set a clearer, more comfortable look for every product workspace." : "Manage the people, providers, and operating environment behind Sorted."}</p></div><StatusPill good={Boolean(overview?.readiness.openCode)}>{overview?.readiness.openCode ? "AI runtime ready" : "AI runtime needs setup"}</StatusPill></div>
           {error && <div className="error-banner admin-banner">{error}</div>}
           {notice && <div className="notice admin-banner">{notice}</div>}
 
@@ -215,6 +243,7 @@ export default function AdminPage() {
           {tab === "users" && <UsersPanel users={users} busy={busy} onAction={runUserAction} />}
           {tab === "providers" && <ProvidersPanel providers={providers} catalog={catalog} form={providerForm} busy={busy} selectedDefinition={selectedDefinition} onSelect={selectProvider} onChange={setProviderForm} onSave={saveProvider} onTest={testProvider} onRemove={removeProvider} />}
           {tab === "integrations" && <IntegrationsPanel config={googlePlayOAuth} form={googlePlayOAuthForm} busy={busy} onChange={setGooglePlayOAuthForm} onSave={saveGooglePlayOAuth} onTest={testGooglePlayOAuth} onRemove={removeGooglePlayOAuth} />}
+          {tab === "appearance" && <AppearancePanel saved={appearance} draft={appearanceForm} busy={busy === "appearance:save"} onChange={setAppearanceForm} onSave={saveAppearance} onReset={() => setAppearanceForm(defaultAppearance)} />}
           {tab === "environment" && overview && <EnvironmentPanel overview={overview} />}
         </div>
       </main>
@@ -299,6 +328,64 @@ function IntegrationsPanel({ config, form, busy, onChange, onSave, onTest, onRem
       <div className="admin-secret-field"><span>Requested scopes</span><div className="admin-scope-list">{(config?.scopes ?? ["openid", "email", "https://www.googleapis.com/auth/androidpublisher"]).map((scope) => <code key={scope}>{scope}</code>)}</div></div>
       <div className="admin-integration-note"><strong>What happens next</strong><p>Users can connect a Google Play account from a product’s Connections area. Authorization is stored per product and never shared between workspaces.</p></div>
       <div className="admin-form-actions admin-integration-actions">{configured && <button className="secondary-button" type="button" disabled={busy === "google-play-oauth:test"} onClick={onTest}>{busy === "google-play-oauth:test" ? "Checking…" : "Check configuration"}</button>}{configured && <button className="icon-action danger" type="button" disabled={busy === "google-play-oauth:remove"} onClick={onRemove} title="Remove Google Play OAuth configuration">×</button>}<span>{config?.lastTestedAt ? `Checked ${formatDate(config.lastTestedAt)}` : "Not checked yet"}</span></div>
+    </section>
+  </div>;
+}
+
+function AppearancePanel({ saved, draft, busy, onChange, onSave, onReset }: {
+  saved: Appearance | null;
+  draft: AppearanceValues;
+  busy: boolean;
+  onChange: React.Dispatch<React.SetStateAction<AppearanceValues>>;
+  onSave: () => void;
+  onReset: () => void;
+}) {
+  const dirty = !saved || draft.accent !== saved.accent || draft.density !== saved.density || draft.corners !== saved.corners;
+  return <div className="appearance-settings-layout">
+    <section className="admin-section appearance-controls">
+      <div className="admin-section-heading"><div><p className="eyebrow">Workspace-wide design</p><h2>Make the workspace easier on the eyes</h2><p>Choose a restrained accent, adjust the amount of space, and set the card shape. The preview updates as you edit; saving applies it to every user.</p></div></div>
+      <div className="appearance-setting-group">
+        <div className="appearance-setting-heading"><strong>Accent color</strong><span>Used for navigation, highlights, and primary actions</span></div>
+        <div className="appearance-accent-grid" role="group" aria-label="Workspace accent color">
+          {appearanceAccents.map((accent) => <button type="button" className={`appearance-accent-option ${draft.accent === accent.id ? "selected" : ""}`} key={accent.id} aria-pressed={draft.accent === accent.id} onClick={() => onChange((current) => ({ ...current, accent: accent.id }))}>
+            <span className="appearance-swatch" style={{ background: accent.color }} />
+            <span><strong>{accent.label}</strong><small>{accent.note}</small></span>
+            {draft.accent === accent.id && <span className="appearance-check" aria-hidden="true">✓</span>}
+          </button>)}
+        </div>
+      </div>
+      <div className="appearance-setting-group">
+        <div className="appearance-setting-heading"><strong>Workspace density</strong><span>Pick the amount of breathing room</span></div>
+        <div className="appearance-choice-row" role="group" aria-label="Workspace density">
+          <button type="button" className={draft.density === "comfortable" ? "selected" : ""} aria-pressed={draft.density === "comfortable"} onClick={() => onChange((current) => ({ ...current, density: "comfortable" }))}><strong>Comfortable</strong><small>More space between sections</small></button>
+          <button type="button" className={draft.density === "compact" ? "selected" : ""} aria-pressed={draft.density === "compact"} onClick={() => onChange((current) => ({ ...current, density: "compact" }))}><strong>Compact</strong><small>See more on each screen</small></button>
+        </div>
+      </div>
+      <div className="appearance-setting-group">
+        <div className="appearance-setting-heading"><strong>Card shape</strong><span>Change the feel of panels and cards</span></div>
+        <div className="appearance-choice-row" role="group" aria-label="Card shape">
+          <button type="button" className={draft.corners === "soft" ? "selected" : ""} aria-pressed={draft.corners === "soft"} onClick={() => onChange((current) => ({ ...current, corners: "soft" }))}><strong>Soft</strong><small>Rounded and relaxed</small></button>
+          <button type="button" className={draft.corners === "crisp" ? "selected" : ""} aria-pressed={draft.corners === "crisp"} onClick={() => onChange((current) => ({ ...current, corners: "crisp" }))}><strong>Crisp</strong><small>Cleaner, squarer edges</small></button>
+        </div>
+      </div>
+      <div className="appearance-save-row">
+        <button type="button" className="primary-button" disabled={!dirty || busy} onClick={onSave}>{busy ? "Saving…" : "Save workspace appearance"}</button>
+        <button type="button" className="secondary-button" disabled={!dirty || busy} onClick={onReset}>Restore defaults</button>
+      </div>
+      <p className="appearance-save-note">{saved?.updatedAt ? `Last saved ${formatDate(saved.updatedAt)}.` : "Sorted’s default look is currently active."} Changes are shared across all workspaces.</p>
+    </section>
+    <section className="admin-section appearance-preview-panel">
+      <div className="admin-section-heading"><div><p className="eyebrow">Live preview</p><h2>Workspace feel</h2><p>A quick preview of the navigation, cards, and main action.</p></div><span className="admin-muted">Unsaved changes shown</span></div>
+      <div className="appearance-theme appearance-preview" data-accent={draft.accent} data-density={draft.density} data-corners={draft.corners}>
+        <aside className="appearance-preview-sidebar"><span className="appearance-preview-brand">3</span><span>Overview</span><span className="active">Products</span><span>Calendar</span><span>Reports</span></aside>
+        <div className="appearance-preview-main">
+          <div className="appearance-preview-topline"><span>Workspace <i>/</i> Products</span><span className="appearance-preview-avatar">A</span></div>
+          <div className="appearance-preview-heading"><div><small>YOUR WORKSPACE</small><strong>Good morning</strong></div><button type="button" className="primary-button">＋ Add product</button></div>
+          <div className="appearance-preview-card"><span className="appearance-preview-icon">V</span><div><strong>Void Stack</strong><small>Game · Product workspace</small></div><span className="appearance-preview-arrow">→</span></div>
+          <div className="appearance-preview-card second"><span className="appearance-preview-icon">+</span><div><strong>One clear next step</strong><small>Everything for this product, together</small></div></div>
+        </div>
+      </div>
+      <div className="appearance-preview-caption"><span className="appearance-preview-dot" /> {appearanceAccents.find((item) => item.id === draft.accent)?.label} <i>·</i> {draft.density} spacing <i>·</i> {draft.corners} cards</div>
     </section>
   </div>;
 }
