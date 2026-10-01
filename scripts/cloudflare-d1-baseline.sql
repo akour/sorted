@@ -87,3 +87,9 @@ WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin
 INSERT OR IGNORE INTO d1_migrations (name)
 SELECT '0018_workspace_appearance.sql'
 WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'admin_workspace_appearance');
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0019_listing_localizations.sql'
+WHERE EXISTS (
+  SELECT 1 FROM pragma_table_info('optimization_plans') WHERE name = 'localized_listings'
+);
