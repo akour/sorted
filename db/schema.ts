@@ -108,6 +108,7 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   storeLongDescription: text("store_long_description").notNull().default(""),
   answerSummary: text("answer_summary").notNull().default(""),
   currentListing: text("current_listing").notNull().default("{}"),
+  localizedListings: text("localized_listings").notNull().default("[]"),
   opportunities: text("opportunities").notNull().default("[]"),
   nextActions: text("next_actions").notNull().default("[]"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),

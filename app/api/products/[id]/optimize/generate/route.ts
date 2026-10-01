@@ -5,6 +5,7 @@ import { optimizationPlans, products, researchBriefs } from "../../../../../../d
 import { openCodeWorkspaceRestrictionMessage, requestOpenCodeWithFallback, safeOpenCodeFailureDetails } from "../../../../../../lib/opencode-client";
 import { getOpenCodeModel } from "../../../../../../lib/opencode-models";
 import { getGenerationModels, getOpenCodeRuntime } from "../../../../../../lib/ai-runtime";
+import { parseLocalizedStoreListings } from "../../../../../../lib/google-play-localizations";
 
 function parsePlanJson(raw: string) {
   const candidate = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
@@ -108,7 +109,7 @@ Notes: ${research.notes || "not provided"}`;
     const [optimization] = existing
       ? await db.update(optimizationPlans).set(values).where(eq(optimizationPlans.id, existing.id)).returning()
       : await db.insert(optimizationPlans).values({ productId, ownerId, ...values }).returning();
-    return Response.json({ optimization: { ...optimization, currentListing: parseObject(optimization.currentListing), opportunities: generated.opportunities, nextActions: generated.nextActions }, model: usedModel, fallbacksUsed: generation.failures.length });
+    return Response.json({ optimization: { ...optimization, currentListing: parseObject(optimization.currentListing), localizedListings: parseLocalizedStoreListings(optimization.localizedListings), opportunities: generated.opportunities, nextActions: generated.nextActions }, model: usedModel, fallbacksUsed: generation.failures.length });
   } catch (error) {
     console.error("optimization generation failed", error);
     return Response.json({ error: "The optimization request failed. Check the product research and OpenCode configuration." }, { status: 500 });

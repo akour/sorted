@@ -2,6 +2,7 @@ import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../db";
 import { optimizationPlans } from "../../../../../db/schema";
+import { parseLocalizedStoreListings, validateLocalizedStoreListings } from "../../../../../lib/google-play-localizations";
 
 function parseJson(value: string | null | undefined, fallback: unknown[]) {
   try {
@@ -22,12 +23,12 @@ function parseObject(value: string | null | undefined, fallback: Record<string, 
 }
 
 function emptyPlan(productId: number) {
-  return { productId, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", answerSummary: "", currentListing: {}, opportunities: [], nextActions: [] };
+  return { productId, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", answerSummary: "", currentListing: {}, localizedListings: [], opportunities: [], nextActions: [] };
 }
 
 function serialize(plan: typeof optimizationPlans.$inferSelect | undefined, productId: number) {
   if (!plan) return emptyPlan(productId);
-  return { ...plan, currentListing: parseObject(plan.currentListing, {}), opportunities: parseJson(plan.opportunities, []), nextActions: parseJson(plan.nextActions, []) };
+  return { ...plan, currentListing: parseObject(plan.currentListing, {}), localizedListings: parseLocalizedStoreListings(plan.localizedListings), opportunities: parseJson(plan.opportunities, []), nextActions: parseJson(plan.nextActions, []) };
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -48,7 +49,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const ownerId = await getOwnerId();
     if (!ownerId) return ownerAuthenticationRequired();
     const payload = await request.json() as Record<string, unknown>;
-    const values = {
+    const hasLocalizedListings = Array.isArray(payload.localizedListings);
+    const values: Partial<typeof optimizationPlans.$inferInsert> = {
       focus: typeof payload.focus === "string" ? payload.focus.trim() : "ASO + AEO",
       storeTitle: typeof payload.storeTitle === "string" ? payload.storeTitle.trim() : "",
       storeSubtitle: typeof payload.storeSubtitle === "string" ? payload.storeSubtitle.trim() : "",
@@ -62,6 +64,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     };
     const db = getDb();
     const [existing] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
+    if (hasLocalizedListings) values.localizedListings = JSON.stringify(validateLocalizedStoreListings(payload.localizedListings));
     const [optimization] = existing
       ? await db.update(optimizationPlans).set(values).where(eq(optimizationPlans.id, existing.id)).returning()
       : await db.insert(optimizationPlans).values({ productId, ownerId, ...values }).returning();

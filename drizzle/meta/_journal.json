@@ -71,6 +71,13 @@
       "when": 1790848650000,
       "tag": "0018_workspace_appearance",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1790868000000,
+      "tag": "0019_listing_localizations",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import type { ProductListing } from "./product-icons";
+import { validateGooglePlayListingText, type GooglePlayListingText } from "./google-play-localizations";
 
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_PLAY_API_ROOT = "https://androidpublisher.googleapis.com/androidpublisher/v3";
@@ -106,7 +107,7 @@ async function importPrivateKey(credentials: GooglePlayCredentials): Promise<Cry
   }
 }
 
-async function getAccessToken(credentials: GooglePlayCredentials): Promise<string> {
+export async function getGooglePlayAccessToken(credentials: GooglePlayCredentials): Promise<string> {
   const key = await importPrivateKey(credentials);
   const now = Math.floor(Date.now() / 1000);
   const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -159,7 +160,7 @@ async function googlePlayRequest(path: string, accessToken: string, init?: Reque
 
 export async function testGooglePlayConnection(credentials: GooglePlayCredentials, packageNameInput: string): Promise<GooglePlayConnectionCheck> {
   const packageName = validateGooglePlayPackageName(packageNameInput);
-  const accessToken = await getAccessToken(credentials);
+  const accessToken = await getGooglePlayAccessToken(credentials);
   const data = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/reviews?maxResults=1`, accessToken) as { reviews?: unknown[] };
   return { ok: true, reviewCount: Array.isArray(data.reviews) ? data.reviews.length : 0 };
 }
@@ -167,7 +168,7 @@ export async function testGooglePlayConnection(credentials: GooglePlayCredential
 export async function fetchGooglePlayListing(credentials: GooglePlayCredentials, packageNameInput: string, localeInput: string): Promise<GooglePlayListing> {
   const packageName = validateGooglePlayPackageName(packageNameInput);
   const locale = validateGooglePlayLocale(localeInput);
-  const accessToken = await getAccessToken(credentials);
+  const accessToken = await getGooglePlayAccessToken(credentials);
   const edit = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits`, accessToken, { method: "POST", body: "{}" }) as { id?: unknown };
   const editId = typeof edit.id === "string" ? edit.id : "";
   if (!editId) throw new Error("Google Play did not create a temporary listing read session.");
@@ -192,6 +193,50 @@ export async function fetchGooglePlayListing(credentials: GooglePlayCredentials,
       method: "DELETE",
       headers: { authorization: `Bearer ${accessToken}` },
     }).catch(() => undefined);
+  }
+}
+
+export async function publishGooglePlayListingsWithAccessToken(
+  accessToken: string,
+  packageNameInput: string,
+  listings: Array<GooglePlayListingText & { language: string }>,
+): Promise<{ publishedLocales: string[] }> {
+  const packageName = validateGooglePlayPackageName(packageNameInput);
+  if (!accessToken.trim()) throw new Error("Reconnect Google Play before publishing.");
+  if (!listings.length) throw new Error("Select at least one complete locale to publish.");
+  const seen = new Set<string>();
+  for (const listing of listings) {
+    const language = validateGooglePlayLocale(listing.language);
+    if (seen.has(language)) throw new Error(`The ${language} listing was selected more than once.`);
+    seen.add(language);
+    const errors = validateGooglePlayListingText(listing);
+    if (errors.length) throw new Error(`${language}: ${errors.join(" ")}`);
+  }
+
+  const edit = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits`, accessToken, { method: "POST", body: "{}" }) as { id?: unknown };
+  const editId = typeof edit.id === "string" ? edit.id : "";
+  if (!editId) throw new Error("Google Play did not create an edit for these listing changes.");
+  let committed = false;
+  try {
+    for (const listing of listings) {
+      const language = validateGooglePlayLocale(listing.language);
+      await googlePlayRequest(
+        `/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}/listings/${encodeURIComponent(language)}`,
+        accessToken,
+        { method: "PUT", body: JSON.stringify({ title: listing.title, shortDescription: listing.shortDescription, fullDescription: listing.fullDescription }) },
+      );
+    }
+    await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}:validate`, accessToken, { method: "POST", body: "{}" });
+    await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}:commit`, accessToken, { method: "POST", body: "{}" });
+    committed = true;
+    return { publishedLocales: listings.map((item) => item.language) };
+  } finally {
+    if (!committed) {
+      await fetch(`${GOOGLE_PLAY_API_ROOT}/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}`, {
+        method: "DELETE",
+        headers: { authorization: `Bearer ${accessToken}` },
+      }).catch(() => undefined);
+    }
   }
 }
 
