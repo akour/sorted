@@ -47,11 +47,25 @@ const RESPONSE_MODELS = new Set(["grok-4.7", "grok-4.6", "gpt-5.6-luna", "muse-s
 const MESSAGE_MODELS = new Set(["minimax-m3", "minimax-m2.7", "qwen3.8-max", "qwen3.8-flash", "qwen3.7-max", "qwen3.7-plus", "qwen3.6-plus"]);
 
 export type OpenCodeTransport = "chat" | "responses" | "messages";
+export type AiProviderProtocol = "openai-compatible" | "anthropic";
 
 export function getOpenCodeTransport(id: string): OpenCodeTransport {
   if (RESPONSE_MODELS.has(id)) return "responses";
   if (MESSAGE_MODELS.has(id)) return "messages";
   return "chat";
+}
+
+// OpenCode exposes several API protocols, selected by model. Leave its
+// runtime-level transport unset so each active or fallback model can choose
+// its own protocol. Other providers use one protocol for every model.
+export function getProviderRuntimeTransport(providerId: string, kind: AiProviderProtocol): OpenCodeTransport | undefined {
+  if (providerId === "opencode") return undefined;
+  return kind === "anthropic" ? "messages" : "chat";
+}
+
+export function getProviderModelTransport(providerId: string, kind: AiProviderProtocol, model: string): OpenCodeTransport {
+  if (providerId === "opencode") return getOpenCodeTransport(model);
+  return kind === "anthropic" ? "messages" : "chat";
 }
 
 export function getOpenCodeModel(id: string | undefined) {
