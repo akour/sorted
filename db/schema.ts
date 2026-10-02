@@ -156,6 +156,22 @@ export const googlePlayPerformanceRows = sqliteTable("google_play_performance_ro
   index("google_play_performance_rows_product_date_idx").on(table.productId, table.ownerId, table.date),
 ]);
 
+// Keep the latest API-fetched Play quality report separate from listing
+// conversion observations; neither dataset should be mistaken for the other.
+export const googlePlayReportingSnapshots = sqliteTable("google_play_reporting_snapshots", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  packageName: text("package_name").notNull(),
+  dateStart: text("date_start").notNull().default(""),
+  dateEnd: text("date_end").notNull().default(""),
+  dataJson: text("data_json").notNull().default("{}"),
+  syncedAt: text("synced_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  lastError: text("last_error"),
+}, (table) => [
+  uniqueIndex("google_play_reporting_snapshots_product_owner_idx").on(table.productId, table.ownerId),
+]);
+
 export const createBriefs = sqliteTable("create_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),

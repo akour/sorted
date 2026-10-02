@@ -1,7 +1,7 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
-import { createBriefs, googlePlayOAuthStates, googlePlayPerformanceImports, googlePlayPerformanceRows, optimizationPlans, productConnections, productOauthConnections, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
+import { createBriefs, googlePlayOAuthStates, googlePlayPerformanceImports, googlePlayPerformanceRows, googlePlayReportingSnapshots, optimizationPlans, productConnections, productOauthConnections, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
 import { getInitialProductIconUrl } from "../../../../lib/product-icon-url";
 import { normalizeProductUrlInput } from "../../../../lib/product-url";
 
@@ -57,6 +57,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     await db.delete(googlePlayOAuthStates).where(and(eq(googlePlayOAuthStates.productId, productId), eq(googlePlayOAuthStates.ownerId, ownerId)));
     await db.delete(googlePlayPerformanceRows).where(and(eq(googlePlayPerformanceRows.productId, productId), eq(googlePlayPerformanceRows.ownerId, ownerId)));
     await db.delete(googlePlayPerformanceImports).where(and(eq(googlePlayPerformanceImports.productId, productId), eq(googlePlayPerformanceImports.ownerId, ownerId)));
+    await db.delete(googlePlayReportingSnapshots).where(and(eq(googlePlayReportingSnapshots.productId, productId), eq(googlePlayReportingSnapshots.ownerId, ownerId)));
     await db.delete(createBriefs).where(and(eq(createBriefs.productId, productId), eq(createBriefs.ownerId, ownerId)));
     await db.delete(publishPlans).where(and(eq(publishPlans.productId, productId), eq(publishPlans.ownerId, ownerId)));
     await db.delete(products).where(and(eq(products.id, productId), eq(products.ownerId, ownerId)));

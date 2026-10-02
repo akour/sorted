@@ -107,13 +107,13 @@ async function importPrivateKey(credentials: GooglePlayCredentials): Promise<Cry
   }
 }
 
-export async function getGooglePlayAccessToken(credentials: GooglePlayCredentials): Promise<string> {
+export async function getGooglePlayAccessToken(credentials: GooglePlayCredentials, scope = GOOGLE_PLAY_SCOPE): Promise<string> {
   const key = await importPrivateKey(credentials);
   const now = Math.floor(Date.now() / 1000);
   const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const payload = base64UrlEncode(JSON.stringify({
     iss: credentials.client_email,
-    scope: GOOGLE_PLAY_SCOPE,
+    scope,
     aud: GOOGLE_OAUTH_TOKEN_URL,
     iat: now,
     exp: now + 3600,

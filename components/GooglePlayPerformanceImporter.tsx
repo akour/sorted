@@ -26,6 +26,9 @@ type SavedImport = {
 };
 
 type ReportResponse = { imports?: SavedImport[]; rows?: PlayPerformanceRow[]; selectedImportId?: number | null; error?: string };
+type QualityMetric = "crashRate28dUserWeighted" | "userPerceivedCrashRate28dUserWeighted" | "anrRate28dUserWeighted" | "userPerceivedAnrRate28dUserWeighted";
+type QualitySnapshot = { packageName: string; dateStart: string; dateEnd: string; syncedAt: string; rows: Array<Record<"date" | QualityMetric, string | null>> };
+type ReportingStatus = { connected?: boolean; connectionType?: string | null; snapshot?: QualitySnapshot | null; lastError?: string | null; error?: string };
 
 async function requestReports(productId: number, importId?: number | null) {
   const suffix = importId ? `?importId=${importId}` : "";
@@ -50,6 +53,11 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [reportingConnected, setReportingConnected] = useState(false);
+  const [qualitySnapshot, setQualitySnapshot] = useState<QualitySnapshot | null>(null);
+  const [reportingBusy, setReportingBusy] = useState(false);
+  const [reportingError, setReportingError] = useState("");
+  const [reportingNotice, setReportingNotice] = useState("");
 
   async function loadReports(importId?: number | null) {
     setLoading(true);
@@ -77,6 +85,54 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
     }).finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
   }, [productId]);
+
+  useEffect(() => {
+    let current = true;
+    void fetch(`/api/products/${productId}/performance/reporting`).then(async (response) => {
+      const data = await response.json() as ReportingStatus;
+      if (!response.ok) throw new Error(errorMessage(data, "Could not load Google Play reporting status."));
+      if (current) {
+        setReportingConnected(Boolean(data.connected));
+        setQualitySnapshot(data.snapshot ?? null);
+        setReportingError(data.lastError ?? "");
+      }
+      const lastSync = data.snapshot?.syncedAt ? Date.parse(data.snapshot.syncedAt) : 0;
+      const needsSync = Boolean(data.connected) && !data.lastError && (!Number.isFinite(lastSync) || Date.now() - lastSync >= 24 * 60 * 60 * 1000);
+      if (current && needsSync) {
+        setReportingBusy(true);
+        try {
+          const syncResponse = await fetch(`/api/products/${productId}/performance/reporting`, { method: "POST" });
+          const syncData = await syncResponse.json() as ReportingStatus & { rowCount?: number };
+          if (!syncResponse.ok) throw new Error(errorMessage(syncData, "Could not sync Google Play reporting."));
+          if (current) {
+            setQualitySnapshot(syncData.snapshot ?? null);
+            setReportingError("");
+            setReportingNotice(syncData.rowCount ? `Automatically refreshed ${syncData.rowCount} daily quality observations.` : "Google Play returned no quality observations for this date range.");
+          }
+        } catch (syncError) {
+          if (current) setReportingError(syncError instanceof Error ? syncError.message : "Could not sync Google Play reporting.");
+        } finally {
+          if (current) setReportingBusy(false);
+        }
+      }
+    }).catch((statusError: unknown) => {
+      if (current) setReportingError(statusError instanceof Error ? statusError.message : "Could not load Google Play reporting status.");
+    });
+    return () => { current = false; };
+  }, [productId]);
+
+  async function syncQualityMetrics() {
+    setReportingBusy(true); setReportingError(""); setReportingNotice("");
+    try {
+      const response = await fetch(`/api/products/${productId}/performance/reporting`, { method: "POST" });
+      const data = await response.json() as ReportingStatus & { rowCount?: number };
+      if (!response.ok) throw new Error(errorMessage(data, "Could not sync Google Play reporting."));
+      setQualitySnapshot(data.snapshot ?? null);
+      setReportingNotice(data.rowCount ? `Synced ${data.rowCount} daily quality observations from Google Play.` : "Google Play is connected, but no quality observations were available for this date range.");
+    } catch (syncError) {
+      setReportingError(syncError instanceof Error ? syncError.message : "Could not sync Google Play reporting.");
+    } finally { setReportingBusy(false); }
+  }
 
   const preview = useMemo<{ rows: PlayPerformanceRow[]; reportType: PlayPerformanceReportType | null; validationError: string }>(() => {
     if (!parsed) return { rows: [], reportType: null, validationError: "" };
@@ -158,8 +214,29 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
       <div><p className="eyebrow">Evidence from Play Console</p><h3 id={`performance-title-${productId}`}>Google Play performance</h3></div>
       <span>{imports.length} report{imports.length === 1 ? "" : "s"}</span>
     </div>
-    <p className="performance-intro">Import a Store listing performance CSV to keep this product’s click, locale, and acquisition observations beside its ASO work. The original CSV stays in your browser; mapped observations are saved to Sorted. When you generate an optimization plan, up to 30 rows from the latest report are included in the request to your configured AI provider.</p>
-    <div className="performance-source-note"><strong>Keep the metrics distinct.</strong> Current listing-performance exports can include unique install/open/pre-registration clicks and CTR. Older acquisition reports measure a different outcome; Sorted labels them separately and never converts installs into listing clicks.</div>
+    <p className="performance-intro">Sync supported app-quality signals directly from Google Play below. Listing clicks, CTR, and promotional-event performance are separate ASO evidence; until Sorted verifies a stable direct endpoint for those reports, import their Console export as a fallback. The original CSV stays in your browser; only mapped observations are saved. Up to 30 rows from the latest imported listing report are included in future optimization recommendations.</p>
+    <div className="performance-source-note"><strong>Keep the metrics distinct.</strong> Current listing-performance exports can include unique install/open/pre-registration clicks and CTR. Older acquisition reports measure a different outcome; Sorted labels them separately and never converts installs into listing clicks. Direct API quality signals are not listing-conversion metrics.</div>
+
+    <div className="performance-api-panel">
+      <div className="performance-api-heading">
+        <div><p className="eyebrow">Direct Google Play connection</p><strong>App quality signals</strong><span>Sync crash and ANR trends through Google Play Developer Reporting API.</span></div>
+        <button className="secondary-button" type="button" onClick={() => void syncQualityMetrics()} disabled={!reportingConnected || reportingBusy}>{reportingBusy ? "Syncing…" : qualitySnapshot ? "Sync now" : "Sync from Google Play"}</button>
+      </div>
+      {!reportingConnected && <p className="performance-empty">Connect Google Play for this product in Connections to enable direct reporting.</p>}
+      {reportingConnected && !qualitySnapshot && !reportingError && <p className="performance-empty">No API report has been synced yet.</p>}
+      {qualitySnapshot && <>
+        <div className="performance-quality-grid">
+          <QualityMetricCard rows={qualitySnapshot.rows} metric="crashRate28dUserWeighted" label="Crash rate · 28 days" />
+          <QualityMetricCard rows={qualitySnapshot.rows} metric="userPerceivedCrashRate28dUserWeighted" label="User-perceived crash · 28 days" />
+          <QualityMetricCard rows={qualitySnapshot.rows} metric="anrRate28dUserWeighted" label="ANR rate · 28 days" />
+          <QualityMetricCard rows={qualitySnapshot.rows} metric="userPerceivedAnrRate28dUserWeighted" label="User-perceived ANR · 28 days" />
+        </div>
+        <p className="performance-row-note">Google quality data through {qualitySnapshot.rows.at(-1)?.date ?? "no report date"} · synced {new Date(qualitySnapshot.syncedAt).toLocaleString()}. These stability signals are kept separate from listing clicks and CTR.</p>
+      </>}
+      {reportingError && <p className="performance-error" role="alert">{reportingError}</p>}
+      {reportingNotice && <p className="performance-notice" role="status">{reportingNotice}</p>}
+      <p className="performance-api-footnote">App-quality data refreshes automatically when this page is opened if the last sync is more than 24 hours old; use Sync now at any time. Direct API reporting here is kept separate from listing clicks/CTR and promotional-event performance, which remain available through the report-import fallback.</p>
+    </div>
 
     {imports.length > 0 && <div className="performance-saved-tools">
       <label>Saved report<select value={selectedId ?? ""} onChange={(event) => void selectImport(Number(event.target.value))} disabled={busy || loading}>
@@ -169,8 +246,8 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
     </div>}
 
     <div className="performance-upload-row">
-      <label className="performance-file-label">Choose a Play Console CSV<input type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
-      <span>CSV only · max 5 MB · up to 2,000 rows</span>
+      <label className="performance-file-label">Import a listing report CSV (fallback)<input type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
+      <span>Only needed for listing conversion reports · max 5 MB</span>
     </div>
 
     {error && <p className="performance-error" role="alert">{error}</p>}
@@ -202,6 +279,13 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
       {currentImport.reportType === "legacy-acquisition" && <p className="performance-row-note">This export does not contain listing click-through metrics, so it cannot answer which listing copy earned more unique Play Console clicks.</p>}
     </> : !parsed && <p className="performance-empty">No reports imported for this product yet. Choose a CSV to preview the fields and rows before saving.</p>}
   </section>;
+}
+
+function QualityMetricCard({ rows, metric, label }: { rows: QualitySnapshot["rows"]; metric: QualityMetric; label: string }) {
+  const latest = [...rows].reverse().find((row) => row[metric] !== null)?.[metric];
+  const numeric = latest === null || latest === undefined ? null : Number(latest);
+  const formatted = numeric !== null && Number.isFinite(numeric) ? `${(numeric * 100).toFixed(2)}%` : "—";
+  return <div className="performance-quality-card"><span>{label}</span><strong>{formatted}</strong></div>;
 }
 
 function PerformanceTableRow({ row, includeSearch = false }: { row: PlayPerformanceRow; includeSearch?: boolean }) {
