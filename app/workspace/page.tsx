@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { GooglePlayListingLocalization } from "../../components/GooglePlayListingLocalization";
+import { GooglePlayExperimentTracker } from "../../components/GooglePlayExperimentTracker";
 import { PromoCalendarGrid } from "../../components/PromoCalendarGrid";
 import { OPENCODE_MODELS } from "../../lib/opencode-models";
 import { canMarkPublishReady } from "../../lib/publish-readiness";
@@ -10,6 +11,7 @@ import { getOptimizationDraftIssues } from "../../lib/optimization-quality";
 import { getInitialProductIconUrl } from "../../lib/product-icon-url";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../lib/product-url";
 import type { LocalizedStoreListing } from "../../lib/google-play-localizations";
+import type { OptimizationExperiment } from "../../lib/aso-experiments";
 
 type Product = {
   id: number;
@@ -39,7 +41,7 @@ type CurrentListing = { platform?: string; title?: string; subtitle?: string; sh
 type ProductLinkPreview = { url: string; sourceType: "website" | "google-play" | "app-store"; sourceLabel: string; name: string; productType: string; iconUrl: string; available: boolean; message?: string; currentListing?: CurrentListing };
 type GooglePlayConnection = { id: number; provider: "google-play"; packageName: string; locale: string; label: string; credentialHint: string; status: "connected" | "testing" | "error"; lastTestedAt?: string | null; lastSyncedAt?: string | null; lastError?: string | null; createdAt?: string; updatedAt?: string };
 type GooglePlayOAuthConnection = { id: number; provider: "google-play"; packageName: string; locale: string; label: string; accountEmail: string; refreshTokenHint: string; status: "connected" | "error"; lastSyncedAt?: string | null; lastError?: string | null; createdAt?: string; updatedAt?: string };
-type OptimizationPlan = { productId: number; focus: string; storeTitle: string; storeSubtitle: string; storeShortDescription: string; storeLongDescription: string; answerSummary: string; currentListing: CurrentListing; localizedListings: LocalizedStoreListing[]; opportunities: OptimizationOpportunity[]; nextActions: OptimizationAction[]; updatedAt?: string };
+type OptimizationPlan = { productId: number; focus: string; storeTitle: string; storeSubtitle: string; storeShortDescription: string; storeLongDescription: string; answerSummary: string; currentListing: CurrentListing; localizedListings: LocalizedStoreListing[]; opportunities: OptimizationOpportunity[]; experiments: OptimizationExperiment[]; nextActions: OptimizationAction[]; updatedAt?: string };
 type CreateVariant = { label: string; platform: string; title: string; subtitle: string; description: string; status: "draft" | "needs-edit" | "approved" };
 type AnswerBlock = { question: string; answer: string; status: "draft" | "needs-edit" | "approved" };
 type PromoBrief = { theme: string; hook: string; body: string; cta: string; channels: string[] };
@@ -91,7 +93,7 @@ const promoStages: Array<{ id: PromoStageKey; label: string }> = [
 
 const blankProduct = { name: "", type: "Mobile app", url: "", position: "", audience: "" };
 const blankResearch: ResearchBrief = { productId: 0, intent: "", semanticCore: "", competitors: "", proof: "", notes: "" };
-const blankOptimization: OptimizationPlan = { productId: 0, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", answerSummary: "", currentListing: {}, localizedListings: [], opportunities: [], nextActions: [] };
+const blankOptimization: OptimizationPlan = { productId: 0, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", answerSummary: "", currentListing: {}, localizedListings: [], opportunities: [], experiments: [], nextActions: [] };
 const blankCreate: CreateBrief = { productId: 0, status: "draft", primaryMessage: "", storeVariants: [], answerBlocks: [], promoBrief: { theme: "", hook: "", body: "", cta: "", channels: [] }, creativeBrief: { concept: "", visualDirection: "", frames: [], proofToShow: [] } };
 const blankPublish: PublishPlan = { productId: 0, status: "draft", channels: [{ name: "Google Play", status: "draft", note: "", lastExportedAt: "" }, { name: "App Store", status: "draft", note: "", lastExportedAt: "" }, { name: "Website / AEO", status: "draft", note: "", lastExportedAt: "" }], checklist: [{ label: "Review the research foundation", area: "Research", done: false }, { label: "Confirm store copy and character limits", area: "Optimize", done: false }, { label: "Approve copy, answers, and creative direction", area: "Create", done: false }, { label: "Export the channel packet", area: "Publish", done: false }], releaseNotes: "" };
 const blankPromoEvent: PromoEvent = { productId: 0, title: "", eventType: "feature", status: "planned", startDate: "", endDate: "", theme: "", objective: "", eventBrief: { idea: "", whatNew: "", userValue: "", participation: "", requirements: "", rewards: "", content: "", missions: "", bonuses: "", notes: "" }, googlePlay: { options: [{ tagline: "", description: "" }, { tagline: "", description: "" }, { tagline: "", description: "" }], selectedOption: 0, tagline: "", description: "" }, appleEvent: { name: "", subtitle: "", description: "" }, siteEntry: { headline: "", slug: "", excerpt: "", body: "", keywords: [], cta: "" }, localization: [{ locale: "en", tagline: "", description: "", status: "draft" }, { locale: "ar", tagline: "", description: "", status: "draft" }], creative: { concept: "", prompt: "", dimensions: "", safeAreas: "", proofToShow: [] } };
@@ -1309,7 +1311,7 @@ function ProductWorkspace({ product, report, loading, onNavigate, onRetry }: { p
   </section>;
 }
 
-function OptimizeView({ product, optimization, loading, saving, generating, onChange, onSave, onSaveAndContinue, onGenerate, onBack }: { product: Product; optimization: OptimizationPlan; loading: boolean; saving: boolean; generating: boolean; onChange: (next: OptimizationPlan) => void; onSave: (event: FormEvent<HTMLFormElement>) => void; onSaveAndContinue: () => void; onGenerate: () => void; onBack: () => void }) {
+function OptimizeView({ product, optimization, loading, saving, generating, onChange, onSave, onSaveAndContinue, onGenerate, onBack }: { product: Product; optimization: OptimizationPlan; loading: boolean; saving: boolean; generating: boolean; onChange: (next: OptimizationPlan) => void; onSave: (event?: FormEvent<HTMLFormElement>) => void; onSaveAndContinue: () => void; onGenerate: () => void; onBack: () => void }) {
   const issues = getOptimizationDraftIssues({ ...optimization, currentListing: optimization.currentListing });
   const issueFor = (field: "title" | "shortDescription" | "fullDescription" | "answerSummary") => issues.filter((issue) => issue.field === field).map((issue) => issue.message).join(" ");
   const checks: ValidationCheck[] = [
@@ -1318,7 +1320,7 @@ function OptimizeView({ product, optimization, loading, saving, generating, onCh
     { label: "Google Play full description", detail: issueFor("fullDescription") || `${optimization.storeLongDescription.length}/4,000 characters · complete draft`, valid: !issueFor("fullDescription") },
     { label: "AEO answer summary", detail: issueFor("answerSummary") || "Factual product copy is present", valid: !issueFor("answerSummary") },
   ];
-  return <><ValidationSummary checks={checks} title="Copy validation" /><p className="workflow-action-help">Only title, short description, and full description are Google Play listing fields here. The optional hook is internal to Sorted. Passing checks is not Google approval; review every claim before handoff.</p><OptimizeTabsView product={product} optimization={optimization} loading={loading} saving={saving} generating={generating} onChange={onChange} onSave={onSave} onSaveAndContinue={onSaveAndContinue} canContinue={checks.every((check) => check.valid)} onGenerate={onGenerate} onBack={onBack} /><GooglePlayListingLocalization productId={product.id} productName={product.name} optimization={optimization} onChange={onChange} /></>;
+  return <><ValidationSummary checks={checks} title="Copy validation" /><p className="workflow-action-help">Only title, short description, and full description are Google Play listing fields here. The optional hook is internal to Sorted. Passing checks is not Google approval; review every claim before handoff.</p><OptimizeTabsView product={product} optimization={optimization} loading={loading} saving={saving} generating={generating} onChange={onChange} onSave={onSave} onSaveAndContinue={onSaveAndContinue} canContinue={checks.every((check) => check.valid)} onGenerate={onGenerate} onBack={onBack} /><GooglePlayListingLocalization productId={product.id} productName={product.name} optimization={optimization} onChange={onChange} /><GooglePlayExperimentTracker opportunities={optimization.opportunities.filter((item) => !item.area.toLowerCase().includes("aeo"))} experiments={optimization.experiments ?? []} onChange={(experiments) => onChange({ ...optimization, experiments })} onSave={() => onSave()} saving={saving} /></>;
   function updateOpportunity(index: number, next: Partial<OptimizationOpportunity>) {
     onChange({ ...optimization, opportunities: optimization.opportunities.map((item, itemIndex) => itemIndex === index ? { ...item, ...next } : item) });
   }

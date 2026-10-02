@@ -7,6 +7,7 @@ import { getOpenCodeModel } from "../../../../../../lib/opencode-models";
 import { getGenerationModels, getOpenCodeRuntime } from "../../../../../../lib/ai-runtime";
 import { parseLocalizedStoreListings } from "../../../../../../lib/google-play-localizations";
 import { getOptimizationDraftIssues } from "../../../../../../lib/optimization-quality";
+import { parseOptimizationStorage, stringifyOptimizationStorage } from "../../../../../../lib/aso-experiments";
 
 function parsePlanJson(raw: string) {
   const candidate = raw.match(/\{[\s\S]*\}/)?.[0] ?? raw;
@@ -53,6 +54,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     if (!research?.semanticCore) return Response.json({ error: "Complete the research foundation before building optimization recommendations." }, { status: 400 });
     const [existingPlan] = await db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1);
     const currentListing = parseObject(existingPlan?.currentListing);
+    const savedExperiments = parseOptimizationStorage(existingPlan?.opportunities).experiments;
     const runtime = await getOpenCodeRuntime();
     const apiKey = runtime.apiKey;
     if (!apiKey) return Response.json({ error: "OpenCode is not connected yet. Add an OpenCode API key to Sorted before generating an optimization plan." }, { status: 503 });
@@ -113,14 +115,14 @@ Notes: ${research.notes || "not provided"}`;
       storeShortDescription: generated.storeShortDescription,
       storeLongDescription: generated.storeLongDescription,
       answerSummary: generated.answerSummary,
-      opportunities: JSON.stringify(generated.opportunities),
+      opportunities: stringifyOptimizationStorage(generated.opportunities, savedExperiments),
       nextActions: JSON.stringify(generated.nextActions),
       updatedAt: new Date().toISOString(),
     };
     const [optimization] = existing
       ? await db.update(optimizationPlans).set(values).where(eq(optimizationPlans.id, existing.id)).returning()
       : await db.insert(optimizationPlans).values({ productId, ownerId, ...values }).returning();
-    return Response.json({ optimization: { ...optimization, currentListing: parseObject(optimization.currentListing), localizedListings: parseLocalizedStoreListings(optimization.localizedListings), opportunities: generated.opportunities, nextActions: generated.nextActions }, model: usedModel, fallbacksUsed: generation.failures.length });
+    return Response.json({ optimization: { ...optimization, currentListing: parseObject(optimization.currentListing), localizedListings: parseLocalizedStoreListings(optimization.localizedListings), opportunities: generated.opportunities, experiments: savedExperiments, nextActions: generated.nextActions }, model: usedModel, fallbacksUsed: generation.failures.length });
   } catch (error) {
     console.error("optimization generation failed", error);
     return Response.json({ error: "The optimization request failed. Check the product research and OpenCode configuration." }, { status: 500 });
