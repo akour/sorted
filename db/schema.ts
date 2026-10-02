@@ -115,6 +115,47 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("optimization_plans_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Google Play report imports are kept per product and contain normalized
+// observations only; the original CSV is never stored.
+export const googlePlayPerformanceImports = sqliteTable("google_play_performance_imports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  reportType: text("report_type").notNull(),
+  fileName: text("file_name").notNull().default(""),
+  rowCount: integer("row_count").notNull(),
+  dateStart: text("date_start").notNull().default(""),
+  dateEnd: text("date_end").notNull().default(""),
+  fingerprint: text("fingerprint").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("google_play_performance_import_fingerprint_idx").on(table.productId, table.ownerId, table.fingerprint),
+  index("google_play_performance_import_product_owner_idx").on(table.productId, table.ownerId, table.createdAt),
+]);
+
+export const googlePlayPerformanceRows = sqliteTable("google_play_performance_rows", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  importId: integer("import_id").notNull(),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  sourceRow: integer("source_row").notNull(),
+  date: text("date").notNull().default(""),
+  locale: text("locale").notNull().default(""),
+  country: text("country").notNull().default(""),
+  searchTerm: text("search_term").notNull().default(""),
+  trafficSource: text("traffic_source").notNull().default(""),
+  visitors: integer("visitors"),
+  installClicks: integer("install_clicks"),
+  openClicks: integer("open_clicks"),
+  preRegistrationClicks: integer("pre_registration_clicks"),
+  ctr: text("ctr").notNull().default(""),
+  conversionRate: text("conversion_rate").notNull().default(""),
+  acquisitions: integer("acquisitions"),
+}, (table) => [
+  index("google_play_performance_rows_import_idx").on(table.importId, table.ownerId, table.productId),
+  index("google_play_performance_rows_product_date_idx").on(table.productId, table.ownerId, table.date),
+]);
+
 export const createBriefs = sqliteTable("create_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),
