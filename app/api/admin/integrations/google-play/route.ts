@@ -6,7 +6,7 @@ import { isAdminResponse, requireAdmin, writeAdminAudit } from "../../../../../l
 
 const PROVIDER_ID = "google-play";
 const LABEL = "Google Play OAuth";
-const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/androidpublisher"];
+const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/androidpublisher", "https://www.googleapis.com/auth/playdeveloperreporting"];
 
 function redirectUri(request: Request) {
   return new URL("/api/connections/google-play/callback", request.url).toString();

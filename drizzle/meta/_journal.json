@@ -85,6 +85,13 @@
       "when": 1790928000000,
       "tag": "0020_google_play_performance",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1791014400000,
+      "tag": "0021_google_play_reporting",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,8 @@ import type { ProductListing } from "./product-icons";
 const GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_OAUTH_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
-const GOOGLE_PLAY_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+export const GOOGLE_PLAY_PUBLISHING_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+export const GOOGLE_PLAY_REPORTING_SCOPE = "https://www.googleapis.com/auth/playdeveloperreporting";
 const GOOGLE_PLAY_API_ROOT = "https://androidpublisher.googleapis.com/androidpublisher/v3";
 
 export type GooglePlayOAuthTokens = {
@@ -31,7 +32,7 @@ export function buildGooglePlayAuthorizationUrl(input: { clientId: string; redir
     client_id: input.clientId,
     redirect_uri: input.redirectUri,
     response_type: "code",
-    scope: `openid email ${GOOGLE_PLAY_SCOPE}`,
+    scope: `openid email ${GOOGLE_PLAY_PUBLISHING_SCOPE} ${GOOGLE_PLAY_REPORTING_SCOPE}`,
     access_type: "offline",
     prompt: "consent",
     include_granted_scopes: "true",

@@ -742,6 +742,18 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .performance-intro, .performance-empty, .performance-row-note, .performance-mapping-help, .performance-unmapped { margin:0; color:#777181; font-size:11px; line-height:1.6; }
 .performance-source-note { padding:12px 14px; border:1px solid #eae5f3; border-radius:10px; background:#faf9fc; color:#777181; font-size:10px; line-height:1.6; }
 .performance-source-note strong { color:#514b59; }
+.performance-api-panel { display:flex; flex-direction:column; gap:12px; padding:14px; border:1px solid #ded8ef; border-radius:12px; background:linear-gradient(135deg,#faf9ff,#fff); }
+.performance-api-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.performance-api-heading > div { display:flex; flex-direction:column; gap:4px; }
+.performance-api-heading .eyebrow { margin:0; }
+.performance-api-heading strong { color:#484251; font-size:12px; }
+.performance-api-heading span, .performance-api-footnote { color:#777181; font-size:10px; line-height:1.55; }
+.performance-api-heading button { flex-shrink:0; }
+.performance-quality-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.performance-quality-card { display:flex; flex-direction:column; gap:8px; padding:11px; border:1px solid #eeeaf4; border-radius:9px; background:#fff; }
+.performance-quality-card span { color:#777181; font-size:9px; line-height:1.4; }
+.performance-quality-card strong { color:#3f3947; font-size:16px; font-weight:700; }
+.performance-api-footnote { margin:0; font-size:9px; }
 .performance-saved-tools, .performance-upload-row, .performance-preview-heading, .performance-report-summary, .performance-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .performance-saved-tools label { display:block; flex:1; max-width:620px; margin:0 !important; color:#514b59; font-size:10px; font-weight:700; }
 .performance-saved-tools select, .performance-mapping-grid select { display:block; width:100%; margin-top:6px; padding:9px 10px; border:1px solid #e3dfe8; border-radius:9px; background:#fff; color:#3c3644; font-size:10px; font-weight:400; }
@@ -783,6 +795,8 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 @media (max-width: 640px) {
   .experiment-create-row, .experiment-save-row { align-items:stretch; flex-direction:column; }
   .experiment-field-grid { grid-template-columns:1fr; gap:0; }
+  .performance-api-heading { align-items:stretch; flex-direction:column; }
+  .performance-quality-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .performance-saved-tools, .performance-upload-row, .performance-preview-heading, .performance-report-summary, .performance-actions { align-items:stretch; flex-direction:column; }
   .performance-preview-heading > span { max-width:none; text-align:left; }
   .performance-mapping-grid { grid-template-columns:1fr; }
