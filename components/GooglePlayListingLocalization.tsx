@@ -8,6 +8,7 @@ import {
   validateGooglePlayListingText,
   type LocalizedStoreListing,
 } from "../lib/google-play-localizations";
+import type { OptimizationExperiment } from "../lib/aso-experiments";
 
 type OptimizationDraft = {
   productId: number;
@@ -19,6 +20,7 @@ type OptimizationDraft = {
   answerSummary: string;
   currentListing: { platform?: string; title?: string; subtitle?: string; shortDescription?: string; longDescription?: string; sourceUrl?: string; fetchedAt?: string; category?: string; developer?: string; iconUrl?: string; bundleId?: string; storeId?: string };
   opportunities: Array<{ title: string; area: string; impact: string; effort: string; rationale: string; status: "open" | "done" }>;
+  experiments: OptimizationExperiment[];
   nextActions: Array<{ title: string; area: string; status: "open" | "done" }>;
   localizedListings: LocalizedStoreListing[];
   updatedAt?: string;

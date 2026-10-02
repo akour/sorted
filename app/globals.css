@@ -712,3 +712,32 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
   .play-console-actions { width:100%; flex-direction:column; }
   .play-console-actions > * { justify-content:center; }
 }
+
+.google-play-experiments { margin-top:18px; }
+.experiment-disclaimer, .experiment-empty { margin:-7px 0 18px; color:#777181; font-size:11px; line-height:1.6; }
+.experiment-create-row { display:flex; align-items:flex-end; gap:12px; padding:15px; border:1px solid #eeeaf4; border-radius:12px; background:#faf9fc; }
+.experiment-create-row label { display:block; flex:1; margin:0 !important; color:#514b59; font-size:11px; font-weight:700; }
+.experiment-create-row select, .experiment-fields input, .experiment-fields select, .experiment-fields textarea { display:block; width:100%; margin-top:7px; padding:10px 11px; border:1px solid #e3dfe8; border-radius:9px; background:#fff; color:#3c3644; font-size:11px; font-weight:400; line-height:1.45; }
+.experiment-create-row select:focus, .experiment-fields input:focus, .experiment-fields select:focus, .experiment-fields textarea:focus { border-color:#a89adf; outline:0; box-shadow:0 0 0 3px #eeeafd; }
+.experiment-list { display:flex; flex-direction:column; gap:9px; margin-top:14px; }
+.experiment-entry { border:1px solid #eeeaf4; border-radius:12px; background:#fff; }
+.experiment-entry > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px; color:#484251; cursor:pointer; list-style:none; }
+.experiment-entry > summary::-webkit-details-marker { display:none; }
+.experiment-entry > summary::after { content:"＋"; color:var(--violet); font-size:16px; }
+.experiment-entry[open] > summary::after { content:"−"; }
+.experiment-entry > summary strong, .experiment-entry > summary small { display:block; }
+.experiment-entry > summary strong { font-size:11px; line-height:1.4; }
+.experiment-entry > summary small { margin-top:4px; color:#898391; font-size:9px; }
+.experiment-fields { display:flex; flex-direction:column; gap:12px; padding:0 14px 14px; border-top:1px solid #f0edf2; }
+.experiment-fields label { display:block; margin:11px 0 0 !important; color:#514b59; font-size:10px; font-weight:700; }
+.experiment-fields textarea { min-height:58px; resize:vertical; }
+.experiment-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.experiment-guidance { margin:0; color:#898391; font-size:10px; line-height:1.55; }
+.experiment-remove-button { align-self:flex-start; padding:0; border:0; background:transparent; color:#a75050; font-size:10px; font-weight:700; }
+.experiment-remove-button:hover { text-decoration:underline; }
+.experiment-save-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid #f0edf2; }
+.experiment-save-row span { color:#898391; font-size:10px; line-height:1.5; }
+@media (max-width: 640px) {
+  .experiment-create-row, .experiment-save-row { align-items:stretch; flex-direction:column; }
+  .experiment-field-grid { grid-template-columns:1fr; gap:0; }
+}
