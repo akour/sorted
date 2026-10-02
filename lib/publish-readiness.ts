@@ -1,9 +1,13 @@
+import { getOptimizationDraftIssues } from "./optimization-quality";
+
 type ResearchFields = { intent?: string | null; semanticCore?: string | null } | null | undefined;
 type OptimizationFields = {
   storeTitle?: string | null;
   storeSubtitle?: string | null;
   storeShortDescription?: string | null;
+  storeLongDescription?: string | null;
   answerSummary?: string | null;
+  currentListing?: unknown;
 } | null | undefined;
 type CreateFields = {
   status?: string | null;
@@ -55,17 +59,9 @@ export function getPublishReadiness({ research, optimization, create }: {
   optimization?: OptimizationFields;
   create?: CreateFields;
 }): PublishReadiness {
-  const title = optimization?.storeTitle?.trim() ?? "";
-  const subtitle = optimization?.storeSubtitle?.trim() ?? "";
-  const shortDescription = optimization?.storeShortDescription?.trim() ?? "";
-  const answerSummary = optimization?.answerSummary?.trim() ?? "";
-
   return {
     research: Boolean(research?.intent?.trim() && research.semanticCore?.trim()),
-    optimize: Boolean(title && subtitle && shortDescription && answerSummary)
-      && title.length <= 30
-      && subtitle.length <= 30
-      && shortDescription.length <= 80,
+    optimize: Boolean(optimization && getOptimizationDraftIssues(optimization).length === 0),
     create: create?.status === "approved" && hasCreateBriefContent(create),
   };
 }

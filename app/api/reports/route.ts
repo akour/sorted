@@ -2,6 +2,7 @@ import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { createBriefs, optimizationPlans, products, promoEvents, publishPlans, researchBriefs } from "../../../db/schema";
+import { getOptimizationDraftIssues } from "../../../lib/optimization-quality";
 import { canMarkPublishReady, getPublishReadiness, hasCreateBriefContent } from "../../../lib/publish-readiness";
 
 type StageStatus = "not-started" | "draft" | "needs-review" | "ready";
@@ -75,18 +76,22 @@ function buildWorkflow(
       ? "Intent and semantic core are saved for optimization. Verify evidence before using product claims."
       : "Save the core research fields before building optimization copy.";
 
-  const optimizationFields = [optimization?.storeTitle, optimization?.storeSubtitle, optimization?.storeShortDescription, optimization?.answerSummary];
-  const optimizationHasContent = Boolean(optimization && [optimization.storeTitle, optimization.storeSubtitle, optimization.storeShortDescription, optimization.storeLongDescription, optimization.answerSummary].some((value) => value.trim()));
+  const optimizationFields = [optimization?.storeTitle, optimization?.storeShortDescription, optimization?.storeLongDescription, optimization?.answerSummary];
+  const optimizationHasContent = Boolean(optimization && optimizationFields.some((value) => value?.trim()));
   const optimizationComplete = optimizationFields.every((value) => Boolean(value?.trim()));
-  const optimizationLimitsValid = Boolean(optimization)
-    && optimization!.storeTitle.trim().length <= 30
-    && optimization!.storeSubtitle.trim().length <= 30
-    && optimization!.storeShortDescription.trim().length <= 80;
+  const optimizationIssues = optimization ? getOptimizationDraftIssues({
+    storeTitle: optimization.storeTitle,
+    storeSubtitle: optimization.storeSubtitle,
+    storeShortDescription: optimization.storeShortDescription,
+    storeLongDescription: optimization.storeLongDescription,
+    answerSummary: optimization.answerSummary,
+    currentListing: optimization.currentListing,
+  }) : [];
   const optimizationStatus: StageStatus = !optimizationHasContent
     ? "not-started"
     : !optimizationComplete
       ? "draft"
-      : optimizationLimitsValid
+      : optimizationIssues.length === 0
         ? "ready"
         : "needs-review";
   const optimizationDetail = optimizationStatus === "not-started"
@@ -94,8 +99,8 @@ function buildWorkflow(
     : optimizationStatus === "draft"
       ? "Required store or answer fields are still missing."
       : optimizationStatus === "needs-review"
-        ? "Review character limits before using this copy downstream."
-        : "Required store and answer copy is saved and passes length checks.";
+        ? optimizationIssues[0]?.message ?? "Review the store and answer copy before using it downstream."
+        : "The Google Play listing fields pass content checks and are ready for human review.";
 
   const createHasContent = hasCreateBriefContent(create);
   const createStatus: StageStatus = !createHasContent
