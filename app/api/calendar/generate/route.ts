@@ -5,6 +5,7 @@ import { createBriefs, optimizationPlans, products, promoEvents, researchBriefs 
 import { openCodeWorkspaceRestrictionMessage, requestOpenCode, safeOpenCodeFailureDetails } from "../../../../lib/opencode-client";
 import { getOpenCodeModel, getOpenCodeTransport } from "../../../../lib/opencode-models";
 import { getGenerationModels, getOpenCodeRuntime } from "../../../../lib/ai-runtime";
+import { selectedPromoCopy } from "../../../../lib/promo-review";
 import { serializeEvent } from "../route";
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -223,7 +224,7 @@ export async function POST(request: Request) {
       if (!existingEvent) return Response.json({ error: "Promo event not found." }, { status: 404 });
       if (existingEvent.productId !== productId) return Response.json({ error: "This event belongs to a different product." }, { status: 400 });
     }
-    if (stage === "channel" && !existingEvent) return Response.json({ error: "Generate and save the event strategy before building channel drafts." }, { status: 409 });
+    if (stage === "channel" && !existingEvent) return Response.json({ error: "Save the event details before building channel drafts." }, { status: 409 });
     const [research] = await db.select().from(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId))).limit(1);
     const eventIdea = requestedIdea || requestedTitle || existingEvent?.title?.trim() || "";
     if (!eventIdea) return Response.json({ error: "Enter an event name before generating with AI." }, { status: 400 });
@@ -281,7 +282,7 @@ export async function POST(request: Request) {
     if (stage === "strategy") {
       const strategyPrompt = [
         "Build only the event strategy. Do not write Google Play, Apple, SEO, localization, or creative copy yet.",
-        "The event request is an idea, not proof that a feature, reward, or mechanic exists. Use confirmed product facts; label unsupported mechanics as proposals to confirm.",
+        "The event request is an idea, not proof that a feature, reward, or mechanic exists. Use confirmed product facts; leave unsupported mechanics empty and put specific questions in eventBrief.notes. Never invent rewards, features or participation rules.",
         "Return JSON only with exactly these keys: title, eventType, theme, objective, eventBrief.",
         "eventBrief must contain idea, whatNew, userValue, participation, requirements, rewards, content, missions, bonuses, notes. Keep every value concise and reviewable.",
         eventContext,
@@ -301,7 +302,7 @@ export async function POST(request: Request) {
         baseUrl: runtime.baseUrl,
         transport: runtime.transport,
         sessionId: "sorted-calendar-strategy-" + productId,
-        system: "You are a careful live-ops strategist. Return valid JSON only. Do not explain your reasoning.",
+        system: "You are a careful live-ops editor. Use only confirmed input facts. Never invent mechanics or rewards. Leave unknown fields empty and list missing facts as questions in notes. Preserve the user’s event identity. Return valid JSON only.",
         prompt: strategyPrompt,
         retryPrompt: strategyRetryPrompt,
         deadline: Date.now() + 60_000,
@@ -324,8 +325,8 @@ export async function POST(request: Request) {
       const values = {
         productId,
         ownerId,
-        title: strategy.title || requestedTitle || eventIdea || "Untitled promo event",
-        eventType: strategy.eventType || payload.eventType || existingEvent?.eventType || "feature",
+        title: requestedTitle || existingEvent?.title || strategy.title || eventIdea || "Untitled promo event",
+        eventType: payload.eventType || existingEvent?.eventType || strategy.eventType || "feature",
         status: payload.status || existingEvent?.status || "planned",
         startDate,
         endDate,
@@ -347,11 +348,10 @@ export async function POST(request: Request) {
     }
 
     const existingBrief = parseJson<Record<string, unknown>>(existingEvent?.eventBrief, {});
-    if (!existingEvent || !Object.values(existingBrief).some(hasText)) return Response.json({ error: "Generate and save the event strategy before building channel drafts." }, { status: 409 });
-    if (channel === "localization" && locale === "ar") {
-      const localizations = parseJson<unknown[]>(existingEvent.localization, []);
-      const english = localizations.map(asObject).find((item) => item.locale === "en");
-      if (!english || !hasText(english.tagline) || !hasText(english.description)) return Response.json({ error: "Generate and save the English localization before Arabic." }, { status: 409 });
+    if (!existingEvent || !hasText(existingBrief.whatNew)) return Response.json({ error: "Describe what is happening in the event, then save it before generating copy." }, { status: 409 });
+    const englishSource = selectedPromoCopy({ googlePlay: parseJson(existingEvent.googlePlay, {}) });
+    if (channel === "localization" && locale === "ar" && (!hasText(englishSource.tagline) || !hasText(englishSource.description))) {
+      return Response.json({ error: "Choose a Google Play English option before translating." }, { status: 409 });
     }
     strategy = { title: existingEvent.title, eventType: existingEvent.eventType, theme: existingEvent.theme, objective: existingEvent.objective, eventBrief: existingBrief };
 
@@ -366,11 +366,11 @@ export async function POST(request: Request) {
     };
     const channelInstruction = channelInstructions[channel];
     const localizationContext = channel === "localization" && locale === "ar"
-      ? "Saved English source: " + compact(parseJson<unknown[]>(existingEvent.localization, []).map(asObject).find((item) => item.locale === "en"), 1200)
+      ? "Selected Google Play English source: " + compact(englishSource, 1600)
       : "";
     const packagePrompt = [
       "Use the saved event strategy as the source of truth. Generate one independent channel draft only; leave every other channel untouched.",
-      "Do not invent product features, rewards, results, or confirmed event mechanics. Treat strategy items marked as proposals as proposals.",
+      "Do not invent product features, rewards, results, or confirmed event mechanics. Omit any unconfirmed or proposed mechanics entirely from customer-facing copy. Notes and proposals are not confirmed facts.",
       "Return JSON only with exactly one top-level key: " + channel + ".",
       channelInstruction,
       "Saved event strategy: " + compact(strategy, 6500),
@@ -391,7 +391,7 @@ export async function POST(request: Request) {
       baseUrl: runtime.baseUrl,
       transport: runtime.transport,
       sessionId: `sorted-calendar-${channel}-${locale}-${productId}`,
-      system: "You are a careful organic marketing production strategist. Return valid JSON only. Do not explain your reasoning or invent unsupported facts.",
+      system: "You are a careful organic marketing editor. Use only confirmed facts. Never include proposals, unanswered questions or unverified rewards in customer-facing copy. Return valid JSON only.",
       prompt: packagePrompt,
       retryPrompt: packageRetryPrompt,
       deadline: Date.now() + 60_000,
@@ -446,7 +446,7 @@ export async function POST(request: Request) {
       const generatedLocale = asArray(packageResult.value.localization).map(asObject).find((item) => item.locale === locale);
       if (!generatedLocale) return Response.json({ error: "The localization model returned no matching language draft." }, { status: 502 });
       const currentLocales = parseJson<unknown[]>(existingEvent.localization, []).map(asObject);
-      const localized = [...currentLocales.filter((item) => item.locale !== locale), { ...generatedLocale, locale, status: "draft" }];
+      const localized = [...currentLocales.filter((item) => item.locale !== locale), { ...generatedLocale, locale, status: "draft", sourceTagline: englishSource.tagline, sourceDescription: englishSource.description }];
       const localeOrder = (value: unknown) => value === "en" ? 0 : value === "ar" ? 1 : 2;
       localized.sort((left, right) => localeOrder(left.locale) - localeOrder(right.locale));
       updateValues.localization = JSON.stringify(localized);

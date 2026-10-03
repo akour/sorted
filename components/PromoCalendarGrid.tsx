@@ -259,6 +259,7 @@ export function PromoCalendarGrid({
       <span className="promo-calendar-event-copy">
         <strong className="promo-calendar-event-title">{item.title || "Untitled event"}</strong>
         <small className="promo-calendar-event-meta">{productName || "Choose a product"} · {dateRange}</small>
+        <small className="promo-calendar-preparation">{item.eventType} · {item.status === "ready" ? "Prepared" : item.status === "live" ? "Live · manual" : item.status === "in-progress" ? "In progress" : "Planned"}</small>
       </span>
       {!segment.continuesAfter && !item.isExample && <button
         className="promo-calendar-resize-handle"
@@ -280,7 +281,7 @@ export function PromoCalendarGrid({
       className="promo-calendar-week-row"
       role="row"
       key={rowDays[0].key}
-      style={{ gridTemplateRows: "31px repeat(" + laneCount + ", 22px) minmax(42px, 1fr)" }}
+      style={{ gridTemplateRows: "31px repeat(" + laneCount + ", 42px) minmax(32px, 1fr)" }}
       onDragOver={(event) => handleGridDragOver(event, rowDays)}
       onDragLeave={() => setHoveredDate(null)}
       onDrop={(event) => handleGridDrop(event, rowDays)}
