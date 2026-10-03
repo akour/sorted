@@ -76,7 +76,7 @@ function buildWorkflow(
       ? "Intent and semantic core are saved for optimization. Verify evidence before using product claims."
       : "Save the core research fields before building optimization copy.";
 
-  const optimizationFields = [optimization?.storeTitle, optimization?.storeShortDescription, optimization?.storeLongDescription, optimization?.answerSummary];
+  const optimizationFields = [optimization?.storeTitle, optimization?.storeShortDescription, optimization?.storeLongDescription];
   const optimizationHasContent = Boolean(optimization && optimizationFields.some((value) => value?.trim()));
   const optimizationComplete = optimizationFields.every((value) => Boolean(value?.trim()));
   const optimizationIssues = optimization ? getOptimizationDraftIssues({
@@ -95,9 +95,9 @@ function buildWorkflow(
         ? "ready"
         : "needs-review";
   const optimizationDetail = optimizationStatus === "not-started"
-    ? "Use the research foundation to draft store and answer copy."
+    ? "Add a Google Play listing draft when you are ready to edit it."
     : optimizationStatus === "draft"
-      ? "Required store or answer fields are still missing."
+      ? "Some Google Play listing fields are still missing."
       : optimizationStatus === "needs-review"
         ? optimizationIssues[0]?.message ?? "Review the store and answer copy before using it downstream."
         : "The Google Play listing fields pass content checks and are ready for human review.";

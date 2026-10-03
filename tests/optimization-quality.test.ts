@@ -14,14 +14,14 @@ test("a complete, substantive optimization draft passes its content checks", () 
   assert.deepEqual(getOptimizationDraftIssues(baseDraft), []);
 });
 
-test("a full description that only repeats the short hook is blocked", () => {
+test("Google Play accepts any non-empty full description within its field limit", () => {
   const issues = getOptimizationDraftIssues({ ...baseDraft, storeLongDescription: baseDraft.storeShortDescription });
-  assert.ok(issues.some((issue) => issue.field === "fullDescription" && issue.message.includes("only the short description")));
+  assert.deepEqual(issues, []);
 });
 
-test("an unchanged full description cannot be marked as a new optimization", () => {
+test("an unchanged full description does not block a title or short-description update", () => {
   const issues = getOptimizationDraftIssues({ ...baseDraft, currentListing: { longDescription: baseDraft.storeLongDescription } });
-  assert.ok(issues.some((issue) => issue.field === "fullDescription" && issue.message.includes("unchanged from the current listing")));
+  assert.deepEqual(issues, []);
 });
 
 test("a manual starter placeholder and internal verification notes are not accepted as final copy", () => {
@@ -29,14 +29,14 @@ test("a manual starter placeholder and internal verification notes are not accep
     ...baseDraft,
     storeTitle: "Clarify the product promise",
     answerSummary: "Void Stack is a game. Verify every store claim before publishing.",
-  });
+  }, { requireAnswerSummary: true });
   assert.ok(issues.some((issue) => issue.field === "title" && issue.message.includes("placeholder")));
   assert.ok(issues.some((issue) => issue.field === "answerSummary" && issue.message.includes("verification reminder")));
 });
 
-test("full descriptions must fit Play's limit and include enough product detail", () => {
+test("full descriptions need only meet Play's actual maximum length", () => {
   const shortIssues = getOptimizationDraftIssues({ ...baseDraft, storeLongDescription: "Only a short hook." });
-  assert.ok(shortIssues.some((issue) => issue.field === "fullDescription" && issue.message.includes("too short")));
+  assert.deepEqual(shortIssues, []);
 
   const longIssues = getOptimizationDraftIssues({ ...baseDraft, storeLongDescription: "A".repeat(4_001) });
   assert.ok(longIssues.some((issue) => issue.field === "fullDescription" && issue.message.includes("4,000-character limit")));

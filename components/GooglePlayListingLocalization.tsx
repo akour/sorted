@@ -10,7 +10,7 @@ import {
 } from "../lib/google-play-localizations";
 import type { OptimizationExperiment } from "../lib/aso-experiments";
 
-type OptimizationDraft = {
+export type OptimizationDraft = {
   productId: number;
   focus: string;
   storeTitle: string;
@@ -31,12 +31,20 @@ export function GooglePlayListingLocalization({
   productName,
   optimization,
   onChange,
+  mode = "translations",
+  onReview,
+  onBusyChange,
 }: {
   productId: number;
   productName: string;
   optimization: OptimizationDraft;
   onChange: (next: OptimizationDraft) => void;
+  mode?: "translations" | "review";
+  onReview?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
+  const [expandedLocale, setExpandedLocale] = useState<string>("");
+  const [receipt, setReceipt] = useState<{ locales: string[]; at: string } | null>(null);
   const [generatingLocale, setGeneratingLocale] = useState("");
   const [bulkProgress, setBulkProgress] = useState("");
   const [saving, setSaving] = useState(false);
@@ -44,7 +52,7 @@ export function GooglePlayListingLocalization({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [connectionState, setConnectionState] = useState<{ productId: number; connected: boolean } | null>(null);
-  const [selectedLocales, setSelectedLocales] = useState<Set<string>>(() => new Set(["en-US"]));
+  const [selectedLocales, setSelectedLocales] = useState<Set<string>>(() => new Set());
   const listings = optimization.localizedListings;
   const latestListings = useRef(listings);
   const { listing: source, fullDescriptionSource } = resolveGooglePlayListingSource({
@@ -68,6 +76,8 @@ export function GooglePlayListingLocalization({
     return Boolean(item && item.status === "ready" && item.sourceHash === sourceHash && !validateGooglePlayListingText(item).length);
   });
   const publishingCount = selectedToPublish.length;
+  const isBusy = Boolean(generatingLocale || bulkProgress || saving || publishing);
+  useEffect(() => { onBusyChange?.(isBusy); }, [isBusy, onBusyChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,7 +202,7 @@ export function GooglePlayListingLocalization({
   async function publishSelected() {
     const locales = selectedToPublish;
     if (!connected) {
-      setError("Connect Google Play for this product in Connections before publishing.");
+      setError("Connect Google Play for this product in Product settings → Store connection before publishing.");
       return;
     }
     if (!locales.length) {
@@ -213,6 +223,7 @@ export function GooglePlayListingLocalization({
       });
       const data = await response.json() as { error?: string; message?: string; publishedLocales?: string[] };
       if (!response.ok) throw new Error(data.error ?? "Google Play could not accept the listing update.");
+      setReceipt({ locales: data.publishedLocales ?? locales, at: new Date().toISOString() });
       setNotice(data.message ?? `Submitted ${data.publishedLocales?.length ?? locales.length} locale listings to Google Play.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Google Play could not accept the listing update.");
@@ -223,19 +234,19 @@ export function GooglePlayListingLocalization({
 
   return <section className="optimize-card listing-localization-card">
     <div className="optimize-card-heading">
-      <div><p className="eyebrow">Google Play localization</p><h3>Keep English as the source</h3></div>
+      <div><p className="eyebrow">{mode === "review" ? "Review & send" : "Translations"}</p><h3>{mode === "review" ? "Choose exactly what to send" : "Reach more players in their language"}</h3></div>
       <span>English source + 10 target locales</span>
     </div>
-    <p className="field-help localization-source-note">Translations reuse the saved Optimize copy; English is never regenerated here. {fullDescriptionSource === "current-listing" ? "Because the saved long-description draft is only the short hook, Sorted reuses the existing Google Play full description instead." : "Existing translations that still match this English source are reused."}</p>
-    <div className="localization-bulk-actions">
+    <p className="field-help localization-source-note">Translations reuse your English listing; English is never regenerated here. {fullDescriptionSource === "current-listing" ? "Because the saved long-description draft is only the short hook, Sorted reuses the existing Google Play full description instead." : "Existing translations that still match this English source are reused."}</p>
+    {mode === "translations" && <div className="localization-bulk-actions">
       <button type="button" className="secondary-button" onClick={() => void generateMissing()} disabled={Boolean(generatingLocale || bulkProgress || saving || publishing || sourceErrors.length || missingCount === 0)}>
         {bulkProgress || `Translate missing (${missingCount})`}
       </button>
       <span>{missingCount} missing · {outOfDateCount} outdated</span>
-    </div>
-    <div className="store-locale-source">
-      <label className="locale-publish-choice"><input type="checkbox" checked={selectedLocales.has("en-US")} disabled={sourceErrors.length > 0} onChange={(event) => setSelectedLocales((current) => { const next = new Set(current); if (event.target.checked) next.add("en-US"); else next.delete("en-US"); return next; })} /><span><strong>English (United States)</strong><small>Use the existing Optimize copy as-is · {sourceErrors.length ? "complete source fields first" : "source listing"}</small></span></label>
-    </div>
+    </div>}
+    {mode === "review" && <div className="store-locale-source">
+      <label className="locale-publish-choice"><input type="checkbox" checked={selectedLocales.has("en-US")} disabled={sourceErrors.length > 0} onChange={(event) => setSelectedLocales((current) => { const next = new Set(current); if (event.target.checked) next.add("en-US"); else next.delete("en-US"); return next; })} /><span><strong>English (United States)</strong><small>Send the English listing · {sourceErrors.length ? "complete source fields first" : "source listing"}</small></span></label>
+    </div>}
     <div className="localization-grid store-localization-grid">
       {GOOGLE_PLAY_TARGET_LOCALES.map(({ locale, label }) => {
         const item = byLocale.get(locale);
@@ -247,27 +258,35 @@ export function GooglePlayListingLocalization({
           <div className="store-locale-heading">
             <div><strong>{label}</strong><small>{locale} · {stale ? "English source changed" : item ? item.status === "ready" ? "Reviewed" : "Needs review" : "Not translated yet"}</small></div>
             <div className="store-locale-actions">
-              {item && <label className="locale-publish-choice"><input type="checkbox" checked={selectedLocales.has(locale)} disabled={!ready || Boolean(generatingLocale || bulkProgress || publishing)} onChange={(event) => setSelectedLocales((current) => { const next = new Set(current); if (event.target.checked) next.add(locale); else next.delete(locale); return next; })} /><span>Publish</span></label>}
-              {item && <label className="locale-review-choice"><input type="checkbox" checked={item.status === "ready" && !stale && !fieldErrors.length} disabled={Boolean(generatingLocale || bulkProgress || publishing || fieldErrors.length || stale)} onChange={(event) => updateListing(locale, { status: event.target.checked ? "ready" : "needs-review" })} /><span>Reviewed</span></label>}
-              <button type="button" className="text-button" disabled={Boolean(generatingLocale || bulkProgress || saving || publishing || sourceErrors.length)} onClick={() => void generateOne(locale, Boolean(item))}>{busy ? "Translating…" : item ? stale ? "Update" : "Regenerate" : "Generate"}</button>
+              {mode === "review" && item && <label className="locale-publish-choice"><input type="checkbox" checked={selectedLocales.has(locale)} disabled={!ready || Boolean(generatingLocale || bulkProgress || publishing)} onChange={(event) => setSelectedLocales((current) => { const next = new Set(current); if (event.target.checked) next.add(locale); else next.delete(locale); return next; })} /><span>Include</span></label>}
+              {mode === "translations" && item && <label className="locale-review-choice"><input type="checkbox" checked={item.status === "ready" && !stale && !fieldErrors.length} disabled={Boolean(generatingLocale || bulkProgress || publishing || fieldErrors.length || stale)} onChange={(event) => updateListing(locale, { status: event.target.checked ? "ready" : "needs-review" })} /><span>Reviewed</span></label>}
+              {mode === "translations" && <button type="button" className="text-button" disabled={Boolean(generatingLocale || bulkProgress || saving || publishing || sourceErrors.length)} onClick={() => void generateOne(locale, Boolean(item))}>{busy ? "Translating…" : item ? stale ? "Update" : "Regenerate" : "Translate"}</button>}
+              {item && <button type="button" className="secondary-button" aria-expanded={expandedLocale === locale} onClick={() => setExpandedLocale(expandedLocale === locale ? "" : locale)}>{expandedLocale === locale ? "Close" : mode === "review" ? "Preview" : "Review translation"}</button>}
             </div>
           </div>
-          {item ? <div className="store-locale-fields">
-            <label>Localized title<input maxLength={30} value={item.title} onChange={(event) => updateListing(locale, { title: event.target.value })} /><small>{item.title.length}/30</small></label>
-            <label>Short description<textarea maxLength={80} rows={2} value={item.shortDescription} onChange={(event) => updateListing(locale, { shortDescription: event.target.value })} /><small>{item.shortDescription.length}/80</small></label>
-            <label>Full description<textarea maxLength={4000} rows={5} value={item.fullDescription} onChange={(event) => updateListing(locale, { fullDescription: event.target.value })} /><small>{item.fullDescription.length}/4000</small></label>
+          {item && expandedLocale === locale ? <div className="store-locale-fields">
+            <label>Localized title<input readOnly={mode === "review"} maxLength={30} value={item.title} onChange={(event) => updateListing(locale, { title: event.target.value })} /><small>{item.title.length}/30</small></label>
+            <label>Short description<textarea readOnly={mode === "review"} maxLength={80} rows={2} value={item.shortDescription} onChange={(event) => updateListing(locale, { shortDescription: event.target.value })} /><small>{item.shortDescription.length}/80</small></label>
+            <label>Full description<textarea readOnly={mode === "review"} maxLength={4000} rows={5} value={item.fullDescription} onChange={(event) => updateListing(locale, { fullDescription: event.target.value })} /><small>{item.fullDescription.length}/4000</small></label>
             {fieldErrors.length > 0 && <small className="localization-error">{fieldErrors.join(" ")}</small>}
-          </div> : <p className="store-locale-empty">Generate this translation from the saved English listing, then review and edit it here.</p>}
+          </div> : null}
         </article>;
       })}
     </div>
+    {mode === "review" && selectedLocales.has("en-US") && <div className="listing-review-copy"><h3>English changes</h3><p>Compared with the last synced snapshot. All three fields shown below will be sent.</p>{([
+      ["App title", optimization.currentListing.title ?? "", source.title],
+      ["Short description", optimization.currentListing.shortDescription ?? "", source.shortDescription],
+      ["Full description", optimization.currentListing.longDescription ?? "", source.fullDescription],
+    ] as const).map(([label, before, after]) => <details key={label} open={before.trim() !== after.trim()}><summary>{label} · {before.trim() === after.trim() ? "Unchanged" : "Changed"}</summary><div className="listing-review-diff"><div><small>Last synced</small><p>{before || "Not available"}</p></div><div><small>Will be sent</small><p>{after || "Missing"}</p></div></div></details>)}</div>}
+    {mode === "review" && <p className="field-help">Selected: {selectedToPublish.join(", ") || "None"}. Unselected locales are not sent. Review each selected translation with Preview before submitting. Google may review these changes; accepted does not mean live.</p>}
+    {receipt && <div className="localization-notice" role="status"><strong>Submitted to Google Play</strong><p>{receipt.locales.join(", ")} · {new Date(receipt.at).toLocaleString()}. Accepted for processing, not confirmed live.</p></div>}
     {error && <p className="localization-error" role="alert">{error}</p>}
     {notice && <p className="localization-notice" role="status">{notice}</p>}
     <div className="localization-footer">
-      <span>{connected ? "Changes are only sent when you press the publish button." : "Connect a Google Play account to enable publishing."}</span>
+      <span>{connected ? "Nothing is sent until you confirm Send to Google Play." : "Connect a Google Play account to enable publishing."}</span>
       <div className="workflow-action-buttons">
         <button type="button" className="secondary-button" disabled={saving || publishing || Boolean(generatingLocale || bulkProgress)} onClick={() => void saveDraft()}>{saving ? "Saving…" : "Save translations"}</button>
-        <button type="button" className="primary-button" disabled={!connected || !publishingCount || saving || publishing || Boolean(generatingLocale || bulkProgress)} onClick={() => void publishSelected()}>{publishing ? "Submitting…" : `Push ${publishingCount} locale${publishingCount === 1 ? "" : "s"} to Google Play`}</button>
+        {mode === "review" ? <button type="button" className="primary-button" disabled={!connected || !publishingCount || saving || publishing || Boolean(generatingLocale || bulkProgress)} onClick={() => void publishSelected()}>{publishing ? "Submitting…" : `Send ${publishingCount} locale${publishingCount === 1 ? "" : "s"} to Google Play`}</button> : <button type="button" className="primary-button" disabled={saving || publishing || Boolean(generatingLocale || bulkProgress)} onClick={onReview}>Review & send →</button>}
       </div>
     </div>
   </section>;

@@ -16,9 +16,16 @@ test("optimization readiness checks actual Play fields, not the internal hook", 
   assert.equal(result.optimize, true);
 });
 
-test("a short or unchanged full description cannot make Optimize ready", () => {
-  const short = getPublishReadiness({ optimization: { ...validOptimization, storeLongDescription: validOptimization.storeShortDescription } });
+test("incomplete descriptions fail, but keeping the existing description is allowed", () => {
+  const short = getPublishReadiness({ optimization: { ...validOptimization, storeLongDescription: "" } });
   const unchanged = getPublishReadiness({ optimization: { ...validOptimization, currentListing: { longDescription: validOptimization.storeLongDescription } } });
   assert.equal(short.optimize, false);
-  assert.equal(unchanged.optimize, false);
+  assert.equal(unchanged.optimize, true);
+});
+
+test("Google Play listing readiness does not depend on an AEO answer or other workflow stages", () => {
+  const result = getPublishReadiness({ optimization: { ...validOptimization, answerSummary: "" } });
+  assert.equal(result.optimize, true);
+  assert.equal(result.research, false);
+  assert.equal(result.create, false);
 });
