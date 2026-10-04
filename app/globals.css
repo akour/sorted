@@ -747,6 +747,10 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .performance-insights-heading h3 { margin:3px 0 0; color:#353140; font-size:18px; letter-spacing:-.25px; }
 .performance-insights-heading p:not(.eyebrow) { margin:5px 0 0; color:#817b89; font-size:10px; }
 .performance-insights-heading > span { padding:6px 9px; border-radius:20px; background:#f0edf7; color:#665b87; font-size:9px; font-weight:700; }
+.performance-insights-empty { flex-direction:row; align-items:center; justify-content:space-between; gap:20px; }
+.performance-insights-empty h3 { margin:3px 0 0; color:#353140; font-size:16px; letter-spacing:-.2px; }
+.performance-insights-empty > div > p:not(.eyebrow) { max-width:620px; margin:6px 0 0; color:#777181; font-size:10px; line-height:1.6; }
+.performance-insights-empty > button { flex:0 0 auto; }
 .performance-insight-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr); gap:12px; align-items:stretch; }
 .performance-insight-block { display:flex; flex-direction:column; gap:11px; min-width:0; padding:14px; border:1px solid #eeebf3; border-radius:11px; background:#fff; }
 .performance-insight-block h4 { margin:0; color:#494452; font-size:11px; }
@@ -830,6 +834,7 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
   .performance-report-summary > span { text-align:left; }
   .performance-insight-grid { grid-template-columns:1fr; }
   .performance-insights-heading { flex-direction:column; }
+  .performance-insights-empty { align-items:stretch; flex-direction:column; }
 }
 /* Focused product workspace: one task and one primary action at a time. */
 .listing-workspace { max-width: 1200px; margin-inline: auto; }

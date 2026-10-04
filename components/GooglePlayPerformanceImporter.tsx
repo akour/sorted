@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildPlayPerformanceRows,
   parsePlayConsoleCsv,
@@ -57,6 +57,7 @@ function errorMessage(value: unknown, fallback: string) {
 }
 
 export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void }) {
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [imports, setImports] = useState<SavedImport[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [savedRows, setSavedRows] = useState<PlayPerformanceRow[]>([]);
@@ -247,7 +248,7 @@ export function GooglePlayPerformanceImporter({ productId, productName, onOpenEx
       <div><p className="eyebrow">Evidence from Play Console</p><h3 id={`performance-title-${productId}`}>Google Play performance</h3></div>
       <span>{imports.length} report{imports.length === 1 ? "" : "s"}</span>
     </div>
-    <p className="performance-intro">Sync supported app-quality signals directly from Google Play below. Listing clicks, CTR, and promotional-event performance are separate ASO evidence; until Sorted verifies a stable direct endpoint for those reports, import their Console export as a fallback. The original CSV stays in your browser; only mapped observations are saved. Up to 30 rows from the latest imported listing report are included in future optimization recommendations.</p>
+    <p className="performance-intro">Sync app-quality signals directly. Listing conversion is separate evidence; until a direct listing-report endpoint is available, import a Play Console CSV. Only mapped observations are saved.</p>
     <div className="performance-source-note"><strong>Keep the metrics distinct.</strong> Current listing-performance exports can include unique install/open/pre-registration clicks and CTR. Older acquisition reports measure a different outcome; Sorted labels them separately and never converts installs into listing clicks. Direct API quality signals are not listing-conversion metrics.</div>
 
     {imports.length > 0 && <div className="performance-saved-tools">
@@ -256,6 +257,11 @@ export function GooglePlayPerformanceImporter({ productId, productName, onOpenEx
       </select></label>
       {currentImport && <button type="button" className="performance-delete" onClick={() => void deleteImport(currentImport)} disabled={busy}>Delete report</button>}
     </div>}
+
+    {!loading && imports.length === 0 && !parsed && <section className="performance-insights performance-insights-empty" aria-labelledby="performance-first-report-title">
+      <div><p className="eyebrow">Start the learning loop</p><h3 id="performance-first-report-title">Bring in one listing-performance report</h3><p>Sorted will show the latest reported values by locale, promotions that overlapped the report dates, and the next saved ASO test to plan. It won’t infer that a promotion caused a change.</p></div>
+      <button type="button" className="primary-button" onClick={() => uploadInputRef.current?.click()}>Choose a Play Console report →</button>
+    </section>}
 
     {currentImport && <PerformanceInsightsPanel
       report={currentImport}
@@ -289,7 +295,7 @@ export function GooglePlayPerformanceImporter({ productId, productName, onOpenEx
     </div>
 
     <div className="performance-upload-row">
-      <label className="performance-file-label">Import a listing report CSV (fallback)<input type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
+      <label className="performance-file-label">Import a listing report CSV (fallback)<input ref={uploadInputRef} type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
       <span>Only needed for listing conversion reports · max 5 MB</span>
     </div>
 
