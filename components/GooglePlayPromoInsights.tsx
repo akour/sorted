@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 type PromoReportSummary = {
   eventIds: string;
@@ -42,7 +42,8 @@ function formatMetric(value: number | null) {
 export function GooglePlayPromoInsights({ productId, productName, onOpenConnections }: { productId: number; productName: string; onOpenConnections: () => void }) {
   const [state, setState] = useState<PromoReportState>({});
   const [bucketName, setBucketName] = useState("");
-  const [serviceAccountJson, setServiceAccountJson] = useState("");
+  const [serviceAccountFile, setServiceAccountFile] = useState<File | null>(null);
+  const serviceAccountFileInput = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -93,6 +94,17 @@ export function GooglePlayPromoInsights({ productId, productName, onOpenConnecti
     event.preventDefault();
     setSaving(true); setError(""); setNotice("");
     try {
+      let serviceAccountJson = "";
+      if (serviceAccountFile) {
+        if (serviceAccountFile.size > 64 * 1024) throw new Error("That key file is unexpectedly large. Choose the JSON key downloaded from Google Cloud.");
+        serviceAccountJson = await serviceAccountFile.text();
+        let parsed: unknown;
+        try { parsed = JSON.parse(serviceAccountJson); }
+        catch { throw new Error("That file is not valid JSON. Choose the service-account key downloaded from Google Cloud."); }
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || typeof (parsed as Record<string, unknown>).client_email !== "string" || typeof (parsed as Record<string, unknown>).private_key !== "string") {
+          throw new Error("That JSON file does not look like a Google service-account key.");
+        }
+      }
       const response = await fetch(`/api/products/${productId}/performance/promotional-content`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
@@ -102,13 +114,28 @@ export function GooglePlayPromoInsights({ productId, productName, onOpenConnecti
       if (!response.ok) throw new Error(errorMessage(data, "Could not verify the Google Play reports bucket."));
       setState((current) => ({ ...current, ...data, source: data.source }));
       setBucketName(data.source?.bucketName ?? bucketName);
-      setServiceAccountJson("");
+      setServiceAccountFile(null);
+      if (serviceAccountFileInput.current) serviceAccountFileInput.current.value = "";
       setNotice(data.message ?? "Report bucket access verified.");
       await sync(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not verify the Google Play reports bucket.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function fillBucketFromClipboard() {
+    setError(""); setNotice("");
+    try {
+      if (!navigator.clipboard?.readText) throw new Error("Clipboard access is unavailable here. Copy the Play Console reports URI again, or enter its bucket ID below.");
+      const copied = (await navigator.clipboard.readText()).trim();
+      const bucket = copied.replace(/^gs:\/\//i, "").replace(/\/$/, "");
+      if (!/^pubsite_prod_rev_[a-zA-Z0-9_-]{4,80}$/.test(bucket)) throw new Error("The clipboard does not contain a Google Play report bucket. Copy the Cloud Storage URI from Play Console first.");
+      setBucketName(bucket);
+      setNotice("Play Console reports bucket filled from your clipboard.");
+    } catch (clipboardError) {
+      setError(clipboardError instanceof Error ? clipboardError.message : "Could not read the copied reports URI.");
     }
   }
 
@@ -145,9 +172,9 @@ export function GooglePlayPromoInsights({ productId, productName, onOpenConnecti
     {!state.serviceAccountAvailable && <div className="promo-report-setup-note"><span>Connect a read-only Google service account below, or save one in this product’s Connections. Google OAuth sign-in alone does not grant access to private monthly report files.</span><button className="secondary-button" type="button" onClick={onOpenConnections}>Open Connections</button></div>}
 
     <form className="promo-report-config" onSubmit={(event) => void saveBucket(event)}>
-      <label>Play Console reports bucket<span className="field-help">Copy the Cloud Storage URI from Play Console → Download reports. It starts with gs://pubsite_prod_rev_…</span><input value={bucketName} onChange={(event) => setBucketName(event.target.value)} placeholder="gs://pubsite_prod_rev_1234567890" autoComplete="off" spellCheck={false} disabled={busy} /></label>
-      <label className="promo-report-key">Read-only service-account JSON key<span className="field-help">Optional if a key is already saved in Connections or here. It is encrypted and never shown again.{state.serviceAccountHint ? ` Saved credential ${state.serviceAccountHint}.` : ""}</span><textarea value={serviceAccountJson} onChange={(event) => setServiceAccountJson(event.target.value)} placeholder={state.serviceAccountAvailable ? "Leave blank to reuse the saved service account" : "Paste the complete service-account JSON key"} rows={5} spellCheck={false} autoComplete="off" disabled={busy} required={!state.serviceAccountAvailable} /></label>
-      <button className="secondary-button" type="submit" disabled={busy || (!state.serviceAccountAvailable && !serviceAccountJson.trim()) || !bucketName.trim()}>{saving ? "Checking access…" : "Save & test access"}</button>
+      <label className="promo-report-bucket">Play Console reports bucket<span className="field-help">In Play Console, copy the Cloud Storage URI from Download reports, then fill it here with one click. It starts with gs://pubsite_prod_rev_…</span><span className="promo-bucket-row"><input value={bucketName} onChange={(event) => setBucketName(event.target.value)} placeholder="gs://pubsite_prod_rev_1234567890" autoComplete="off" spellCheck={false} disabled={busy} /><button className="secondary-button" type="button" onClick={() => void fillBucketFromClipboard()} disabled={busy}>Use copied URI</button></span></label>
+      <label className="promo-report-key">Read-only service-account key file<span className="field-help">Choose the JSON key downloaded from Google Cloud. The file contents are never displayed and are encrypted before storage.{state.serviceAccountHint ? ` Saved credential ${state.serviceAccountHint}.` : ""}</span><input className="promo-key-file" ref={serviceAccountFileInput} type="file" accept=".json,application/json" onChange={(event) => { setServiceAccountFile(event.target.files?.[0] ?? null); setError(""); }} disabled={busy} aria-label="Choose Google service-account JSON key file" />{!serviceAccountFile && state.serviceAccountAvailable && <span className="field-help">No need to choose it again; Sorted will reuse the saved credential.</span>}</label>
+      <button className="secondary-button" type="submit" disabled={busy || (!state.serviceAccountAvailable && !serviceAccountFile) || !bucketName.trim()}>{saving ? "Checking access…" : "Save & test access"}</button>
     </form>
 
     {loading && <p className="performance-empty">Checking report connection…</p>}
