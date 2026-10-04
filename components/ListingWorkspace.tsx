@@ -13,7 +13,7 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: "experiments", label: "Experiments" },
 ];
 
-export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings }: {
+export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings, initialSection = "copy", initialExperimentOpportunity, onSectionChange }: {
   product: { id: number; name: string };
   optimization: OptimizationDraft;
   loading: boolean;
@@ -23,8 +23,11 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
   onSave: () => void;
   onGenerate: () => void;
   onSettings: () => void;
+  initialSection?: Section;
+  initialExperimentOpportunity?: string;
+  onSectionChange?: () => void;
 }) {
-  const [section, setSection] = useState<Section>("copy");
+  const [section, setSection] = useState<Section>(initialSection);
   const [showCurrent, setShowCurrent] = useState(false);
   const [localizationBusy, setLocalizationBusy] = useState(false);
   const current = optimization.currentListing ?? {};
@@ -40,7 +43,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
 
   return <section className="listing-workspace">
     <div className="listing-heading"><div><p className="eyebrow">Google Play</p><h2>Store listing</h2><p>Improve the fields that matter. Keep the rest as they are.</p></div><button className="secondary-button" onClick={onSettings}>Store connection</button></div>
-    <nav className="listing-sections" aria-label="Store listing sections">{sections.map((item) => <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)} disabled={busy}>{item.label}</button>)}</nav>
+    <nav className="listing-sections" aria-label="Store listing sections">{sections.map((item) => <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} className={section === item.id ? "active" : ""} onClick={() => { onSectionChange?.(); setSection(item.id); }} disabled={busy}>{item.label}</button>)}</nav>
     {section === "copy" && <>
       <div className="listing-editor-toolbar"><div><h3>English (United States)</h3><p>Your shared source for translations. Saving does not publish.</p></div><button className="secondary-button ai-action-button" disabled={busy} onClick={() => { if (window.confirm("Generate a new listing draft? This replaces the current draft, including unsaved copy. Translations will need review if the English source changes.")) onGenerate(); }}>✦ {generating ? "Generating…" : "Suggest a new draft"}</button></div>
       <div className="listing-editor-layout"><div className="listing-editor-card">
@@ -66,6 +69,6 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
     <div hidden={section !== "translations" && section !== "review"}>
       <GooglePlayListingLocalization productId={product.id} productName={product.name} optimization={optimization} onChange={onChange} mode={section === "review" ? "review" : "translations"} onReview={() => setSection("review")} onBusyChange={setLocalizationBusy} />
     </div>
-    {section === "experiments" && <GooglePlayExperimentTracker opportunities={optimization.opportunities.filter((item) => !/aeo/i.test(item.area))} experiments={optimization.experiments ?? []} onChange={(experiments) => onChange({ ...optimization, experiments })} onSave={onSave} saving={saving} />}
+    {section === "experiments" && <GooglePlayExperimentTracker opportunities={optimization.opportunities.filter((item) => !/aeo/i.test(item.area))} experiments={optimization.experiments ?? []} initialOpportunityTitle={initialExperimentOpportunity} onChange={(experiments) => onChange({ ...optimization, experiments })} onSave={onSave} saving={saving} />}
   </section>;
 }

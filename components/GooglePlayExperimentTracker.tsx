@@ -18,15 +18,17 @@ const statusLabels = {
   "more-data": "Play Console: more data needed",
 } as const;
 
-export function GooglePlayExperimentTracker({ opportunities, experiments, onChange, onSave, saving }: {
+export function GooglePlayExperimentTracker({ opportunities, experiments, onChange, onSave, saving, initialOpportunityTitle }: {
   opportunities: Array<{ title: string; area: string }>;
   experiments: OptimizationExperiment[];
   onChange: (next: OptimizationExperiment[]) => void;
   onSave: () => void;
   saving: boolean;
+  initialOpportunityTitle?: string;
 }) {
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  const [selectedOpportunityIndex, setSelectedOpportunityIndex] = useState("0");
+  const initialOpportunityIndex = opportunities.findIndex((item) => item.title === initialOpportunityTitle);
+  const [selectedOpportunityIndex, setSelectedOpportunityIndex] = useState(String(initialOpportunityIndex >= 0 ? initialOpportunityIndex : 0));
 
   function updateExperiment(id: string, patch: Partial<OptimizationExperiment>) {
     onChange(experiments.map((experiment) => experiment.id === id ? { ...experiment, ...patch } : experiment));

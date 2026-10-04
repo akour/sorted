@@ -14,6 +14,14 @@ import {
   type PlayPerformanceReportType,
   type PlayPerformanceRow,
 } from "../lib/google-play-performance";
+import {
+  chooseNextAsoStep,
+  findOverlappingPromotions,
+  summarizeLocaleObservations,
+  type PerformanceExperiment,
+  type PerformanceOpportunity,
+  type PerformancePromotion,
+} from "../lib/google-play-performance-insights";
 
 type SavedImport = {
   id: number;
@@ -29,6 +37,12 @@ type ReportResponse = { imports?: SavedImport[]; rows?: PlayPerformanceRow[]; se
 type QualityMetric = "crashRate28dUserWeighted" | "userPerceivedCrashRate28dUserWeighted" | "anrRate28dUserWeighted" | "userPerceivedAnrRate28dUserWeighted";
 type QualitySnapshot = { packageName: string; dateStart: string; dateEnd: string; syncedAt: string; rows: Array<Record<"date" | QualityMetric, string | null>> };
 type ReportingStatus = { connected?: boolean; connectionType?: string | null; snapshot?: QualitySnapshot | null; lastError?: string | null; error?: string };
+type PerformanceContextResponse = {
+  opportunities?: PerformanceOpportunity[];
+  experiments?: PerformanceExperiment[];
+  promotions?: PerformancePromotion[];
+  error?: string;
+};
 
 async function requestReports(productId: number, importId?: number | null) {
   const suffix = importId ? `?importId=${importId}` : "";
@@ -42,7 +56,7 @@ function errorMessage(value: unknown, fallback: string) {
   return value && typeof value === "object" && "error" in value && typeof value.error === "string" ? value.error : fallback;
 }
 
-export function GooglePlayPerformanceImporter({ productId, productName }: { productId: number; productName: string }) {
+export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void }) {
   const [imports, setImports] = useState<SavedImport[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [savedRows, setSavedRows] = useState<PlayPerformanceRow[]>([]);
@@ -58,6 +72,8 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
   const [reportingBusy, setReportingBusy] = useState(false);
   const [reportingError, setReportingError] = useState("");
   const [reportingNotice, setReportingNotice] = useState("");
+  const [performanceContext, setPerformanceContext] = useState<PerformanceContextResponse>({});
+  const [contextError, setContextError] = useState("");
 
   async function loadReports(importId?: number | null) {
     setLoading(true);
@@ -83,6 +99,18 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
     }).catch((loadError: unknown) => {
       if (current) setError(loadError instanceof Error ? loadError.message : "Could not load imported reports.");
     }).finally(() => { if (current) setLoading(false); });
+    return () => { current = false; };
+  }, [productId]);
+
+  useEffect(() => {
+    let current = true;
+    void fetch(`/api/products/${productId}/performance/insights`).then(async (response) => {
+      const data = await response.json() as PerformanceContextResponse;
+      if (!response.ok) throw new Error(errorMessage(data, "Could not load performance context."));
+      if (current) setPerformanceContext(data);
+    }).catch((loadError: unknown) => {
+      if (current) setContextError(loadError instanceof Error ? loadError.message : "Could not load performance context.");
+    });
     return () => { current = false; };
   }, [productId]);
 
@@ -206,6 +234,11 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
   }
 
   const currentImport = imports.find((item) => item.id === selectedId) ?? null;
+  const localeObservations = useMemo(() => summarizeLocaleObservations(savedRows), [savedRows]);
+  const overlappingPromotions = useMemo(() => currentImport
+    ? findOverlappingPromotions(performanceContext.promotions ?? [], currentImport.dateStart, currentImport.dateEnd)
+    : [], [currentImport, performanceContext.promotions]);
+  const nextAsoStep = useMemo(() => chooseNextAsoStep(performanceContext.opportunities ?? [], performanceContext.experiments ?? []), [performanceContext]);
   const mappedIndexes = new Set(Object.values(mapping).filter((value): value is number => typeof value === "number"));
   const unmappedHeaders = parsed?.headers.filter((_, index) => !mappedIndexes.has(index)) ?? [];
 
@@ -216,6 +249,23 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
     </div>
     <p className="performance-intro">Sync supported app-quality signals directly from Google Play below. Listing clicks, CTR, and promotional-event performance are separate ASO evidence; until Sorted verifies a stable direct endpoint for those reports, import their Console export as a fallback. The original CSV stays in your browser; only mapped observations are saved. Up to 30 rows from the latest imported listing report are included in future optimization recommendations.</p>
     <div className="performance-source-note"><strong>Keep the metrics distinct.</strong> Current listing-performance exports can include unique install/open/pre-registration clicks and CTR. Older acquisition reports measure a different outcome; Sorted labels them separately and never converts installs into listing clicks. Direct API quality signals are not listing-conversion metrics.</div>
+
+    {imports.length > 0 && <div className="performance-saved-tools">
+      <label>Report used for this view<select value={selectedId ?? ""} onChange={(event) => void selectImport(Number(event.target.value))} disabled={busy || loading}>
+        {imports.map((report) => <option key={report.id} value={report.id}>{report.fileName} · {playPerformanceReportLabel(report.reportType)} · {report.rowCount.toLocaleString()} rows</option>)}
+      </select></label>
+      {currentImport && <button type="button" className="performance-delete" onClick={() => void deleteImport(currentImport)} disabled={busy}>Delete report</button>}
+    </div>}
+
+    {currentImport && <PerformanceInsightsPanel
+      report={currentImport}
+      localeObservations={localeObservations}
+      promotions={overlappingPromotions}
+      hasPromotionDates={Boolean(currentImport.dateStart && currentImport.dateEnd)}
+      nextStep={nextAsoStep}
+      contextError={contextError}
+      onOpenExperiments={onOpenExperiments}
+    />}
 
     <div className="performance-api-panel">
       <div className="performance-api-heading">
@@ -237,13 +287,6 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
       {reportingNotice && <p className="performance-notice" role="status">{reportingNotice}</p>}
       <p className="performance-api-footnote">App-quality data refreshes automatically when this page is opened if the last sync is more than 24 hours old; use Sync now at any time. Direct API reporting here is kept separate from listing clicks/CTR and promotional-event performance, which remain available through the report-import fallback.</p>
     </div>
-
-    {imports.length > 0 && <div className="performance-saved-tools">
-      <label>Saved report<select value={selectedId ?? ""} onChange={(event) => void selectImport(Number(event.target.value))} disabled={busy || loading}>
-        {imports.map((report) => <option key={report.id} value={report.id}>{report.fileName} · {playPerformanceReportLabel(report.reportType)} · {report.rowCount.toLocaleString()} rows</option>)}
-      </select></label>
-      {currentImport && <button type="button" className="performance-delete" onClick={() => void deleteImport(currentImport)} disabled={busy}>Delete report</button>}
-    </div>}
 
     <div className="performance-upload-row">
       <label className="performance-file-label">Import a listing report CSV (fallback)<input type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
@@ -279,6 +322,45 @@ export function GooglePlayPerformanceImporter({ productId, productName }: { prod
       {currentImport.reportType === "legacy-acquisition" && <p className="performance-row-note">This export does not contain listing click-through metrics, so it cannot answer which listing copy earned more unique Play Console clicks.</p>}
     </> : !parsed && <p className="performance-empty">No reports imported for this product yet. Choose a CSV to preview the fields and rows before saving.</p>}
   </section>;
+}
+
+function PerformanceInsightsPanel({ report, localeObservations, promotions, hasPromotionDates, nextStep, contextError, onOpenExperiments }: {
+  report: SavedImport;
+  localeObservations: ReturnType<typeof summarizeLocaleObservations>;
+  promotions: PerformancePromotion[];
+  hasPromotionDates: boolean;
+  nextStep: ReturnType<typeof chooseNextAsoStep>;
+  contextError: string;
+  onOpenExperiments: (opportunityTitle?: string) => void;
+}) {
+  const clickReport = report.reportType !== "legacy-acquisition";
+  return <section className="performance-insights" aria-labelledby="performance-insights-title">
+    <div className="performance-insights-heading"><div><p className="eyebrow">Your next move</p><h3 id="performance-insights-title">Performance → next ASO test</h3><p>Using {report.fileName} · {report.rowCount.toLocaleString()} saved observations</p></div><span>{playPerformanceReportLabel(report.reportType)}</span></div>
+    {clickReport ? <>
+      <div className="performance-insight-block">
+        <div><h4>Latest observations by locale</h4><p>Play Console values are shown as exported. Rows are never added together or treated as a weighted average.</p></div>
+        {localeObservations.length ? <div className="performance-table-wrap"><table className="performance-table performance-locale-table"><thead><tr><th>Locale</th><th>Latest report date</th><th>Visitors</th><th>Install clicks</th><th>Open clicks</th><th>Pre-reg clicks</th><th>CTR</th></tr></thead><tbody>
+          {localeObservations.map((item) => <tr key={item.locale}><td>{item.locale}</td>{item.latest ? <>
+            <td>{item.latest.date || "Date not supplied"}</td><td>{formatMetric(item.latest.visitors)}</td><td>{formatMetric(item.latest.installClicks)}</td><td>{formatMetric(item.latest.openClicks)}</td><td>{formatMetric(item.latest.preRegistrationClicks)}</td><td>{item.latest.ctr || "—"}</td>
+          </> : <td colSpan={6}>{item.ambiguous ? "Multiple rows for the latest date; review the source breakdown. Not combined." : "No single source observation to display."}</td>}</tr>)}
+        </tbody></table></div> : <p className="performance-empty">No observations in this report yet.</p>}
+      </div>
+      <div className="performance-insight-grid">
+        <div className="performance-insight-block"><div><h4>Promotion timing context</h4><p>{hasPromotionDates ? `${report.dateStart} – ${report.dateEnd}` : "This report has no comparable ISO date range."}</p></div>
+          {!hasPromotionDates ? <p className="performance-empty">Dates could not be matched safely, so promotion timing is not shown.</p> : promotions.length ? <ul className="performance-promotion-list">{promotions.map((event) => <li key={event.id}><span className={`performance-event-dot event-${event.eventType.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} aria-hidden="true"/><span><strong>{event.title || "Untitled promotion"}</strong><small>{event.startDate}{event.endDate && event.endDate !== event.startDate ? ` – ${event.endDate}` : ""} · {event.status}</small></span></li>)}</ul> : <p className="performance-empty">No saved product promotion overlaps these report dates.</p>}
+          {hasPromotionDates && <p className="performance-caveat">Timing overlap is context only; this report cannot attribute a change to a promotion.</p>}
+        </div>
+        <div className="performance-insight-block performance-next-test"><div><h4>Recommended next step</h4>
+          {nextStep.kind === "active-experiment" ? <><strong>{nextStep.experiment.opportunityTitle}</strong><p>{nextStep.experiment.status === "running" ? "This experiment is marked as running. Record its result in Play Console before choosing another change." : "This experiment is planned. Start it in Play Console, then record its outcome here."}</p></> : nextStep.opportunity ? <><strong>{nextStep.opportunity.title}</strong><p>{nextStep.opportunity.rationale || "A saved ASO recommendation from this product’s listing workspace."}</p><small>Use this as a hypothesis for one Play Store listing experiment. It is not a causal conclusion from the report.</small></> : <p>No open ASO recommendation is saved yet. Create or refresh recommendations in Store listing first, then turn one into a measured test.</p>}
+        </div><button className="secondary-button" type="button" onClick={() => onOpenExperiments(nextStep.kind === "saved-opportunity" ? nextStep.opportunity.title : undefined)}>{nextStep.kind === "saved-opportunity" ? "Plan this test" : "Open experiments"} →</button></div>
+      </div>
+    </> : <div className="performance-insight-block"><h4>Acquisition report: different question</h4><p>This export measures acquisitions and conversion, not listing click intent. It can’t be used to compare listing CTR or the effect of a Play Store listing test. Import a current store-listing performance report for that analysis.</p></div>}
+    {contextError && <p className="performance-error" role="status">Promotion and recommendation context could not be loaded: {contextError}</p>}
+  </section>;
+}
+
+function formatMetric(value: number | null) {
+  return value === null ? "—" : value.toLocaleString();
 }
 
 function QualityMetricCard({ rows, metric, label }: { rows: QualitySnapshot["rows"]; metric: QualityMetric; label: string }) {
