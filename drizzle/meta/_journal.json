@@ -92,6 +92,13 @@
       "when": 1791014400000,
       "tag": "0021_google_play_reporting",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1791100800000,
+      "tag": "0022_google_play_promo_reports",
+      "breakpoints": true
     }
   ]
 }

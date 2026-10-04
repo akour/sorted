@@ -93,3 +93,9 @@ SELECT '0019_listing_localizations.sql'
 WHERE EXISTS (
   SELECT 1 FROM pragma_table_info('optimization_plans') WHERE name = 'localized_listings'
 );
+
+INSERT OR IGNORE INTO d1_migrations (name)
+SELECT '0022_google_play_promo_reports.sql'
+WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'google_play_promo_report_sources')
+  AND EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'google_play_promo_report_imports')
+  AND EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'google_play_promo_report_rows');

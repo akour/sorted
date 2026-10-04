@@ -156,6 +156,56 @@ export const googlePlayPerformanceRows = sqliteTable("google_play_performance_ro
   index("google_play_performance_rows_product_date_idx").on(table.productId, table.ownerId, table.date),
 ]);
 
+// Promotional-content outcomes are read-only Play Console report observations.
+// Keep them separate from listing clicks and app-quality vitals.
+export const googlePlayPromoReportSources = sqliteTable("google_play_promo_report_sources", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  bucketName: text("bucket_name").notNull(),
+  credentialsCiphertext: text("credentials_ciphertext"),
+  credentialHint: text("credential_hint").notNull().default(""),
+  lastSyncedAt: text("last_synced_at"),
+  lastError: text("last_error"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("google_play_promo_report_sources_product_owner_idx").on(table.productId, table.ownerId)]);
+
+export const googlePlayPromoReportImports = sqliteTable("google_play_promo_report_imports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  reportMonth: text("report_month").notNull(),
+  fileName: text("file_name").notNull(),
+  generation: text("generation").notNull().default(""),
+  rowCount: integer("row_count").notNull(),
+  fingerprint: text("fingerprint").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [
+  uniqueIndex("google_play_promo_report_import_fingerprint_idx").on(table.productId, table.ownerId, table.fingerprint),
+  index("google_play_promo_report_import_product_month_idx").on(table.productId, table.ownerId, table.reportMonth, table.createdAt),
+]);
+
+export const googlePlayPromoReportRows = sqliteTable("google_play_promo_report_rows", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  importId: integer("import_id").notNull(),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  sourceRow: integer("source_row").notNull(),
+  date: text("date").notNull(),
+  eventIds: text("event_ids").notNull().default(""),
+  eventNames: text("event_names").notNull(),
+  country: text("country").notNull().default(""),
+  viewersDaily: integer("viewers_daily"),
+  viewers28d: integer("viewers_28d"),
+  convertersDaily: integer("converters_daily"),
+  converters28d: integer("converters_28d"),
+  conversionRateDaily: text("conversion_rate_daily").notNull().default(""),
+  conversionRate28d: text("conversion_rate_28d").notNull().default(""),
+}, (table) => [
+  index("google_play_promo_report_rows_import_idx").on(table.importId, table.ownerId, table.productId),
+  index("google_play_promo_report_rows_product_date_idx").on(table.productId, table.ownerId, table.date),
+]);
+
 // Keep the latest API-fetched Play quality report separate from listing
 // conversion observations; neither dataset should be mistaken for the other.
 export const googlePlayReportingSnapshots = sqliteTable("google_play_reporting_snapshots", {

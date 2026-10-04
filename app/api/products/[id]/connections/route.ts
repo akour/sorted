@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../db";
-import { productConnections, productOauthConnections, products } from "../../../../../db/schema";
+import { googlePlayPromoReportSources, productConnections, productOauthConnections, products } from "../../../../../db/schema";
 import { decryptProductConnectionSecret, encryptProductConnectionSecret, secretHint } from "../../../../../lib/admin-secrets";
 import { googlePlayErrorMessage, parseGooglePlayCredentials, testGooglePlayConnection, validateGooglePlayLocale, validateGooglePlayPackageName } from "../../../../../lib/google-play";
 import { revokeGooglePlayRefreshToken } from "../../../../../lib/google-play-oauth";
@@ -148,6 +148,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     }
     await db.delete(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId), eq(productConnections.provider, GOOGLE_PLAY_PROVIDER)));
     await db.delete(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId), eq(productOauthConnections.provider, GOOGLE_PLAY_PROVIDER)));
+    await db.delete(googlePlayPromoReportSources).where(and(eq(googlePlayPromoReportSources.productId, productId), eq(googlePlayPromoReportSources.ownerId, ownerId)));
     return Response.json({ ok: true });
   } catch {
     return Response.json({ error: "We could not disconnect Google Play." }, { status: 500 });

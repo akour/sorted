@@ -774,6 +774,23 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .performance-next-test > div > small { display:block; margin-top:6px; color:#898391; font-size:9px; line-height:1.5; }
 .performance-next-test > button { align-self:flex-start; }
 .performance-api-panel { display:flex; flex-direction:column; gap:12px; padding:14px; border:1px solid #ded8ef; border-radius:12px; background:linear-gradient(135deg,#faf9ff,#fff); }
+.promo-report-panel { margin-top:16px; background:linear-gradient(135deg,#f8fbff,#fff); border-color:#dce7f3; }
+.promo-report-config { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:12px; padding:13px; border:1px solid #e4eaf2; border-radius:11px; background:#fff; }
+.promo-report-config label { display:flex; flex-direction:column; gap:6px; color:#4d5565; font-size:11px; font-weight:700; }
+.promo-report-config input { width:100%; min-width:0; padding:10px 12px; border:1px solid #d9deea; border-radius:9px; color:#303746; font:inherit; font-weight:500; }
+.promo-report-config .promo-report-key { grid-column:1/-1; }
+.promo-report-config textarea { width:100%; min-width:0; padding:10px 12px; border:1px solid #d9deea; border-radius:9px; color:#303746; font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; resize:vertical; }
+.promo-report-config input:focus { border-color:#8b82df; outline:3px solid #eeecff; }
+.promo-report-config textarea:focus { border-color:#8b82df; outline:3px solid #eeecff; }
+.promo-report-config .field-help { font-weight:400; }
+.promo-report-setup-note { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 13px; border-radius:10px; background:#f5f3ff; color:#625b79; font-size:11px; line-height:1.5; }
+.promo-report-setup-note .secondary-button { flex:none; }
+.promo-report-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.promo-report-panel .performance-table td:first-child { max-width:280px; }
+.promo-report-panel .performance-table td:first-child strong,.promo-report-panel .performance-table td:first-child small { display:block; }
+.promo-report-panel .performance-table td:first-child small { margin-top:3px; color:#8991a0; font-size:9px; }
+.promo-report-disconnect { align-self:flex-start; }
+@media (max-width:640px) { .promo-report-config { grid-template-columns:1fr; }.promo-report-config .secondary-button { width:100%; }.promo-report-setup-note { align-items:flex-start; flex-direction:column; }.promo-report-metrics { grid-template-columns:1fr; } }
 .performance-api-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .performance-api-heading > div { display:flex; flex-direction:column; gap:4px; }
 .performance-api-heading .eyebrow { margin:0; }

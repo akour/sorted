@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GooglePlayPromoInsights } from "./GooglePlayPromoInsights";
 import {
   buildPlayPerformanceRows,
   parsePlayConsoleCsv,
@@ -56,7 +57,7 @@ function errorMessage(value: unknown, fallback: string) {
   return value && typeof value === "object" && "error" in value && typeof value.error === "string" ? value.error : fallback;
 }
 
-export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void }) {
+export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments, onOpenConnections }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void; onOpenConnections: () => void }) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [imports, setImports] = useState<SavedImport[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -291,8 +292,10 @@ export function GooglePlayPerformanceImporter({ productId, productName, onOpenEx
       </>}
       {reportingError && <p className="performance-error" role="alert">{reportingError}</p>}
       {reportingNotice && <p className="performance-notice" role="status">{reportingNotice}</p>}
-      <p className="performance-api-footnote">App-quality data refreshes automatically when this page is opened if the last sync is more than 24 hours old; use Sync now at any time. Direct API reporting here is kept separate from listing clicks/CTR and promotional-event performance, which remain available through the report-import fallback.</p>
+      <p className="performance-api-footnote">App-quality data refreshes automatically when this page is opened if the last sync is more than 24 hours old; use Sync now at any time. Direct API reporting here is kept separate from listing clicks/CTR, and Google Play promotional-event outcomes sync separately from the private report bucket below.</p>
     </div>
+
+    <GooglePlayPromoInsights key={`promo-${productId}`} productId={productId} productName={productName} onOpenConnections={onOpenConnections} />
 
     <div className="performance-upload-row">
       <label className="performance-file-label">Import a listing report CSV (fallback)<input ref={uploadInputRef} type="file" accept=".csv,text/csv" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void chooseFile(file); }} /></label>
