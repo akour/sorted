@@ -72,6 +72,12 @@
 .workspace-appearance :is(.product-promo-icon, .product-switcher-all-mark, .option-card.selected, .variant-card.selected) { background: #edf3e2; border-color: #cddbbc; color: var(--ink); }
 .workspace-appearance .metric { padding: 22px; background: #fff; }
 .workspace-appearance .metric-label { color: var(--muted); font-size: 12px; }
+.workspace-appearance .pulse-card { background: var(--surface-muted); }
+.workspace-appearance .pulse-number { color: #6c855b; }
+.workspace-appearance .pulse-card strong, .workspace-appearance .row-copy strong { color: var(--ink); }
+.workspace-appearance .pulse-card p, .workspace-appearance .row-copy small { color: var(--muted); font-size: 12px; }
+.workspace-appearance .row-status { background: var(--surface-muted); color: var(--muted); font-size: 10px; }
+.workspace-appearance .product-row, .workspace-appearance .wide-button { border-color: var(--line); }
 .workspace-appearance :is(.metric-value, .metric strong) { color: var(--ink); font-weight: 550; font-variant-numeric: tabular-nums; }
 .workspace-appearance :is(.field-help, .char-count, .listing-source, .research-actions, .performance-intro, .performance-empty, .performance-row-note, .performance-api-footnote, .performance-caveat, .calendar-event-meta, .calendar-event-card small, .promo-calendar-hint) { color: var(--muted); font-size: 12px; line-height: 1.6; }
 .workspace-appearance .sorted-app :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-color: #cdd7c8; border-radius: 7px; color: var(--ink); font-size: 14px; line-height: 1.6; accent-color: var(--violet); }
