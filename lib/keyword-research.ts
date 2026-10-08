@@ -1,7 +1,7 @@
 export const KEYWORD_INTENTS = ["core", "feature", "problem", "audience"] as const;
 export const KEYWORD_STATUSES = ["shortlist", "tracking", "used", "avoid"] as const;
 export const KEYWORD_PLACEMENTS = ["not-planned", "title", "short-description", "long-description"] as const;
-export const KEYWORD_SOURCES = ["AI suggestion", "Play Console", "Manual"] as const;
+export const KEYWORD_SOURCES = ["Product brief", "AI suggestion", "Play Console", "Review language", "Competitor note", "Manual"] as const;
 
 export type KeywordIntent = typeof KEYWORD_INTENTS[number];
 export type KeywordStatus = typeof KEYWORD_STATUSES[number];
@@ -18,11 +18,19 @@ export type KeywordCandidate = {
   rationale: string;
 };
 
+export type CompetitorNote = {
+  id: string;
+  name: string;
+  url: string;
+  observation: string;
+};
+
 export type KeywordResearch = {
   productId: number;
   market: string;
   seedTerms: string[];
   keywords: KeywordCandidate[];
+  competitors: CompetitorNote[];
   notes: string;
   generatedAt?: string | null;
   updatedAt?: string;
@@ -30,6 +38,7 @@ export type KeywordResearch = {
 
 const phraseLimit = 80;
 const noteLimit = 240;
+const competitorLimit = 12;
 
 function isOneOf<T extends readonly string[]>(value: unknown, values: T): value is T[number] {
   return typeof value === "string" && values.includes(value);
@@ -41,6 +50,10 @@ function phraseKey(value: string) {
 
 export function keywordId(phrase: string) {
   return phraseKey(phrase).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 56) || `keyword-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function competitorNoteId(name: string) {
+  return `competitor-${keywordId(name)}`;
 }
 
 export function parseStringList(value: unknown, limit = 24) {
@@ -80,17 +93,40 @@ export function normalizeKeywords(value: unknown, limit = 40): KeywordCandidate[
   }).slice(0, limit);
 }
 
-export function parseKeywordResearch(value: { productId: number; market?: string | null; seedTerms?: string | null; keywords?: string | null; notes?: string | null; generatedAt?: string | null; updatedAt?: string | null } | undefined, productId: number): KeywordResearch {
+export function normalizeCompetitorNotes(value: unknown): CompetitorNote[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const item = entry as Record<string, unknown>;
+    const name = typeof item.name === "string" ? item.name.replace(/\s+/g, " ").trim().slice(0, 120) : "";
+    const key = phraseKey(name);
+    if (!name || seen.has(key)) return [];
+    seen.add(key);
+    const url = typeof item.url === "string" ? item.url.trim().slice(0, 500) : "";
+    return [{
+      id: typeof item.id === "string" && /^[a-z0-9-]{1,88}$/i.test(item.id) ? item.id : competitorNoteId(name),
+      name,
+      url,
+      observation: typeof item.observation === "string" ? item.observation.trim().slice(0, 500) : "",
+    } satisfies CompetitorNote];
+  }).slice(0, competitorLimit);
+}
+
+export function parseKeywordResearch(value: { productId: number; market?: string | null; seedTerms?: string | null; keywords?: string | null; competitors?: string | null; notes?: string | null; generatedAt?: string | null; updatedAt?: string | null } | undefined, productId: number): KeywordResearch {
   if (!value) return emptyKeywordResearch(productId);
   let seedTerms: unknown = [];
   let keywords: unknown = [];
+  let competitors: unknown = [];
   try { seedTerms = JSON.parse(value.seedTerms ?? "[]"); } catch { /* keep empty */ }
   try { keywords = JSON.parse(value.keywords ?? "[]"); } catch { /* keep empty */ }
+  try { competitors = JSON.parse(value.competitors ?? "[]"); } catch { /* keep empty */ }
   return {
     productId,
     market: typeof value.market === "string" && value.market.trim() ? value.market.trim().slice(0, 40) : "en-US",
     seedTerms: parseStringList(seedTerms),
     keywords: normalizeKeywords(keywords),
+    competitors: normalizeCompetitorNotes(competitors),
     notes: typeof value.notes === "string" ? value.notes.trim().slice(0, 2_000) : "",
     generatedAt: value.generatedAt ?? undefined,
     updatedAt: value.updatedAt ?? undefined,
@@ -98,7 +134,7 @@ export function parseKeywordResearch(value: { productId: number; market?: string
 }
 
 export function emptyKeywordResearch(productId: number): KeywordResearch {
-  return { productId, market: "en-US", seedTerms: [], keywords: [], notes: "" };
+  return { productId, market: "en-US", seedTerms: [], keywords: [], competitors: [], notes: "" };
 }
 
 export function keywordResearchStorage(research: KeywordResearch) {
@@ -106,6 +142,7 @@ export function keywordResearchStorage(research: KeywordResearch) {
     market: research.market.trim().slice(0, 40) || "en-US",
     seedTerms: JSON.stringify(parseStringList(research.seedTerms)),
     keywords: JSON.stringify(normalizeKeywords(research.keywords)),
+    competitors: JSON.stringify(normalizeCompetitorNotes(research.competitors)),
     notes: research.notes.trim().slice(0, 2_000),
   };
 }
@@ -130,7 +167,7 @@ export function starterKeywords(input: { seedTerms: string[]; semanticCore?: str
     intent: index === 0 ? "core" as const : "feature" as const,
     status: "shortlist" as const,
     placement: "not-planned" as const,
-    source: "AI suggestion" as const,
+    source: "Product brief" as const,
     rationale: "Starter hypothesis based on your product brief or current store context. Validate it against the product and real search data.",
   }));
 }

@@ -1,18 +1,32 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../../db";
-import { googlePlayPerformanceRows, keywordResearches, products } from "../../../../../db/schema";
+import { googlePlayPerformanceRows, keywordResearches, optimizationPlans, products } from "../../../../../db/schema";
 import { emptyKeywordResearch, keywordResearchStorage, observedKeywordCandidates, parseKeywordResearch, type KeywordResearch } from "../../../../../lib/keyword-research";
 
 async function readKeywordResearch(productId: number, ownerId: string) {
   const db = getDb();
-  const [saved, searchRows] = await Promise.all([
+  const [saved, searchRows, plans] = await Promise.all([
     db.select().from(keywordResearches).where(and(eq(keywordResearches.productId, productId), eq(keywordResearches.ownerId, ownerId))).limit(1),
     db.select({ searchTerm: googlePlayPerformanceRows.searchTerm }).from(googlePlayPerformanceRows)
       .where(and(eq(googlePlayPerformanceRows.productId, productId), eq(googlePlayPerformanceRows.ownerId, ownerId))).limit(200),
+    db.select().from(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId))).limit(1),
   ]);
   const research = parseKeywordResearch(saved[0], productId);
-  return { research, observed: observedKeywordCandidates(searchRows.map((row) => row.searchTerm), research.keywords) };
+  const plan = plans[0];
+  let currentListing: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(plan?.currentListing ?? "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) currentListing = parsed as Record<string, unknown>;
+  } catch {
+    // Listing coverage is optional evidence. A malformed old row should not block research.
+  }
+  const field = (value: unknown) => typeof value === "string" ? value.trim() : "";
+  const listing = {
+    current: { title: field(currentListing.title), shortDescription: field(currentListing.shortDescription), longDescription: field(currentListing.longDescription ?? currentListing.fullDescription) },
+    draft: { title: field(plan?.storeTitle), shortDescription: field(plan?.storeShortDescription), longDescription: field(plan?.storeLongDescription) },
+  };
+  return { research, observed: observedKeywordCandidates(searchRows.map((row) => row.searchTerm), research.keywords), listing };
 }
 
 async function ownerHasProduct(productId: number, ownerId: string) {

@@ -99,6 +99,7 @@ export const keywordResearches = sqliteTable("keyword_researches", {
   market: text("market").notNull().default("en-US"),
   seedTerms: text("seed_terms").notNull().default("[]"),
   keywords: text("keywords").notNull().default("[]"),
+  competitors: text("competitors").notNull().default("[]"),
   notes: text("notes").notNull().default(""),
   generatedAt: text("generated_at"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),

@@ -12,6 +12,12 @@ export type GooglePlayOAuthTokens = {
   accountEmail: string;
 };
 
+export type GooglePlayReviewLanguage = {
+  text: string;
+  rating: number | null;
+  language: string;
+};
+
 export function createGooglePlayOAuthState(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   let binary = "";
@@ -135,6 +141,38 @@ export async function fetchGooglePlayListingWithAccessToken(accessToken: string,
   } finally {
     await fetch(`${GOOGLE_PLAY_API_ROOT}/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}`, { method: "DELETE", headers: { authorization: `Bearer ${accessToken}` } }).catch(() => undefined);
   }
+}
+
+// Review bodies are returned only to the product owner and are deliberately
+// not written to D1. They are evidence a person can turn into a short phrase,
+// not training data or a source of fabricated keyword metrics.
+export async function fetchGooglePlayReviewLanguageWithAccessToken(accessToken: string, packageNameInput: string, localeInput: string): Promise<GooglePlayReviewLanguage[]> {
+  const packageName = packageNameInput.trim();
+  if (!packageName) throw new Error("A Google Play package name is required to read reviews.");
+  const query = new URLSearchParams({ maxResults: "100" });
+  const translationLanguage = localeInput.trim().split("-")[0];
+  if (translationLanguage) query.set("translationLanguage", translationLanguage);
+  const payload = await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/reviews?${query.toString()}`, accessToken) as { reviews?: unknown[] };
+  const seen = new Set<string>();
+  const language: GooglePlayReviewLanguage[] = [];
+  for (const review of Array.isArray(payload.reviews) ? payload.reviews : []) {
+    if (!review || typeof review !== "object" || Array.isArray(review)) continue;
+    const comments = Array.isArray((review as { comments?: unknown }).comments) ? (review as { comments: unknown[] }).comments : [];
+    for (const comment of comments) {
+      if (!comment || typeof comment !== "object" || Array.isArray(comment)) continue;
+      const userComment = (comment as { userComment?: unknown }).userComment;
+      if (!userComment || typeof userComment !== "object" || Array.isArray(userComment)) continue;
+      const item = userComment as Record<string, unknown>;
+      const text = typeof item.text === "string" ? item.text.replace(/\s+/g, " ").trim().slice(0, 600) : "";
+      const key = text.toLocaleLowerCase();
+      if (!text || seen.has(key)) continue;
+      seen.add(key);
+      const starRating = typeof item.starRating === "number" && Number.isInteger(item.starRating) && item.starRating >= 1 && item.starRating <= 5 ? item.starRating : null;
+      language.push({ text, rating: starRating, language: typeof item.reviewerLanguage === "string" ? item.reviewerLanguage.trim().slice(0, 24) : "" });
+      if (language.length >= 40) return language;
+    }
+  }
+  return language;
 }
 
 export async function revokeGooglePlayRefreshToken(refreshToken: string): Promise<void> {
