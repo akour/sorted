@@ -582,7 +582,7 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 
 
 /* Administrator-controlled workspace appearance */
-.appearance-theme { --violet:#6154c7; --violet-dark:#4e42a8; }
+.appearance-theme { --violet:#173c36; --violet-dark:#102e29; }
 .appearance-theme[data-accent="ocean"] { --violet:#2676ad; --violet-dark:#1d5e8d; }
 .appearance-theme[data-accent="evergreen"] { --violet:#247b63; --violet-dark:#1b624f; }
 .appearance-theme[data-accent="terracotta"] { --violet:#a95032; --violet-dark:#873f29; }

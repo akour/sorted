@@ -3,7 +3,8 @@ import { getDb } from "@/db";
 import { adminWorkspaceAppearance } from "@/db/schema";
 
 export const WORKSPACE_ACCENTS = {
-  violet: { label: "Sorted violet", color: "#6154c7", dark: "#4e42a8" },
+  // Keep the stored signature-accent key compatible with existing preferences.
+  violet: { label: "Sorted forest", color: "#173c36", dark: "#102e29" },
   ocean: { label: "Ocean blue", color: "#2676ad", dark: "#1d5e8d" },
   evergreen: { label: "Evergreen", color: "#247b63", dark: "#1b624f" },
   terracotta: { label: "Terracotta", color: "#a95032", dark: "#873f29" },

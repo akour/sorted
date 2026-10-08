@@ -32,7 +32,7 @@ type Appearance = AppearanceValues & { updatedAt: string | null };
 
 const defaultAppearance: AppearanceValues = { accent: "violet", density: "comfortable", corners: "soft" };
 const appearanceAccents: Array<{ id: AppearanceValues["accent"]; label: string; color: string; note: string }> = [
-  { id: "violet", label: "Sorted violet", color: "#6154c7", note: "The signature accent" },
+  { id: "violet", label: "Sorted forest", color: "#173c36", note: "The signature accent" },
   { id: "ocean", label: "Ocean blue", color: "#2676ad", note: "Cool and focused" },
   { id: "evergreen", label: "Evergreen", color: "#247b63", note: "Calm and grounded" },
   { id: "terracotta", label: "Terracotta", color: "#a95032", note: "Warm and energetic" },

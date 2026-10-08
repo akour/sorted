@@ -1,0 +1,138 @@
+/* The public site's forest, paper and lime palette, scaled for a working app.
+   Accent, density and corner preferences continue to come from the admin UI. */
+.workspace-appearance {
+  --ink: #173c36;
+  --muted: #596b62;
+  --text-subtle: #63736a;
+  --paper: #fafbf7;
+  --line: #dce2d9;
+  --surface-muted: #f2f5ed;
+  --shadow-soft: 0 2px 8px #173c3605;
+  --radius-panel: 12px;
+  --radius-card: 10px;
+  --workspace-lime: #d5ee9b;
+  --workspace-tint: color-mix(in srgb, var(--violet) 6%, white);
+  font: 14px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.workspace-appearance .sorted-app { background: var(--paper); color: var(--ink); }
+.workspace-appearance .sorted-main { min-width: 0; }
+.workspace-appearance .sorted-content { width: 100%; max-width: 1520px; padding-inline: clamp(24px, 3.5vw, 56px); }
+.workspace-appearance .sorted-sidebar {
+  width: 252px;
+  flex-basis: 252px;
+  background: #173c36;
+  color: #e4ecdf;
+  border-color: #173c36;
+  padding: 30px 16px 24px;
+  scrollbar-color: #58766a #173c36;
+}
+.workspace-appearance .sorted-brand { gap: 11px; padding: 2px 12px 34px; color: #fafbf7; }
+.workspace-appearance .sorted-brand strong { font-size: 30px; font-weight: 750; letter-spacing: -.075em; }
+.workspace-appearance .sorted-brand small { color: #becdbf; font-size: 9px; margin-top: 9px; letter-spacing: .09em; }
+.workspace-brand-dot { color: var(--workspace-lime); }
+.workspace-brand-mark { display: flex; flex: none; align-items: center; justify-content: center; gap: 3px; width: 30px; height: 32px; transform: rotate(-13deg); color: var(--workspace-lime); }
+.workspace-brand-mark i { display: block; width: 5px; height: 16px; border-radius: 4px; background: currentColor; }
+.workspace-brand-mark i:nth-child(2) { height: 28px; }
+.workspace-brand-mark i:nth-child(3) { height: 21px; }
+.workspace-appearance .sorted-sidebar .nav-label,
+.workspace-appearance .sorted-sidebar .product-switcher-label { color: #b6c8bb; font-size: 10px; letter-spacing: .12em; }
+.workspace-appearance .sorted-sidebar .nav-divider { background: #ffffff24; margin-block: 20px; }
+.workspace-appearance .sorted-sidebar .nav-item { min-height: 46px; margin-block: 4px; border-radius: 7px; color: #d0ddd2; font-size: 13px; font-weight: 500; }
+.workspace-appearance .sorted-sidebar .nav-item:hover { background: #ffffff12; color: #fff; }
+.workspace-appearance .sorted-sidebar .nav-item.active { background: var(--workspace-lime); color: #173c36; font-weight: 650; }
+.workspace-appearance .nav-icon { display: inline-flex; align-items: center; justify-content: center; }
+.workspace-appearance .sorted-sidebar .product-switcher-trigger { min-height: 60px; border-color: #537066; background: #244a41; }
+.workspace-appearance .sorted-sidebar .product-switcher-current strong { color: #fafbf7; font-size: 13px; }
+.workspace-appearance .sorted-sidebar .product-switcher-current small,
+.workspace-appearance .sorted-sidebar .product-switcher-chevron { color: #c5d3c7; font-size: 11px; }
+.workspace-appearance .product-switcher-all-mark { background: #eaf1de; color: #173c36; }
+.workspace-appearance .product-switcher-menu { border-color: var(--line); box-shadow: 0 18px 45px #102e2929; padding: 12px; }
+.workspace-appearance .product-switcher-option { min-height: 48px; }
+.workspace-appearance .product-switcher-option-copy strong { color: var(--ink); font-size: 12px; }
+.workspace-appearance .product-switcher-option-copy small { color: var(--muted); font-size: 11px; }
+.workspace-appearance .product-switcher-option:is(:hover, .selected) { background: var(--surface-muted); border-color: var(--line); }
+.workspace-appearance .product-switcher-manage { font-size: 12px; min-height: 40px; border-color: var(--line); }
+.workspace-appearance .sorted-topbar { height: 72px; padding-inline: clamp(24px, 3.5vw, 56px); border-color: var(--line); background: #fafbf7ed; }
+.workspace-appearance .crumb { color: var(--muted); font-size: 13px; }
+.workspace-appearance :is(.breadcrumb-link, .breadcrumb-current) { color: var(--ink); }
+.workspace-appearance .icon-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); }
+.workspace-appearance :is(.content-heading h1, .listing-heading h2) { color: var(--ink); font-size: clamp(28px, 2.7vw, 38px); font-weight: 550; letter-spacing: -.045em; line-height: 1.2; }
+.workspace-appearance :is(.section-intro h2, .panel h2, .module-heading h2, .foundation-title h2, .workflow-heading h2, .event-studio-heading h3, .listing-editor-toolbar h3, .promo-calendar-heading h3) { color: var(--ink); font-weight: 550; letter-spacing: -.025em; }
+.workspace-appearance :is(.subheading, .section-intro p:not(.eyebrow), .listing-heading p, .listing-editor-toolbar p) { color: var(--muted); font-size: 14px; line-height: 1.7; }
+.workspace-appearance .eyebrow { color: #62785d; font: 500 10px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .12em; }
+.workspace-appearance :is(.panel, .product-card, .add-card, .foundation, .module-card, .research-main, .research-side-card, .calendar-list-panel, .calendar-studio, .event-card, .create-card, .optimize-card, .publish-card, .report-panel, .report-guide, .workspace-progress, .metric, .listing-editor-card, .listing-context, .product-job-card) { border-color: var(--line); border-radius: var(--radius-panel); box-shadow: var(--shadow-soft); }
+.workspace-appearance :is(.product-card h3, .product-job-card strong, .module-card h3, .listing-context h3, .event-card-heading h3) { color: var(--ink); font-weight: 600; }
+.workspace-appearance :is(.product-card p, .product-job-card span, .module-card p, .listing-context p, .research-side-card p:not(.eyebrow), .report-guide > p:not(.eyebrow)) { color: var(--muted); line-height: 1.7; }
+.workspace-appearance .product-job-card { padding: 28px; gap: 12px; transition: border-color .16s, box-shadow .16s; }
+.workspace-appearance .product-job-card:hover { background: #fff; border-color: #9eb58c; box-shadow: 0 8px 24px #173c360c; }
+.workspace-appearance .product-job-card.featured { background: #edf3e2; border-color: #cddbbc; }
+.workspace-appearance .product-job-card :is(small, b) { color: var(--violet-dark); }
+.workspace-appearance :is(.listing-context, .research-side-card, .report-guide, .ai-event-brief-card) { background: #f1f5e8; }
+.workspace-appearance :is(.product-promo-link, .validation-summary:not(.has-errors), .performance-insights, .performance-api-panel, .performance-next-test, .performance-source-note, .promo-workflow) { background: var(--workspace-tint); border-color: var(--line); box-shadow: none; }
+.workspace-appearance :is(.product-promo-icon, .product-switcher-all-mark, .option-card.selected, .variant-card.selected) { background: #edf3e2; border-color: #cddbbc; color: var(--ink); }
+.workspace-appearance .metric { padding: 22px; background: #fff; }
+.workspace-appearance .metric-label { color: var(--muted); font-size: 12px; }
+.workspace-appearance :is(.metric-value, .metric strong) { color: var(--ink); font-weight: 550; font-variant-numeric: tabular-nums; }
+.workspace-appearance :is(.field-help, .char-count, .listing-source, .research-actions, .performance-intro, .performance-empty, .performance-row-note, .performance-api-footnote, .performance-caveat, .calendar-event-meta, .calendar-event-card small, .promo-calendar-hint) { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.workspace-appearance .sorted-app :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-color: #cdd7c8; border-radius: 7px; color: var(--ink); font-size: 14px; line-height: 1.6; accent-color: var(--violet); }
+.workspace-appearance .sorted-app :is(input, textarea)::placeholder { color: #748074; }
+.workspace-appearance .sorted-app :is(input, select, textarea):focus { border-color: var(--violet); box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 12%, transparent); }
+.workspace-appearance .sorted-app :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid #7c9d5e; outline-offset: 3px; }
+.workspace-appearance .sorted-sidebar :is(button, input):focus-visible { outline-color: var(--workspace-lime); }
+.workspace-appearance .sorted-app :is(.primary-button, .secondary-button) { min-height: 44px; padding-inline: 18px; border-radius: 7px; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.workspace-appearance .sorted-app .primary-button { background: var(--violet); border-color: var(--violet); color: white; }
+.workspace-appearance .sorted-app .primary-button:hover:not(:disabled) { background: var(--violet-dark); border-color: var(--violet-dark); }
+.workspace-appearance .sorted-app .secondary-button { color: var(--ink); border-color: var(--line); background: white; }
+.workspace-appearance .sorted-app .secondary-button:hover:not(:disabled) { background: var(--surface-muted); border-color: #a8bba0; color: var(--violet-dark); }
+.workspace-appearance .sorted-app .ai-action-button { background: #edf3e2; border: 1px solid #c6d6b3; color: #244a35; box-shadow: none; }
+.workspace-appearance .sorted-app .ai-action-button:hover:not(:disabled) { background: var(--workspace-lime); color: #173c36; border-color: #b6cd94; }
+.workspace-appearance :is(.listing-sections, .promotion-tabs, .event-tabs, .optimize-tabs, .promo-calendar-view-toggle) { border-color: var(--line); background: var(--surface-muted); border-radius: 9px; }
+.workspace-appearance :is(.listing-sections, .promotion-tabs, .event-tabs, .optimize-tabs) button { color: var(--muted); font-size: 13px; }
+.workspace-appearance :is(.listing-sections, .promotion-tabs, .event-tabs, .optimize-tabs, .promo-calendar-view-toggle) button.active { background: white; color: var(--violet-dark); border-color: var(--violet); box-shadow: 0 1px 3px #173c360c; }
+.workspace-appearance .listing-sections { flex-wrap: wrap; }
+.workspace-appearance .listing-field label { color: var(--ink); }
+.workspace-appearance .listing-previous { background: var(--surface-muted); border-color: var(--line); }
+.workspace-appearance .listing-action-bar { background: #fafbf7f5; border-color: var(--line); padding: 16px 0; gap: 16px; }
+.workspace-appearance .listing-action-bar > span { color: var(--muted); font-size: 12px; }
+.workspace-appearance .listing-context { padding: 24px; }
+.workspace-appearance .performance-table { color: var(--ink); font-size: 12px; }
+.workspace-appearance .performance-table th { color: var(--muted); font-size: 11px; background: var(--surface-muted); }
+.workspace-appearance .performance-table :is(th, td) { padding: 12px; border-color: var(--line); }
+.workspace-appearance .performance-quality-card span { color: var(--muted); font-size: 12px; }
+.workspace-appearance .performance-quality-card strong { color: var(--ink); font-size: 22px; font-weight: 550; }
+.workspace-appearance :is(.promo-calendar-scroll, .promo-calendar-arrow, .promo-calendar-day) { border-color: var(--line); }
+.workspace-appearance .promo-calendar-weekdays { background: var(--surface-muted); }
+.workspace-appearance .promo-calendar-weekdays > div { color: var(--muted); border-color: var(--line); font: 500 11px/1.6 ui-monospace, monospace; }
+.workspace-appearance .promo-calendar-day.today { background: #f1f5e8; }
+.workspace-appearance .promo-calendar-day.outside-month { background: #f7f8f4; }
+.workspace-appearance .promo-calendar-heading span { color: var(--muted); font-size: 12px; }
+.workspace-appearance :is(.modal, .search-dialog) { border-color: var(--line); border-radius: 14px; box-shadow: 0 24px 80px #173c362e; }
+.workspace-appearance :is(.modal h2, .search-dialog h2) { color: var(--ink); font-weight: 550; }
+.workspace-appearance .modal label { color: var(--ink); }
+.workspace-appearance .modal-backdrop,
+.workspace-appearance .search-backdrop { background: #102e296b; backdrop-filter: blur(5px); }
+.workspace-appearance .mobile-navigation { background: var(--paper); border-color: var(--line); z-index: 6; top: 60px; }
+.workspace-appearance .mobile-nav-item { color: var(--muted); gap: 7px; }
+.workspace-appearance .mobile-nav-item.active { background: #edf3e2; color: var(--violet-dark); }
+.workspace-appearance[data-corners="crisp"] :is(.listing-editor-card, .listing-context, .product-job-card, .calendar-studio, .modal) { border-radius: 7px; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .workspace-appearance .sorted-sidebar { width: 218px; flex-basis: 218px; padding-inline: 12px; }
+  .workspace-appearance .sorted-brand { justify-content: flex-start; }
+  .workspace-appearance .sorted-brand > span:last-child { display: block; }
+  .workspace-appearance .sorted-sidebar .nav-label { display: block; }
+  .workspace-appearance .sorted-sidebar .nav-item { justify-content: flex-start; font-size: 13px; }
+}
+@media (max-width: 760px) {
+  .workspace-appearance .sorted-sidebar { display: none; }
+  .workspace-appearance .sorted-topbar { height: 60px; padding-inline: 20px; }
+  .workspace-appearance .sorted-content { padding-inline: 20px; }
+  .workspace-appearance[data-density="comfortable"] .sorted-content { padding-top: 28px; }
+  .workspace-appearance .sorted-app :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: 16px; }
+  .workspace-appearance .mobile-navigation .product-switcher-current strong { color: var(--ink); font-size: 13px; }
+}
+@media (max-width: 480px) {
+  .workspace-appearance .sorted-content { padding-inline: 16px; }
+  .workspace-appearance .sorted-app :is(.primary-button, .secondary-button) { white-space: normal; }
+  .workspace-appearance .listing-action-bar > div { display: flex; flex-wrap: wrap; gap: 8px; }
+  .workspace-appearance .listing-action-bar > div button { flex: 1; }
+}

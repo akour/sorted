@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { House, Layers3, CalendarDays, ChartNoAxesCombined, Settings2, Link2, FileText, Sparkles, Upload, Search } from "lucide-react";
 import Image from "next/image";
 import { ListingWorkspace } from "../../components/ListingWorkspace";
 import { useWorkspaceLocation } from "../../hooks/useWorkspaceLocation";
@@ -66,27 +67,27 @@ type ReportProduct = Product & { foundationReady: boolean; publishStatus: string
 type ReportsData = { summary: { products: number; foundationReady: number; completeWorkspaces: number; readyForHandoff: number; promoEvents: number }; products: ReportProduct[] };
 type ValidationCheck = { label: string; detail: string; valid: boolean };
 
-type NavigationItem = { label: string; icon: string; view: string };
+type NavigationItem = { label: string; icon: ReactNode; view: string };
 
 const workspaceNavItems: NavigationItem[] = [
-  { label: "Overview", icon: "⌂", view: "Overview" },
-  { label: "Products", icon: "◇", view: "Products" },
-  { label: "Calendar", icon: "□", view: "Calendar" },
-  { label: "Reports", icon: "◒", view: "Reports" },
+  { label: "Overview", icon: <House size={18} />, view: "Overview" },
+  { label: "Products", icon: <Layers3 size={18} />, view: "Products" },
+  { label: "Calendar", icon: <CalendarDays size={18} />, view: "Calendar" },
+  { label: "Reports", icon: <ChartNoAxesCombined size={18} />, view: "Reports" },
 ];
 
 const productNavItems: NavigationItem[] = [
-  { label: "Overview", icon: "⌂", view: "Product workspace" },
-  { label: "Store listing", icon: "↗", view: "Optimize" },
-  { label: "Promotions", icon: "□", view: "Calendar" },
-  { label: "Results", icon: "◒", view: "Results" },
-  { label: "Product settings", icon: "⚙", view: "Settings" },
+  { label: "Overview", icon: <House size={18} />, view: "Product workspace" },
+  { label: "Store listing", icon: <FileText size={18} />, view: "Optimize" },
+  { label: "Promotions", icon: <CalendarDays size={18} />, view: "Calendar" },
+  { label: "Results", icon: <ChartNoAxesCombined size={18} />, view: "Results" },
+  { label: "Product settings", icon: <Settings2 size={18} />, view: "Settings" },
 ];
 const secondaryProductItems: NavigationItem[] = [
-  { label: "Store connection", icon: "◎", view: "Connections" },
-  { label: "Product brief", icon: "⌕", view: "Research" },
-  { label: "Saved creative briefs", icon: "✦", view: "Create" },
-  { label: "Legacy export checklist", icon: "⇧", view: "Publish" },
+  { label: "Store connection", icon: <Link2 size={18} />, view: "Connections" },
+  { label: "Product brief", icon: <FileText size={18} />, view: "Research" },
+  { label: "Saved creative briefs", icon: <Sparkles size={18} />, view: "Create" },
+  { label: "Legacy export checklist", icon: <Upload size={18} />, view: "Publish" },
 ];
 
 const promoStages: Array<{ id: PromoStageKey; label: string }> = [
@@ -1063,8 +1064,8 @@ export default function Home() {
     <main className="sorted-app">
       <aside className="sorted-sidebar">
         <button className="sorted-brand" onClick={() => chooseView("Overview")} type="button" aria-label="Go to Sorted overview">
-          <span className="brand-mark">3</span>
-          <span><strong>sort3d</strong><small>organic growth workspace</small></span>
+          <span className="workspace-brand-mark" aria-hidden="true"><i /><i /><i /></span>
+          <span><strong>sorted<span className="workspace-brand-dot">.</span></strong><small>organic growth workspace</small></span>
         </button>
         <ProductSwitcher products={products} activeProduct={activeProduct} onSelectProduct={selectWorkspaceScope} onManageProducts={() => chooseView("Products")} />
         <nav className="sorted-nav" aria-label="Primary navigation">
@@ -1096,7 +1097,7 @@ export default function Home() {
                 <span className="breadcrumb-section-arrow" aria-hidden="true">⌄</span>
               </label>
             </> : <span className="breadcrumb-current" aria-current="page">{view}</span>}
-          </nav><div className="top-actions"><button className="icon-button" type="button" aria-label="Search workspace" onClick={() => setSearchOpen(true)}>⌕</button></div></header>
+          </nav><div className="top-actions"><button className="icon-button" type="button" aria-label="Search workspace" onClick={() => setSearchOpen(true)}><Search size={19} aria-hidden="true" /></button></div></header>
           <nav className="mobile-navigation" aria-label="Workspace navigation">
             <ProductSwitcher products={products} activeProduct={activeProduct} onSelectProduct={selectWorkspaceScope} onManageProducts={() => chooseView("Products")} mobile />
             {!activeProduct && <div className="mobile-nav-group" role="group" aria-label="Account sections">

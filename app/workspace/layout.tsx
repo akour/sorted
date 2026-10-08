@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getOwnerId } from "@/lib/owner";
 import { readWorkspaceAppearance } from "@/lib/workspace-appearance";
 import { privateMetadata } from "@/lib/marketing-seo";
+import "./workspace.css";
 
 export const metadata = privateMetadata;
 
