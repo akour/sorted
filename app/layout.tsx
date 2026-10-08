@@ -5,6 +5,7 @@ import "./auth.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sort3d.space"),
+  verification: { google: "MVjA13pzwEvV2RZ-NbyHdcQx6AR6g5oUhAtkm09zIUw" },
   title: { default: "Sorted — ASO & Organic Growth for Apps and Games", template: "%s | Sorted" },
   description: "Google Play ASO, listing localization, and promotional content planning in one workspace for mobile app and game teams.",
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
