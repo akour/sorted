@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 const sections: Record<string, string> = {
   "Product workspace": "overview", Optimize: "listing", Calendar: "calendar",
   Results: "results", Settings: "settings", Connections: "connection",
-  Research: "brief", Create: "creative", Publish: "legacy-export",
+  Research: "brief", Keywords: "keywords", Create: "creative", Publish: "legacy-export",
   Overview: "portfolio", Products: "products", Reports: "reports",
 };
 

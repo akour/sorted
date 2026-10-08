@@ -142,3 +142,92 @@
   .workspace-appearance .listing-action-bar > div { display: flex; flex-wrap: wrap; gap: 8px; }
   .workspace-appearance .listing-action-bar > div button { flex: 1; }
 }
+
+/* Keyword research is intentionally a decision workspace: it supports ASO
+   planning without fabricating traffic, difficulty, or ranking metrics. */
+.workspace-appearance .keyword-research-workspace { max-width: 1380px; padding-bottom: 44px; }
+.workspace-appearance .keyword-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.workspace-appearance .keyword-heading h2 { margin: 0; color: var(--ink); font-size: clamp(28px, 2.7vw, 38px); font-weight: 550; letter-spacing: -.045em; line-height: 1.2; }
+.workspace-appearance .keyword-heading p:not(.eyebrow) { max-width: 620px; margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+.workspace-appearance .keyword-heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+.workspace-appearance .keyword-heading-actions button { white-space: nowrap; }
+.workspace-appearance .keyword-disclosure { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding: 13px 16px; border: 1px solid #cbd9b8; border-radius: 10px; background: #f1f5e8; color: #345744; }
+.workspace-appearance .keyword-disclosure svg { flex: none; margin-top: 2px; color: #5a7f45; }
+.workspace-appearance .keyword-disclosure p { margin: 0; color: #4d6354; font-size: 12px; line-height: 1.65; }
+.workspace-appearance .keyword-disclosure strong { color: var(--ink); }
+.workspace-appearance .keyword-banner { margin: 0 0 16px; }
+.workspace-appearance .notice.keyword-banner { display: flex; align-items: center; gap: 8px; }
+.workspace-appearance .keyword-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.workspace-appearance .keyword-metric { min-height: 118px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: #fff; box-shadow: var(--shadow-soft); }
+.workspace-appearance .keyword-metric strong { display: block; color: var(--ink); font-size: 28px; font-weight: 550; letter-spacing: -.05em; line-height: 1; }
+.workspace-appearance .keyword-metric span { display: block; margin-top: 13px; color: var(--ink); font-size: 12px; font-weight: 650; }
+.workspace-appearance .keyword-metric small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+.workspace-appearance .keyword-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 18px; }
+.workspace-appearance .keyword-main, .workspace-appearance .keyword-sidebar { display: grid; gap: 18px; }
+.workspace-appearance .keyword-panel, .workspace-appearance .keyword-side-card { border: 1px solid var(--line); border-radius: var(--radius-panel); background: #fff; box-shadow: var(--shadow-soft); }
+.workspace-appearance .keyword-panel { padding: 24px; }
+.workspace-appearance .keyword-panel-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 21px; }
+.workspace-appearance .keyword-panel-heading > svg { flex: none; color: #5e7d4b; }
+.workspace-appearance .keyword-panel-heading h3, .workspace-appearance .keyword-side-card h3 { margin: 3px 0 0; color: var(--ink); font-size: 18px; font-weight: 600; letter-spacing: -.025em; }
+.workspace-appearance .keyword-panel-heading p:not(.eyebrow), .workspace-appearance .keyword-side-card p:not(.eyebrow) { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.workspace-appearance .keyword-input-grid { display: grid; grid-template-columns: minmax(180px, .42fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.workspace-appearance .keyword-input-grid label, .workspace-appearance .keyword-notes label { display: grid; gap: 7px; color: var(--ink); font-size: 12px; font-weight: 650; }
+.workspace-appearance .keyword-input-grid textarea { min-height: 88px; resize: vertical; }
+.workspace-appearance .keyword-add-button { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 10px; border: 1px solid #c7d8b2; border-radius: 7px; background: #f1f5e8; color: #315942; font-size: 12px; font-weight: 650; }
+.workspace-appearance .keyword-add-button:hover { background: var(--workspace-lime); }
+.workspace-appearance .keyword-quick-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; margin: -5px 0 16px; }
+.workspace-appearance .keyword-quick-add .secondary-button { min-height: 42px; }
+.workspace-appearance .keyword-table { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
+.workspace-appearance .keyword-table-header, .workspace-appearance .keyword-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) 120px 104px 148px minmax(180px, 1.5fr) 34px; gap: 8px; align-items: center; }
+.workspace-appearance .keyword-table-header { padding: 10px 12px; background: var(--surface-muted); color: var(--muted); font: 600 10px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.workspace-appearance .keyword-row { position: relative; padding: 9px 12px 26px; border-top: 1px solid var(--line); background: #fff; }
+.workspace-appearance .keyword-row:focus-within { z-index: 1; background: #fcfdf9; box-shadow: inset 3px 0 0 var(--violet); }
+.workspace-appearance .keyword-row input, .workspace-appearance .keyword-row select { min-width: 0; width: 100%; min-height: 36px; padding: 0 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); font-size: 12px; }
+.workspace-appearance .keyword-row input:hover, .workspace-appearance .keyword-row select:hover { border-color: var(--line); background: var(--surface-muted); }
+.workspace-appearance .keyword-row input:focus, .workspace-appearance .keyword-row select:focus { border-color: var(--violet); background: #fff; }
+.workspace-appearance .keyword-row input:first-child { font-weight: 650; }
+.workspace-appearance .keyword-remove { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #829087; }
+.workspace-appearance .keyword-remove:hover { background: #fff1f1; color: #ab5656; }
+.workspace-appearance .keyword-source { position: absolute; bottom: 7px; left: 20px; color: #718077; font-size: 10px; }
+.workspace-appearance .keyword-row.keyword-used { background: #f8fbf3; }
+.workspace-appearance .keyword-row.keyword-avoid { opacity: .68; background: #fafafa; }
+.workspace-appearance .keyword-empty { display: flex; align-items: flex-start; gap: 12px; padding: 32px 10px 18px; color: var(--muted); }
+.workspace-appearance .keyword-empty svg { flex: none; color: #658952; }
+.workspace-appearance .keyword-empty strong { color: var(--ink); font-size: 13px; }
+.workspace-appearance .keyword-empty p { max-width: 500px; margin: 5px 0 0; font-size: 12px; line-height: 1.65; }
+.workspace-appearance .keyword-notes { padding: 18px 24px; }
+.workspace-appearance .keyword-notes label > span { display: flex; align-items: center; gap: 7px; }
+.workspace-appearance .keyword-notes small { color: var(--muted); font-weight: 400; }
+.workspace-appearance .keyword-notes textarea { resize: vertical; }
+.workspace-appearance .keyword-save-bar { position: sticky; bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 10px; background: #fafbf7f5; box-shadow: 0 8px 26px #173c3610; backdrop-filter: blur(8px); }
+.workspace-appearance .keyword-save-bar span { color: var(--muted); font-size: 12px; }
+.workspace-appearance .keyword-side-card { padding: 20px; }
+.workspace-appearance .keyword-side-card ol { display: grid; gap: 11px; margin: 17px 0 0; padding: 0; list-style: none; counter-reset: keyword-steps; }
+.workspace-appearance .keyword-side-card li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; counter-increment: keyword-steps; }
+.workspace-appearance .keyword-side-card li::before { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #edf3e2; color: #396046; content: counter(keyword-steps); font-size: 10px; font-weight: 700; }
+.workspace-appearance .keyword-side-card li b { color: var(--ink); }
+.workspace-appearance .keyword-policy { background: #f1f5e8; border-color: #d3e0c3; }
+.workspace-appearance .keyword-observed > div { display: grid; gap: 7px; margin-top: 13px; }
+.workspace-appearance .keyword-observed button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 37px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); font-size: 12px; text-align: left; }
+.workspace-appearance .keyword-observed button:hover { border-color: #aac391; background: #fff; }
+.workspace-appearance .keyword-observed button svg { color: #568242; }
+@media (max-width: 1050px) {
+  .workspace-appearance .keyword-layout { grid-template-columns: 1fr; }
+  .workspace-appearance .keyword-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-appearance .keyword-side-card:first-child { grid-row: span 2; }
+}
+@media (max-width: 760px) {
+  .workspace-appearance .keyword-heading { align-items: flex-start; flex-direction: column; }
+  .workspace-appearance .keyword-heading-actions { justify-content: flex-start; }
+  .workspace-appearance .keyword-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-appearance .keyword-input-grid, .workspace-appearance .keyword-sidebar { grid-template-columns: 1fr; }
+  .workspace-appearance .keyword-side-card:first-child { grid-row: auto; }
+  .workspace-appearance .keyword-table { overflow: visible; border: 0; border-radius: 0; }
+  .workspace-appearance .keyword-table-header { display: none; }
+  .workspace-appearance .keyword-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 9px; padding: 12px 12px 29px; border: 1px solid var(--line); border-radius: 9px; }
+  .workspace-appearance .keyword-row input:first-child, .workspace-appearance .keyword-row input:nth-of-type(2) { grid-column: 1 / -1; }
+  .workspace-appearance .keyword-row .keyword-remove { position: absolute; top: 8px; right: 8px; }
+  .workspace-appearance .keyword-row input:first-child { padding-right: 40px; }
+  .workspace-appearance .keyword-save-bar { align-items: flex-start; flex-direction: column; }
+  .workspace-appearance .keyword-save-bar button { width: 100%; }
+}

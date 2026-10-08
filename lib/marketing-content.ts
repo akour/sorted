@@ -1,20 +1,21 @@
 export const SITE_URL = "https://sort3d.space";
-export const CONTENT_DATE = "2026-10-08";
+export const CONTENT_DATE = "2026-10-09";
 
 export const features = [
   {
     slug: "google-play-aso", eyebrow: "GOOGLE PLAY ASO", title: "Give your store listing a clearer story.",
     seoTitle: "Google Play ASO Tool for Apps & Games",
-    description: "Research, draft, and review Google Play store listings with Sorted. Keep app context, ASO recommendations, and publishing in one product workspace.",
-    intro: "Turn what makes your app useful into a listing people can understand. Sorted keeps research, current metadata, and your next draft together, so every edit has a reason.",
+    description: "Research keywords, draft, and review Google Play store listings with Sorted. Keep app context, keyword decisions, ASO recommendations, and publishing in one product workspace.",
+    intro: "Turn what makes your app useful into a listing people can understand. Sorted keeps research, keyword decisions, current metadata, and your next draft together, so every edit has a reason.",
     steps: [
       ["Start with the actual product", "Add your app or game, review the imported details, and capture its audience and positioning. When a public listing cannot be imported, you can enter and correct the details yourself."],
-      ["Develop a focused listing", "Use your research to draft a title, short description, and full description. AI recommendations are starting points to evaluate against the app, not evidence of search volume or a guaranteed ranking."],
+      ["Choose language with a reason", "Build a keyword map from product research, customer language, and imported Play Console terms where available. AI suggestions are editable hypotheses, not evidence of search volume or a guaranteed ranking."],
+      ["Develop a focused listing", "Use the approved keyword plan to draft a title, short description, and full description. Give each phrase a clear job rather than repeating it across every field."],
       ["Review, then send", "Edit the copy, check the field limits, and compare it with your current listing. With a supported Google Play connection and appropriate permissions, explicitly send your selected listing changes to Google Play."],
     ],
     takeaway: "One product. One source of context. A listing you can explain.",
     faqs: [
-      ["Does Sorted track keyword search volume or rank positions?", "Sorted provides product research, AI-assisted recommendations, and listing workflows. It does not currently provide a verified keyword-volume database or continuous store-rank tracking. Treat generated keyword ideas as hypotheses to validate."],
+      ["Does Sorted track keyword search volume or rank positions?", "Sorted has product-level keyword research and can surface terms observed in imported Play Console reports. It does not claim a verified keyword-volume database or continuous store-rank tracking. Treat suggested phrases as hypotheses to validate."],
       ["Will an ASO edit guarantee more installs?", "No. Discovery and conversion depend on your app, audience, competition, creative assets, product quality, and distribution. Record a baseline, make a focused change, and evaluate comparable data over time."],
       ["Can I publish my Google Play listing from Sorted?", "Connected, authorized accounts can send supported listing text and selected locales to Google Play after review. Google permissions, review, and publishing settings still determine when changes become visible."],
     ], guide: "google-play-aso-checklist", preview: "listing" as const,

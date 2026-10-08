@@ -1,7 +1,7 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
-import { createBriefs, googlePlayOAuthStates, googlePlayPerformanceImports, googlePlayPerformanceRows, googlePlayPromoReportImports, googlePlayPromoReportRows, googlePlayPromoReportSources, googlePlayReportingSnapshots, optimizationPlans, productConnections, productOauthConnections, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
+import { createBriefs, googlePlayOAuthStates, googlePlayPerformanceImports, googlePlayPerformanceRows, googlePlayPromoReportImports, googlePlayPromoReportRows, googlePlayPromoReportSources, googlePlayReportingSnapshots, keywordResearches, optimizationPlans, productConnections, productOauthConnections, products, publishPlans, researchBriefs, promoEvents } from "../../../../db/schema";
 import { getInitialProductIconUrl } from "../../../../lib/product-icon-url";
 import { normalizeProductUrlInput } from "../../../../lib/product-url";
 
@@ -51,6 +51,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
     await db.delete(promoEvents).where(and(eq(promoEvents.productId, productId), eq(promoEvents.ownerId, ownerId)));
     await db.delete(researchBriefs).where(and(eq(researchBriefs.productId, productId), eq(researchBriefs.ownerId, ownerId)));
+    await db.delete(keywordResearches).where(and(eq(keywordResearches.productId, productId), eq(keywordResearches.ownerId, ownerId)));
     await db.delete(optimizationPlans).where(and(eq(optimizationPlans.productId, productId), eq(optimizationPlans.ownerId, ownerId)));
     await db.delete(productConnections).where(and(eq(productConnections.productId, productId), eq(productConnections.ownerId, ownerId)));
     await db.delete(productOauthConnections).where(and(eq(productOauthConnections.productId, productId), eq(productOauthConnections.ownerId, ownerId)));

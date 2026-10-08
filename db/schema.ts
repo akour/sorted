@@ -89,6 +89,22 @@ export const researchBriefs = sqliteTable("research_briefs", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("research_briefs_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Keyword research deliberately stores prioritization and provenance, not
+// invented volume, difficulty, or rank numbers. Terms observed in an imported
+// Play Console report are surfaced separately by the API.
+export const keywordResearches = sqliteTable("keyword_researches", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  market: text("market").notNull().default("en-US"),
+  seedTerms: text("seed_terms").notNull().default("[]"),
+  keywords: text("keywords").notNull().default("[]"),
+  notes: text("notes").notNull().default(""),
+  generatedAt: text("generated_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("keyword_researches_product_owner_idx").on(table.productId, table.ownerId)]);
+
 export const aiSettings = sqliteTable("ai_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   ownerId: text("owner_id").notNull().unique(),
