@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getOwnerId } from "@/lib/owner";
 import { readWorkspaceAppearance } from "@/lib/workspace-appearance";
+import { privateMetadata } from "@/lib/marketing-seo";
+
+export const metadata = privateMetadata;
 
 export default async function WorkspaceLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const ownerId = await getOwnerId();

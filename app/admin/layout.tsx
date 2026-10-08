@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 import { getAdminContext } from "@/lib/admin";
+import { privateMetadata } from "@/lib/marketing-seo";
+
+export const metadata = privateMetadata;
 
 export const dynamic = "force-dynamic";
 

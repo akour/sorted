@@ -1,0 +1,3 @@
+import Link from "@/components/marketing/public-link";
+import { SiteShell, SectionLabel } from "@/components/marketing/site-shell";
+export default function NotFound() { return <SiteShell><section className="m-container m-section"><SectionLabel>404 · A SMALL DETOUR</SectionLabel><h1 style={{ margin: "25px 0" }}>Let’s get you<br />back on track.</h1><p style={{ marginBottom: 30 }}>That page could not be found. The workspace and growth guides are still here.</p><div className="m-actions"><Link className="m-button" href="/">Back to Sorted ↗</Link><Link className="m-text-link" href="/guides">Explore the guides →</Link></div></section></SiteShell>; }

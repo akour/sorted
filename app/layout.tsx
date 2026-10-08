@@ -4,11 +4,10 @@ import "./marketing.css";
 import "./auth.css";
 
 export const metadata: Metadata = {
-  title: "Sorted — Organic growth, in one clear workspace",
-  description: "Research, optimize, create, and plan organic growth for mobile apps and games in one connected workspace.",
-  other: {
-    "codex-preview": "development",
-  },
+  metadataBase: new URL("https://sort3d.space"),
+  title: { default: "Sorted — ASO & Organic Growth for Apps and Games", template: "%s | Sorted" },
+  description: "Google Play ASO, listing localization, and promotional content planning in one workspace for mobile app and game teams.",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
