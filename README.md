@@ -1,6 +1,18 @@
-# vinext-starter
+# Sorted
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+Sorted is a SaaS organic-growth workspace being built for mobile app and game teams. It connects product context to research, app-store optimization, localization, promotional planning, and reporting, keeping the work specific to each product and ready for human review.
+
+AI-assisted drafts stay editable. Teams review and approve the work before any publishing handoff; Sorted does not automatically publish store changes.
+
+## Product at a glance
+
+- Separate workspaces for each app or game, with an account-level portfolio view.
+- A connected workflow for product research, listing optimization, localization, promotional content, and performance review.
+- Google Play-focused workflows designed to help teams move from store context to practical next steps.
+
+## Developer setup
+
+The application runs on vinext and Cloudflare Workers, with optional Cloudflare D1 and Drizzle support. The following notes cover local development and the Sites lifecycle.
 
 ## Prerequisites
 
