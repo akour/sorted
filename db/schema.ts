@@ -106,6 +106,21 @@ export const keywordResearches = sqliteTable("keyword_researches", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("keyword_researches_product_owner_idx").on(table.productId, table.ownerId)]);
 
+// Answer visibility is a dedicated AEO/GEO workspace. It stores only the
+// product team's own facts and answer drafts; it never claims market rank,
+// answer-engine inclusion, or citation outcomes.
+export const answerVisibilityProfiles = sqliteTable("answer_visibility_profiles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  primaryPageUrl: text("primary_page_url").notNull().default(""),
+  primaryClaim: text("primary_claim").notNull().default(""),
+  facts: text("facts").notNull().default("[]"),
+  answers: text("answers").notNull().default("[]"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("answer_visibility_profiles_product_owner_idx").on(table.productId, table.ownerId)]);
+
 export const aiSettings = sqliteTable("ai_settings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   ownerId: text("owner_id").notNull().unique(),
