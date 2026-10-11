@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Check, Clipboard, Code2, ExternalLink, FileText, Lightbulb, Link2, ListChecks, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, Clipboard, Code2, ExternalLink, FileText, Lightbulb, Link2, ListChecks, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { answerVisibilityScore, buildAnswerPageBrief, buildApplicationSchema, emptyAnswerVisibility, isPublicWebPage, starterAnswerCards, type AnswerCard, type AnswerFact, type AnswerVisibilityProfile } from "../lib/answer-visibility";
 
 type Product = {
@@ -14,6 +14,7 @@ type Product = {
 };
 
 type AnswerResponse = { profile?: AnswerVisibilityProfile; error?: string };
+type SuggestionResponse = { suggestion?: string; model?: string; fallbacksUsed?: number; error?: string };
 
 function newId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -27,6 +28,7 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
   const [profile, setProfile] = useState<AnswerVisibilityProfile>(() => emptyAnswerVisibility(product.id));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -118,6 +120,26 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
     }
   }
 
+  async function suggestDirectAnswer() {
+    setSuggesting(true);
+    try {
+      const response = await fetch(`/api/products/${product.id}/answers/suggest`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      const data = await response.json() as SuggestionResponse;
+      if (!response.ok || !data.suggestion) throw new Error(data.error ?? "Could not generate an answer suggestion.");
+      setProfile((current) => ({ ...current, primaryClaim: data.suggestion ?? current.primaryClaim }));
+      setMessage("A suggestion from Sort3d’s configured AI model was added to the editable draft. Review it against your source before saving.");
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not generate an answer suggestion.");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   async function copy(text: string, label: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -156,7 +178,7 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
           <div className="answer-panel-heading"><div><p className="eyebrow">1. Source page</p><h3>Give the product one clear public home</h3><p>Use an owned website page—not only its Google Play or App Store listing. This page needs the clear product explanation and answer content visitors can read.</p></div><ExternalLink size={22} /></div>
           <div className="answer-source-fields">
             <label>Canonical public page URL<input value={profile.primaryPageUrl} onChange={(event) => setProfile((current) => ({ ...current, primaryPageUrl: event.target.value }))} placeholder="https://yourproduct.com" inputMode="url" autoComplete="url" />{profile.primaryPageUrl && !hasSourcePage && <small className="answer-validation">Use an owned public website. Google Play and App Store links are not a substitute for the product’s canonical source page.</small>}</label>
-            <label>One factual direct answer<textarea value={profile.primaryClaim} onChange={(event) => setProfile((current) => ({ ...current, primaryClaim: event.target.value }))} rows={3} placeholder={`What is ${product.name}, and why would someone use it?`} /> <small>Put this same answer visibly near the top of the public page. Do not use unsupported superlatives or claims.</small></label>
+            <div className="answer-direct-answer"><div className="answer-field-heading"><label htmlFor="answer-primary-claim">One factual direct answer</label><button type="button" className="secondary-button ai-action-button" onClick={() => void suggestDirectAnswer()} disabled={loading || suggesting || saving} aria-busy={suggesting}><Sparkles size={16} /> {suggesting ? "Suggesting…" : "Suggest answer"}</button></div><textarea id="answer-primary-claim" value={profile.primaryClaim} onChange={(event) => setProfile((current) => ({ ...current, primaryClaim: event.target.value }))} rows={3} placeholder={`What is ${product.name}, and why would someone use it?`} /><small>AI drafts from this product’s saved context and facts. Review it, then put the final answer visibly near the top of the public page.</small></div>
           </div>
           <div className="answer-inline-action"><span>{isPublicWebPage(product.url) ? "The product’s saved website can be used as a starting point." : "Your saved product link is not an owned public website yet."}</span>{isPublicWebPage(product.url) ? <button type="button" className="secondary-button" onClick={useProductLink}>Use saved product website</button> : <button type="button" className="secondary-button" onClick={onOpenSettings}>Add a product website</button>}</div>
         </section>

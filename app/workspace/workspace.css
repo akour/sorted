@@ -303,6 +303,11 @@
 .workspace-appearance .answer-action-list .text-button { align-self: center; white-space: nowrap; }
 .workspace-appearance .answer-source-fields { display: grid; gap: 15px; }
 .workspace-appearance .answer-source-fields label, .workspace-appearance .answer-fact-list label, .workspace-appearance .answer-card label { display: grid; gap: 6px; color: var(--ink); font-size: 12px; font-weight: 650; }
+.workspace-appearance .answer-direct-answer { display: grid; gap: 6px; }
+.workspace-appearance .answer-field-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workspace-appearance .answer-field-heading > label { color: var(--ink); font-size: 12px; font-weight: 650; }
+.workspace-appearance .answer-field-heading .ai-action-button { min-height: 34px; padding-inline: 11px; font-size: 12px; }
+.workspace-appearance .answer-direct-answer > small { color: var(--muted); font-size: 10px; font-weight: 400; }
 .workspace-appearance .answer-source-fields label > small, .workspace-appearance .answer-fact-list label > small, .workspace-appearance .answer-card label > small { color: var(--muted); font-size: 10px; font-weight: 400; }
 .workspace-appearance .answer-source-fields textarea, .workspace-appearance .answer-card textarea { resize: vertical; }
 .workspace-appearance .answer-inline-action { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
@@ -352,6 +357,7 @@
   .workspace-appearance .answer-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workspace-appearance .answer-panel { padding: 18px; }
   .workspace-appearance .answer-panel-heading, .workspace-appearance .answer-inline-action { align-items: flex-start; flex-direction: column; }
+  .workspace-appearance .answer-field-heading { align-items: flex-start; flex-direction: column; }
   .workspace-appearance .answer-panel-tools { justify-content: flex-start; }
   .workspace-appearance .answer-action-list li { grid-template-columns: 1fr; gap: 7px; }
   .workspace-appearance .answer-action-list .text-button { justify-self: start; }
