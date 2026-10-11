@@ -56,3 +56,26 @@ test("imports an active Google Play listing and retains its package ID", async (
     globalThis.fetch = originalFetch;
   }
 });
+
+test("suggests a public product page linked from Google Play without replacing the store source", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    `<html><head>
+      <meta property="og:title" content="Void Dash - Apps on Google Play">
+      <meta name="description" content="A fast game.">
+    </head><body>
+      <a href="https://voiddash.example.com/">Visit website</a>
+      <a href="https://voiddash.example.com/privacy">Privacy policy</a>
+    </body></html>`,
+    { headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+  try {
+    const preview = await fetchProductMetadata("https://play.google.com/store/apps/details?id=com.example.voiddash");
+    assert.ok(preview);
+    assert.equal(preview.url, "https://play.google.com/store/apps/details?id=com.example.voiddash");
+    assert.equal(preview.answerSourceCandidates?.[0]?.url, "https://voiddash.example.com/");
+    assert.equal(preview.answerSourceCandidates?.[0]?.kind, "website");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

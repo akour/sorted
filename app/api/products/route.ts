@@ -1,7 +1,7 @@
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
-import { optimizationPlans, products } from "../../../db/schema";
+import { answerVisibilityProfiles, optimizationPlans, products } from "../../../db/schema";
 import { isSafeProductIconUrl, type ProductListing } from "../../../lib/product-icons";
 import { getInitialProductIconUrl } from "../../../lib/product-icon-url";
 import { classifyProductUrl, normalizeProductUrlInput } from "../../../lib/product-url";
@@ -37,7 +37,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as { name?: string; type?: string; url?: string; position?: string; audience?: string; iconUrl?: string; currentListing?: Partial<ProductListing> };
+    const payload = (await request.json()) as { name?: string; type?: string; url?: string; position?: string; audience?: string; iconUrl?: string; currentListing?: Partial<ProductListing>; answerSourceUrl?: string };
     const name = payload.name?.trim() ?? "";
     const type = payload.type?.trim() ?? "";
     if (!name || !type) return Response.json({ error: "Product name and type are required." }, { status: 400 });
@@ -48,6 +48,9 @@ export async function POST(request: Request) {
     const url = rawUrl ? normalizeProductUrlInput(rawUrl) : "";
     if (rawUrl && !url) return Response.json({ error: "Enter a valid public website, Google Play, or App Store link." }, { status: 400 });
     const linkKind = url ? classifyProductUrl(url) : null;
+    const rawAnswerSourceUrl = payload.answerSourceUrl?.trim() ?? "";
+    const answerSourceUrl = rawAnswerSourceUrl ? normalizeProductUrlInput(rawAnswerSourceUrl) : "";
+    if (rawAnswerSourceUrl && (!answerSourceUrl || classifyProductUrl(answerSourceUrl) !== "website")) return Response.json({ error: "Choose a valid public website for the answer-visibility source page." }, { status: 400 });
     const importedIcon = payload.iconUrl && isSafeProductIconUrl(payload.iconUrl) ? payload.iconUrl : "";
     const iconUrl = linkKind === "website"
       ? importedIcon || getInitialProductIconUrl(url)
@@ -89,7 +92,16 @@ export async function POST(request: Request) {
         // Keep the product creation successful; Optimize can fetch the listing again later.
       }
     }
-    return Response.json({ product, currentListingSaved }, { status: 201 });
+    let answerSourceSaved = false;
+    if (product && answerSourceUrl) {
+      try {
+        await db.insert(answerVisibilityProfiles).values({ productId: product.id, ownerId, primaryPageUrl: answerSourceUrl });
+        answerSourceSaved = true;
+      } catch {
+        // Keep product creation successful. The user can choose the source page in Answer visibility later.
+      }
+    }
+    return Response.json({ product, currentListingSaved, answerSourceSaved }, { status: 201 });
   } catch (error) {
     return Response.json({ error: routeError(error) }, { status: 500 });
   }

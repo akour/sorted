@@ -44,7 +44,8 @@ type ResearchBrief = {
 type OptimizationOpportunity = { title: string; area: string; impact: string; effort: string; rationale: string; status: "open" | "done" };
 type OptimizationAction = { title: string; area: string; status: "open" | "done" };
 type CurrentListing = { platform?: string; title?: string; subtitle?: string; shortDescription?: string; longDescription?: string; sourceUrl?: string; fetchedAt?: string; category?: string; developer?: string; iconUrl?: string; bundleId?: string; storeId?: string };
-type ProductLinkPreview = { url: string; sourceType: "website" | "google-play" | "app-store"; sourceLabel: string; name: string; productType: string; iconUrl: string; available: boolean; message?: string; currentListing?: CurrentListing };
+type AnswerSourceCandidate = { url: string; label: string; kind: "website" | "support" | "privacy"; detail: string };
+type ProductLinkPreview = { url: string; sourceType: "website" | "google-play" | "app-store"; sourceLabel: string; name: string; productType: string; iconUrl: string; available: boolean; message?: string; currentListing?: CurrentListing; answerSourceCandidates?: AnswerSourceCandidate[] };
 type GooglePlayConnection = { id: number; provider: "google-play"; packageName: string; locale: string; label: string; credentialHint: string; status: "connected" | "testing" | "error"; lastTestedAt?: string | null; lastSyncedAt?: string | null; lastError?: string | null; createdAt?: string; updatedAt?: string };
 type GooglePlayOAuthConnection = { id: number; provider: "google-play"; packageName: string; locale: string; label: string; accountEmail: string; refreshTokenHint: string; status: "connected" | "error"; lastSyncedAt?: string | null; lastError?: string | null; createdAt?: string; updatedAt?: string };
 type OptimizationPlan = { productId: number; focus: string; storeTitle: string; storeSubtitle: string; storeShortDescription: string; storeLongDescription: string; answerSummary: string; currentListing: CurrentListing; localizedListings: LocalizedStoreListing[]; opportunities: OptimizationOpportunity[]; experiments: OptimizationExperiment[]; nextActions: OptimizationAction[]; updatedAt?: string };
@@ -188,10 +189,12 @@ export default function Home() {
   const [productPreview, setProductPreview] = useState<ProductLinkPreview | null>(null);
   const [productPreviewLoading, setProductPreviewLoading] = useState(false);
   const [productPreviewError, setProductPreviewError] = useState("");
+  const [answerSourceUrl, setAnswerSourceUrl] = useState("");
   const productNameEdited = useRef(false);
   const productTypeEdited = useRef(false);
   const suggestedProductName = useRef("");
   const suggestedProductType = useRef("");
+  const answerSourceEdited = useRef(false);
   const productPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const productPreviewController = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
@@ -513,6 +516,8 @@ export default function Home() {
   function scheduleProductPreview(value: string) {
     cancelProductPreview();
     resetAutomaticProductFields();
+    answerSourceEdited.current = false;
+    setAnswerSourceUrl("");
     setProductPreview(null);
     setProductPreviewError("");
     const normalizedUrl = normalizeProductUrlInput(value);
@@ -536,6 +541,7 @@ export default function Home() {
         if (!response.ok || !data.preview) throw new Error(data.error ?? "We could not read that product link.");
         const preview = data.preview as ProductLinkPreview;
         setProductPreview(preview);
+        if (!answerSourceEdited.current) setAnswerSourceUrl(preview.answerSourceCandidates?.[0]?.url ?? "");
         if (!productNameEdited.current && preview.name) {
           suggestedProductName.current = preview.name;
           setForm((current) => ({ ...current, name: preview.name }));
@@ -573,6 +579,8 @@ export default function Home() {
     productTypeEdited.current = Boolean(seed?.type?.trim());
     suggestedProductName.current = "";
     suggestedProductType.current = "";
+    answerSourceEdited.current = false;
+    setAnswerSourceUrl("");
     setProductPreview(null);
     setProductPreviewLoading(false);
     setProductPreviewError("");
@@ -589,6 +597,8 @@ export default function Home() {
     productTypeEdited.current = true;
     suggestedProductName.current = "";
     suggestedProductType.current = "";
+    answerSourceEdited.current = false;
+    setAnswerSourceUrl("");
     setProductPreview(null);
     setProductPreviewLoading(false);
     setProductPreviewError("");
@@ -602,6 +612,8 @@ export default function Home() {
     setProductPreview(null);
     setProductPreviewLoading(false);
     setProductPreviewError("");
+    answerSourceEdited.current = false;
+    setAnswerSourceUrl("");
     setError("");
   }
 
@@ -631,6 +643,7 @@ export default function Home() {
         ...(activeProduct ? {} : {
           iconUrl: matchingPreview?.iconUrl ?? "",
           currentListing: matchingPreview?.currentListing,
+          answerSourceUrl,
         }),
       };
       const response = await fetch(endpoint, { method: activeProduct ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
@@ -644,9 +657,11 @@ export default function Home() {
         setNotice("Product details saved.");
         window.setTimeout(() => setNotice(""), 3200);
       } else {
-        setNotice(data.currentListingSaved === false && matchingPreview?.currentListing
-          ? `${form.name} added. Store details can be fetched again in Optimize.`
-          : `${form.name} added. Building its first semantic core…`);
+        setNotice(data.answerSourceSaved
+          ? `${form.name} added. Its suggested public page is ready in Answer visibility.`
+          : data.currentListingSaved === false && matchingPreview?.currentListing
+            ? `${form.name} added. Store details can be fetched again in Optimize.`
+            : `${form.name} added. Building its first semantic core…`);
         void generateResearch(data.product);
       }
     } catch (err) {
@@ -1175,6 +1190,7 @@ export default function Home() {
                 </div>
               </div>
             )}
+            {!activeProduct && productPreview?.sourceType === "google-play" && <label className="product-answer-source-select">Official public page for answer visibility <span className="optional">recommended</span><select value={answerSourceUrl} onChange={(event) => { answerSourceEdited.current = true; setAnswerSourceUrl(event.target.value); }}><option value="">No confirmed website yet</option>{productPreview.answerSourceCandidates?.map((candidate) => <option key={candidate.url} value={candidate.url}>{candidate.label} · {candidate.detail}</option>)}</select><span className="field-help">{productPreview.answerSourceCandidates?.length ? "Sorted found these public links in the Google Play listing. Review the choice; the selected page will seed the product’s AEO/GEO source page." : "Sorted did not find a suitable public website in the Google Play listing. You can choose one later in Answer visibility."} The Google Play link remains the store connection.</span></label>}
             <label>Product name
               <input
                 required

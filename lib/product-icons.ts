@@ -30,6 +30,17 @@ export type ProductMetadataPreview = {
   available: boolean;
   message?: string;
   currentListing?: ProductListing;
+  answerSourceCandidates?: AnswerSourceCandidate[];
+};
+
+// These are candidates, not an assertion that a page is the canonical source.
+// Google Play's public listing is allowed to surface outbound links, but users
+// must review the proposed page before Sorted seeds AEO/GEO work with it.
+export type AnswerSourceCandidate = {
+  url: string;
+  label: string;
+  kind: "website" | "support" | "privacy";
+  detail: string;
 };
 
 const iconTimeoutMs = 4_000;
@@ -232,6 +243,57 @@ function googlePlayCategory(html: string, context: DescriptionContext): string {
     }
   }
   return "";
+}
+
+function outboundUrl(value: string, baseUrl: string): string {
+  try {
+    const resolved = new URL(decodeHtml(value), baseUrl);
+    const hostname = resolved.hostname.toLowerCase();
+    const isGoogleRedirect = (hostname === "www.google.com" || hostname === "google.com" || hostname === "play.google.com")
+      && /\/(?:url|redirect)\/?$/i.test(resolved.pathname);
+    const destination = isGoogleRedirect
+      ? resolved.searchParams.get("q") || resolved.searchParams.get("url") || resolved.searchParams.get("continue") || ""
+      : resolved.toString();
+    const normalized = normalizeProductUrlInput(destination);
+    if (!normalized || classifyProductUrl(normalized) !== "website") return "";
+    const candidate = new URL(normalized);
+    const blockedHosts = ["google.com", "gstatic.com", "googleusercontent.com", "youtube.com", "youtu.be", "facebook.com", "instagram.com", "tiktok.com", "x.com", "twitter.com", "linkedin.com", "discord.gg"];
+    if (blockedHosts.some((host) => candidate.hostname === host || candidate.hostname.endsWith(`.${host}`))) return "";
+    return normalized;
+  } catch {
+    return "";
+  }
+}
+
+function answerSourceCandidatesFromGooglePlay(html: string, baseUrl: string): AnswerSourceCandidate[] {
+  const candidates = new Map<string, { candidate: AnswerSourceCandidate; score: number }>();
+  for (const match of html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a\s*>/gi)) {
+    const tag = match[0] ?? "";
+    const openingTag = /^<a\b[^>]*>/i.exec(tag)?.[0] ?? "";
+    const url = outboundUrl(attribute(openingTag, "href"), baseUrl);
+    if (!url) continue;
+    const anchorText = htmlText(match[1] ?? "").replace(/\s+/g, " ").trim();
+    const urlParts = new URL(url);
+    const context = `${anchorText} ${attribute(openingTag, "aria-label")} ${attribute(openingTag, "title")} ${urlParts.pathname}`.toLowerCase();
+    const isPrivacy = /privacy/.test(context);
+    const isSupport = /support|help|contact/.test(context);
+    const kind: AnswerSourceCandidate["kind"] = isPrivacy ? "privacy" : isSupport ? "support" : "website";
+    const score = (/(?:website|visit|developer|official|homepage|home)/.test(context) ? 80 : 35)
+      + (urlParts.pathname === "/" ? 12 : 0)
+      + (isSupport ? 8 : 0)
+      - (isPrivacy ? 32 : 0);
+    const label = anchorText && anchorText.length <= 100 ? anchorText : urlParts.hostname.replace(/^www\./, "");
+    const detail = kind === "website"
+      ? "Website link listed on Google Play"
+      : kind === "support"
+        ? "Support or contact link listed on Google Play"
+        : "Privacy-policy link listed on Google Play — usually not the best AEO source";
+    const existing = candidates.get(url);
+    if (!existing || score > existing.score) candidates.set(url, { candidate: { url, label, kind, detail }, score });
+  }
+  const ranked = [...candidates.values()].sort((a, b) => b.score - a.score);
+  const useful = ranked.filter((item) => item.candidate.kind !== "privacy");
+  return (useful.length ? useful : ranked).slice(0, 3).map((item) => item.candidate);
 }
 
 function looksLikeGame(category: string, title: string): boolean {
@@ -506,10 +568,11 @@ async function googlePlayListing(link: Extract<StoreLink, { kind: "google-play" 
   const developer = metadata.developer.trim() || jsonStringFieldValues(page.html, ["author", "publisher", "developer"], descriptionContext)[0] || "";
   const discoveredIcon = metadata.imageUrl || openGraphImage(page.html, page.url);
   const iconUrl = isSafeProductIconUrl(discoveredIcon) ? discoveredIcon : "";
+  const answerSourceCandidates = answerSourceCandidatesFromGooglePlay(page.html, page.url);
   if (!title && !description && !iconUrl) {
     return { listing: null, message: "Google Play opened the link but did not provide app details. You can add the product manually and retry later." };
   }
-  return { listing: { title, description, fullDescription, category, developer, iconUrl }, message: "" };
+  return { listing: { title, description, fullDescription, category, developer, iconUrl }, answerSourceCandidates, message: "" };
 }
 
 export async function fetchProductMetadata(value: string): Promise<ProductMetadataPreview | null> {
@@ -612,7 +675,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     };
   }
 
-  const { listing: result, message } = await googlePlayListing(link);
+  const { listing: result, answerSourceCandidates, message } = await googlePlayListing(link);
   if (!result) return {
     url: normalizedUrl,
     sourceType,
@@ -650,6 +713,7 @@ export async function fetchProductMetadata(value: string): Promise<ProductMetada
     available: Boolean(title || result.iconUrl || description),
     message: "Google Play details found. Review the suggested name and type before adding.",
     currentListing,
+    answerSourceCandidates,
   };
 }
 
