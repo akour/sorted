@@ -13,7 +13,8 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: "experiments", label: "Experiments" },
 ];
 
-export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings, initialSection = "copy", initialExperimentOpportunity, onSectionChange }: {
+export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings, platform = "google-play", initialSection = "copy", initialExperimentOpportunity, onSectionChange }: {
+  platform?: "google-play" | "app-store";
   product: { id: number; name: string };
   optimization: OptimizationDraft;
   loading: boolean;
@@ -40,6 +41,12 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
   ] as const;
   const busy = saving || generating || localizationBusy;
   if (loading || optimization.productId !== product.id) return <div className="loading-line" role="status">Loading this product’s listing…</div>;
+
+  if (platform === "app-store") {
+    const appleFields = [{ key: "storeTitle", label: "App name", limit: 30 }, { key: "storeSubtitle", label: "Subtitle", limit: 30 }, { key: "storeLongDescription", label: "Description", limit: 4000 }] as const;
+    const invalid = appleFields.some(field => optimization[field.key].length > field.limit);
+    return <section className="listing-workspace"><div className="listing-heading"><div><p className="eyebrow">Apple App Store · ASO</p><h2>Apple listing draft</h2><p>Prepare copy for App Store Connect. Direct publishing, Apple keyword research, and Apple reporting are not connected yet.</p></div></div><div className="listing-editor-card">{appleFields.map(field => <div className="listing-field" key={field.key}><label htmlFor={`apple-${field.key}`}>{field.label}<span>{optimization[field.key].length} / {field.limit}</span></label><textarea id={`apple-${field.key}`} rows={field.key === "storeLongDescription" ? 12 : 2} value={optimization[field.key]} disabled={saving} onChange={event => onChange({ ...optimization, [field.key]: event.target.value })} />{optimization[field.key].length > field.limit && <small role="alert">Shorten this field before saving.</small>}</div>)}<button className="primary-button" disabled={saving || invalid} onClick={onSave}>{saving ? "Saving…" : "Save Apple draft"}</button><p className="field-help">Saving stores your draft in Sorted. Review and publish manually in App Store Connect.</p></div></section>;
+  }
 
   return <section className="listing-workspace">
     <div className="listing-heading"><div><p className="eyebrow">Google Play</p><h2>Store listing</h2><p>Improve the fields that matter. Keep the rest as they are.</p></div><button className="secondary-button" onClick={onSettings}>Store connection</button></div>

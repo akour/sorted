@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/marketing-content";
 import { breadcrumbData, publicMetadata } from "@/lib/marketing-seo";
 
 export const metadata = publicMetadata(
-  "Answer Engine Optimization (AEO) Services for Apps & Games",
+  "Answer Engine Optimization (AEO) Services for Websites",
   "Sorted provides answer engine optimization (AEO) services for mobile apps and games: public source-page strategy, factual answer mapping, technical discovery review, and implementation planning.",
   "/services/answer-engine-optimization",
 );
@@ -30,7 +30,7 @@ export default function AnswerEngineOptimizationServicePage() {
           "@id": `${serviceUrl}#service`,
           name: "Answer Engine Optimization (AEO) for apps and games",
           serviceType: "Answer engine optimization and generative engine optimization",
-          description: "AEO services for mobile app and game teams: public source-page strategy, factual answer mapping, technical discovery review, and a reviewable implementation plan.",
+          description: "AEO services for websites and the owned web pages of apps and games: public source-page strategy, factual answer mapping, technical discovery review, and a reviewable implementation plan.",
           url: serviceUrl,
           provider: { "@id": `${SITE_URL}/#organization` },
           audience: { "@type": "BusinessAudience", audienceType: "Mobile app and game teams" },
@@ -44,7 +44,7 @@ export default function AnswerEngineOptimizationServicePage() {
       <header className="m-page-hero m-service-hero">
         <SectionLabel>ANSWER ENGINE OPTIMIZATION FOR APPS & GAMES</SectionLabel>
         <h1>Make the product<br />easy to <em>understand.</em></h1>
-        <p>Sorted provides AEO services for mobile app and game teams. We turn the product truth your team already has into a clear public source, direct factual answers, and a practical plan for search and AI-assisted discovery.</p>
+        <p>Sorted provides AEO services for websites and the owned web pages of apps and games. We turn the product truth your team already has into a clear public source, direct factual answers, and a practical plan for search and AI-assisted discovery.</p>
         <div className="m-actions"><Link className="m-button" href="/contact">Talk about AEO for your product <ArrowUpRight size={18} /></Link><Link className="m-text-link" href="/guides/answer-engine-optimization-mobile-apps">Read the practical AEO guide <ArrowRight size={16} /></Link></div>
         <p className="m-hero-note"><Check size={14} aria-hidden="true" /> No ranking, inclusion, or citation promises.</p>
       </header>

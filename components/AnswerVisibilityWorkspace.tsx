@@ -1,5 +1,6 @@
 "use client";
 
+import { productWorkspaceKind } from "../lib/product-workspace";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, Clipboard, Code2, ExternalLink, FileText, Lightbulb, Link2, ListChecks, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { answerVisibilityScore, buildAnswerPageBrief, buildApplicationSchema, emptyAnswerVisibility, isPublicWebPage, starterAnswerCards, type AnswerCard, type AnswerFact, type AnswerVisibilityProfile } from "../lib/answer-visibility";
@@ -25,6 +26,7 @@ function answerIsBacked(answer: AnswerCard, facts: AnswerFact[]) {
 }
 
 export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettings }: { product: Product; onOpenListing: () => void; onOpenSettings: () => void }) {
+  const isWebsite = productWorkspaceKind(product) === "website";
   const [profile, setProfile] = useState<AnswerVisibilityProfile>(() => emptyAnswerVisibility(product.id));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -152,8 +154,8 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
 
   return <section className="answer-visibility-workspace">
     <div className="answer-heading">
-      <div><p className="eyebrow">AEO / GEO</p><h2>Answer visibility</h2><p>Make {product.name} easy to understand from one factual, public source—not by chasing a black-box score.</p></div>
-      <div className="answer-heading-actions"><button type="button" className="secondary-button" onClick={onOpenListing}><ArrowUpRight size={16} /> Open store listing</button><button type="button" className="secondary-button" onClick={onOpenSettings}><Link2 size={16} /> Product settings</button></div>
+      <div><p className="eyebrow">Website · AEO / GEO</p><h2>Answer visibility</h2><p>Make {product.name} easy to understand from one factual, public source—not by chasing a black-box score.</p></div>
+      <div className="answer-heading-actions"><button type="button" className="secondary-button" onClick={onOpenListing}><ArrowUpRight size={16} /> {isWebsite ? "Open website SEO" : "Open store ASO"}</button><button type="button" className="secondary-button" onClick={onOpenSettings}><Link2 size={16} /> Product settings</button></div>
     </div>
 
     <div className="answer-disclosure"><ShieldCheck size={18} /><p><strong>AEO/GEO is a content and source-quality practice, not a citation hack.</strong> Build helpful, crawlable pages for people first. Any structured data must match the visible page, and no tool can promise inclusion in an answer engine.</p></div>
@@ -199,7 +201,7 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
       <aside className="answer-sidebar">
         <section className="answer-side-card answer-package" id="answer-package"><p className="eyebrow">4. Page package</p><h3>Hand a developer the right assets</h3><p>These are implementation drafts, not a publishing button. The finished page must show matching content to visitors and remain publicly crawlable.</p><div className="answer-package-actions"><button type="button" className="secondary-button" onClick={() => void copy(pageBrief, "Page brief")}><Clipboard size={16} /> Copy page brief</button><button type="button" className="secondary-button" onClick={() => void copy(schema, "Application schema")} disabled={!schemaReady} title={schemaReady ? "Copy application schema" : "Add an owned source page and direct answer first"}><Code2 size={16} /> Copy app schema</button></div>{!schemaReady && <p className="answer-package-hint">Add an owned public page and factual direct answer before exporting schema.</p>}<details><summary>Preview application schema</summary><pre>{schema}</pre></details></section>
         <section className="answer-side-card answer-checklist"><p className="eyebrow">Before publishing</p><h3>Simple release check</h3><ul><li><Check size={14} /> The page explains the product in plain language.</li><li><Check size={14} /> Important answers are visible to visitors.</li><li><Check size={14} /> Facts link to public evidence or documentation.</li><li><Check size={14} /> Markup repeats—not replaces—the visible content.</li></ul></section>
-        <section className="answer-side-card answer-guide"><p className="eyebrow">What this is for</p><h3>Clarity across search and answer engines</h3><p>Use this alongside ASO: your store listing helps people discover an app in a store; an owned product page helps the wider web understand, compare, and explain it.</p><button type="button" className="text-button" onClick={onOpenListing}>Continue with store listing →</button></section>
+        <section className="answer-side-card answer-guide"><p className="eyebrow">What this is for</p><h3>Clarity across search and answer engines</h3><p>Use AEO on your owned website to explain the product with supported answers. Website SEO handles search intent and page discovery. Apps and games use ASO separately for store listings.</p><button type="button" className="text-button" onClick={onOpenListing}>{isWebsite ? "Continue with website SEO →" : "Continue with store ASO →"}</button></section>
       </aside>
     </div>
   </section>;

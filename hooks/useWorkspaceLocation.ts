@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { productSectionAllowed } from "../lib/product-workspace";
 
 const sections: Record<string, string> = {
   "Product workspace": "overview", Optimize: "listing", Calendar: "calendar",
   Results: "results", Settings: "settings", Connections: "connection",
-  Research: "brief", Keywords: "keywords", Answers: "answers", Create: "creative", Publish: "legacy-export",
+  Research: "brief", Keywords: "keywords", SEO: "seo", Answers: "answers", Create: "creative", Publish: "legacy-export",
   Overview: "portfolio", Products: "products", Reports: "reports",
 };
 
 // Keep existing /workspace links and OAuth callbacks working while giving each
 // product section a bookmarkable location and normal browser Back/Forward.
-export function useWorkspaceLocation<T extends { id: number }>(
+export function useWorkspaceLocation<T extends { id: number; type: string; url: string }>(
   products: T[], loading: boolean, active: T | null, view: string,
   setActive: (product: T | null) => void, setView: (view: string) => void,
 ) {
@@ -25,7 +26,7 @@ export function useWorkspaceLocation<T extends { id: number }>(
       const product = products.find((item) => item.id === Number(params.get("product"))) ?? null;
       const section = Object.entries(sections).find(([, slug]) => slug === params.get("section"))?.[0];
       if (params.has("googlePlay")) { setReady(true); return; }
-      const next = section && (product ? !["Overview", "Products", "Reports"].includes(section) : ["Overview", "Products", "Reports", "Calendar"].includes(section)) ? section : product ? "Product workspace" : "Overview";
+      const next = section && (product ? !["Overview", "Products", "Reports"].includes(section) && productSectionAllowed(product, section) : ["Overview", "Products", "Reports", "Calendar"].includes(section)) ? section : product ? "Product workspace" : "Overview";
       restoring.current = `${product?.id ?? ""}:${next}`;
       setActive(product);
       setView(next);

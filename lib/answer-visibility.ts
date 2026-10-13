@@ -1,3 +1,4 @@
+import { productWorkspaceKind } from "./product-workspace";
 export const ANSWER_STATUSES = ["draft", "ready", "published"] as const;
 export type AnswerStatus = typeof ANSWER_STATUSES[number];
 
@@ -214,12 +215,13 @@ export function answerVisibilityScore(product: AnswerVisibilityProduct, profile:
 
 export function buildApplicationSchema(product: AnswerVisibilityProduct, profile: AnswerVisibilityProfile) {
   const isGame = /game/i.test(product.type);
+  const kind = productWorkspaceKind(product);
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": isGame ? ["VideoGame", "MobileApplication"] : "MobileApplication",
+    "@type": kind === "website" ? "WebSite" : isGame ? ["VideoGame", "MobileApplication"] : "MobileApplication",
     name: product.name,
     description: profile.primaryClaim || product.position || "Add a factual product description before publishing this markup.",
-    operatingSystem: "Android",
+    ...(kind === "google-play" ? { operatingSystem: "Android" } : {}),
   };
   if (profile.primaryPageUrl) schema.url = profile.primaryPageUrl;
   if (product.url && /^https?:/i.test(product.url)) schema.sameAs = product.url;
