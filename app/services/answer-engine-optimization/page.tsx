@@ -6,7 +6,7 @@ import { breadcrumbData, publicMetadata } from "@/lib/marketing-seo";
 
 export const metadata = publicMetadata(
   "Answer Engine Optimization (AEO) Services for Websites",
-  "Sorted provides answer engine optimization (AEO) services for mobile apps and games: public source-page strategy, factual answer mapping, technical discovery review, and implementation planning.",
+  "Sorted provides answer engine optimization (AEO) services for websites and owned app and game web pages: public source-page strategy, factual answer mapping, technical discovery review, and implementation planning.",
   "/services/answer-engine-optimization",
 );
 
@@ -28,12 +28,12 @@ export default function AnswerEngineOptimizationServicePage() {
         {
           "@type": "Service",
           "@id": `${serviceUrl}#service`,
-          name: "Answer Engine Optimization (AEO) for apps and games",
+          name: "Answer Engine Optimization (AEO) for websites",
           serviceType: "Answer engine optimization and generative engine optimization",
           description: "AEO services for websites and the owned web pages of apps and games: public source-page strategy, factual answer mapping, technical discovery review, and a reviewable implementation plan.",
           url: serviceUrl,
           provider: { "@id": `${SITE_URL}/#organization` },
-          audience: { "@type": "BusinessAudience", audienceType: "Mobile app and game teams" },
+          audience: { "@type": "BusinessAudience", audienceType: "Website owners and app and game teams" },
           areaServed: "Worldwide",
         },
         breadcrumbData([{ name: "Home", path: "/" }, { name: "AEO services", path: "/services/answer-engine-optimization" }]),
