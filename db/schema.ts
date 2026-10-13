@@ -79,6 +79,28 @@ export const googlePlayOAuthStates = sqliteTable("google_play_oauth_states", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Search Console authorization is account-level; each product chooses a
+// property separately in its website SEO workspace.
+export const googleSearchConsoleConnections = sqliteTable("google_search_console_connections", {
+  ownerId: text("owner_id").primaryKey(),
+  accountEmail: text("account_email").notNull().default(""),
+  refreshTokenCiphertext: text("refresh_token_ciphertext").notNull(),
+  refreshTokenHint: text("refresh_token_hint").notNull().default(""),
+  status: text("status").notNull().default("connected"),
+  lastError: text("last_error"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const googleSearchConsoleOAuthStates = sqliteTable("google_search_console_oauth_states", {
+  stateHash: text("state_hash").primaryKey(),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const researchBriefs = sqliteTable("research_briefs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   productId: integer("product_id").notNull(),
@@ -158,6 +180,8 @@ export const websiteSeoAudits = sqliteTable("website_seo_audits", {
   audit: text("audit").notNull().default("{}"),
   actionStates: text("action_states").notNull().default("{}"),
   metrics: text("metrics").notNull().default("[]"),
+  searchConsoleProperty: text("search_console_property").notNull().default(""),
+  searchConsoleSnapshot: text("search_console_snapshot").notNull().default("{}"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("website_seo_audits_product_owner_idx").on(table.productId, table.ownerId)]);

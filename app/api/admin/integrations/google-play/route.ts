@@ -5,8 +5,8 @@ import { decryptAdminSecret, encryptAdminSecret, secretHint } from "../../../../
 import { isAdminResponse, requireAdmin, writeAdminAudit } from "../../../../../lib/admin";
 
 const PROVIDER_ID = "google-play";
-const LABEL = "Google Play OAuth";
-const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/androidpublisher", "https://www.googleapis.com/auth/playdeveloperreporting"];
+const LABEL = "Google account OAuth";
+const SCOPES = ["openid", "email", "https://www.googleapis.com/auth/androidpublisher", "https://www.googleapis.com/auth/playdeveloperreporting", "https://www.googleapis.com/auth/webmasters.readonly"];
 
 function redirectUri(request: Request) {
   return new URL("/api/connections/google-play/callback", request.url).toString();

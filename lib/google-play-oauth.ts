@@ -5,6 +5,7 @@ const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_OAUTH_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 export const GOOGLE_PLAY_PUBLISHING_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
 export const GOOGLE_PLAY_REPORTING_SCOPE = "https://www.googleapis.com/auth/playdeveloperreporting";
+export const GOOGLE_SEARCH_CONSOLE_READ_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const GOOGLE_PLAY_API_ROOT = "https://androidpublisher.googleapis.com/androidpublisher/v3";
 
 export type GooglePlayOAuthTokens = {
@@ -47,6 +48,20 @@ export function buildGooglePlayAuthorizationUrl(input: { clientId: string; redir
   return `${GOOGLE_OAUTH_AUTHORIZE_URL}?${params.toString()}`;
 }
 
+export function buildGoogleSearchConsoleAuthorizationUrl(input: { clientId: string; redirectUri: string; state: string }): string {
+  const params = new URLSearchParams({
+    client_id: input.clientId,
+    redirect_uri: input.redirectUri,
+    response_type: "code",
+    scope: `openid email ${GOOGLE_SEARCH_CONSOLE_READ_SCOPE}`,
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    state: input.state,
+  });
+  return `${GOOGLE_OAUTH_AUTHORIZE_URL}?${params.toString()}`;
+}
+
 async function tokenRequest(body: URLSearchParams): Promise<Record<string, unknown>> {
   const response = await fetch(GOOGLE_OAUTH_TOKEN_URL, {
     method: "POST",
@@ -75,6 +90,21 @@ export async function exchangeGooglePlayAuthorizationCode(input: { code: string;
   return { refreshToken, accountEmail: await fetchGoogleAccountEmail(accessToken) };
 }
 
+export async function exchangeGoogleOAuthAuthorizationCode(input: { code: string; clientId: string; clientSecret: string; redirectUri: string; }): Promise<{ refreshToken: string; accessToken: string; accountEmail: string }> {
+  const payload = await tokenRequest(new URLSearchParams({
+    code: input.code,
+    client_id: input.clientId,
+    client_secret: input.clientSecret,
+    redirect_uri: input.redirectUri,
+    grant_type: "authorization_code",
+  }));
+  return {
+    refreshToken: typeof payload.refresh_token === "string" ? payload.refresh_token.trim() : "",
+    accessToken: typeof payload.access_token === "string" ? payload.access_token.trim() : "",
+    accountEmail: typeof payload.access_token === "string" ? await fetchGoogleAccountEmail(payload.access_token) : "",
+  };
+}
+
 export async function refreshGooglePlayAccessToken(input: { clientId: string; clientSecret: string; refreshToken: string; }): Promise<string> {
   const payload = await tokenRequest(new URLSearchParams({
     client_id: input.clientId,
@@ -86,6 +116,8 @@ export async function refreshGooglePlayAccessToken(input: { clientId: string; cl
   if (!accessToken) throw new Error("Google did not return an access token. Reconnect the Google Play account.");
   return accessToken;
 }
+
+export const refreshGoogleOAuthAccessToken = refreshGooglePlayAccessToken;
 
 async function fetchGoogleAccountEmail(accessToken: string): Promise<string> {
   try {

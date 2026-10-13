@@ -180,9 +180,9 @@ export default function AdminPage() {
     try {
       await requestJson<GooglePlayOAuthConfig>("/api/admin/integrations/google-play", { method: "PUT", body: JSON.stringify(googlePlayOAuthForm) });
       setGooglePlayOAuthForm((current) => ({ ...current, clientSecret: "" }));
-      setNotice("Google Play OAuth configuration saved. The secret is encrypted and will not be shown again.");
+      setNotice("Google account OAuth configuration saved. The secret is encrypted and will not be shown again.");
       await loadData();
-    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "The Google Play OAuth configuration could not be saved."); }
+    } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "The Google OAuth configuration could not be saved."); }
     finally { setBusy(null); }
   }
 
@@ -191,20 +191,20 @@ export default function AdminPage() {
     try {
       const result = await requestJson<{ detail: string }>("/api/admin/integrations/google-play", { method: "POST" });
       setNotice(result.detail); await loadData();
-    } catch (testError) { setError(testError instanceof Error ? testError.message : "The Google Play OAuth configuration could not be checked."); await loadData(); }
+    } catch (testError) { setError(testError instanceof Error ? testError.message : "The Google OAuth configuration could not be checked."); await loadData(); }
     finally { setBusy(null); }
   }
 
   async function removeGooglePlayOAuth() {
-    if (!window.confirm("Remove the shared Google Play OAuth configuration? Existing product connections will remain until they are changed, but new authorization cannot start.")) return;
+    if (!window.confirm("Remove the shared Google OAuth configuration? Google Play and Search Console connections will stop refreshing until this is configured again. Existing encrypted customer tokens will remain stored.")) return;
     setBusy("google-play-oauth:remove"); setError(""); setNotice("");
     try {
       await requestJson("/api/admin/integrations/google-play", { method: "DELETE" });
       setGooglePlayOAuth(null);
       setGooglePlayOAuthForm({ clientId: "", clientSecret: "", enabled: true });
-      setNotice("Google Play OAuth configuration removed.");
+      setNotice("Google OAuth configuration removed.");
       await loadData();
-    } catch (removeError) { setError(removeError instanceof Error ? removeError.message : "The Google Play OAuth configuration could not be removed."); }
+    } catch (removeError) { setError(removeError instanceof Error ? removeError.message : "The Google OAuth configuration could not be removed."); }
     finally { setBusy(null); }
   }
 
@@ -313,11 +313,11 @@ function IntegrationsPanel({ config, form, busy, onChange, onSave, onTest, onRem
   const configured = Boolean(config?.configured);
   return <div className="admin-integration-layout">
     <section className="admin-section">
-      <div className="admin-section-heading"><div><p className="eyebrow">Shared app configuration</p><h2>Google Play OAuth</h2><p>Configure this once for Sorted. Each product owner will later authorize their own Google Play account; this client setup does not grant access by itself.</p></div><StatusPill good={configured && Boolean(config?.enabled)}>{configured ? (config?.enabled ? "Configured" : "Paused") : "Not configured"}</StatusPill></div>
+      <div className="admin-section-heading"><div><p className="eyebrow">Shared app configuration</p><h2>Google account connections</h2><p>Configure one OAuth client for Sorted. Each customer authorizes their own Google Play or Search Console account; the client setup does not grant Sorted access by itself.</p></div><StatusPill good={configured && Boolean(config?.enabled)}>{configured ? (config?.enabled ? "Configured" : "Paused") : "Not configured"}</StatusPill></div>
       <form className="admin-provider-form" onSubmit={onSave}>
         <label>OAuth client ID<input value={form.clientId} onChange={(event) => onChange((current) => ({ ...current, clientId: event.target.value }))} placeholder="1234567890-…apps.googleusercontent.com" autoComplete="off" /></label>
         <label>Client secret <span className="admin-optional">({configured ? "leave blank to keep the saved secret" : "required for first setup"})</span><input type="password" value={form.clientSecret} onChange={(event) => onChange((current) => ({ ...current, clientSecret: event.target.value }))} placeholder={configured ? `Saved ${config?.clientSecretHint || "secret"}` : "Paste the Google OAuth client secret"} autoComplete="new-password" /></label>
-        <label className="admin-checkbox"><input type="checkbox" checked={form.enabled} onChange={(event) => onChange((current) => ({ ...current, enabled: event.target.checked }))} />Allow Sorted users to connect Google Play accounts</label>
+        <label className="admin-checkbox"><input type="checkbox" checked={form.enabled} onChange={(event) => onChange((current) => ({ ...current, enabled: event.target.checked }))} />Allow Sorted users to connect Google accounts</label>
         <div className="admin-form-actions"><button className="primary-button" disabled={busy === "google-play-oauth:save"}>{busy === "google-play-oauth:save" ? "Saving…" : "Save configuration"}</button><span>Secrets are encrypted before they are stored.</span></div>
       </form>
       {config?.lastError && <p className="admin-integration-error">{config.lastError}</p>}
@@ -325,9 +325,9 @@ function IntegrationsPanel({ config, form, busy, onChange, onSave, onTest, onRem
     <section className="admin-section">
       <div className="admin-section-heading"><div><p className="eyebrow">Google Cloud setup</p><h2>OAuth details</h2><p>Use these exact values when you create the web OAuth client in Google Cloud.</p></div></div>
       <div className="admin-secret-field"><span>Authorized redirect URI</span><code>{config?.redirectUri || "https://sort3d.space/api/connections/google-play/callback"}</code></div>
-      <div className="admin-secret-field"><span>Requested scopes</span><div className="admin-scope-list">{(config?.scopes ?? ["openid", "email", "https://www.googleapis.com/auth/androidpublisher", "https://www.googleapis.com/auth/playdeveloperreporting"]).map((scope) => <code key={scope}>{scope}</code>)}</div></div>
-      <div className="admin-integration-note"><strong>Enable reporting access</strong><p>In Google Cloud, enable the Google Play Developer Reporting API. The Google account connected to each product also needs read access to that app in Play Console. After this scope change is deployed, reconnect each product once to approve analytics access; its authorization remains private to that product owner.</p></div>
-      <div className="admin-form-actions admin-integration-actions">{configured && <button className="secondary-button" type="button" disabled={busy === "google-play-oauth:test"} onClick={onTest}>{busy === "google-play-oauth:test" ? "Checking…" : "Check configuration"}</button>}{configured && <button className="icon-action danger" type="button" disabled={busy === "google-play-oauth:remove"} onClick={onRemove} title="Remove Google Play OAuth configuration">×</button>}<span>{config?.lastTestedAt ? `Checked ${formatDate(config.lastTestedAt)}` : "Not checked yet"}</span></div>
+      <div className="admin-secret-field"><span>Scopes used by Google connections</span><div className="admin-scope-list">{(config?.scopes ?? ["openid", "email", "https://www.googleapis.com/auth/androidpublisher", "https://www.googleapis.com/auth/playdeveloperreporting", "https://www.googleapis.com/auth/webmasters.readonly"]).map((scope) => <code key={scope}>{scope}</code>)}</div></div>
+      <div className="admin-integration-note"><strong>Enable the APIs you use</strong><p>In Google Cloud, enable Google Play Developer Reporting API for Play analytics and Google Search Console API for website SEO. Each connection flow asks only for the permissions it needs. Customers connect their own accounts and select properties they can access; Search Console is read-only. Customers need to reconnect once to grant the new Search Console scope. Google may require OAuth app verification before this sensitive scope can be offered broadly.</p></div>
+      <div className="admin-form-actions admin-integration-actions">{configured && <button className="secondary-button" type="button" disabled={busy === "google-play-oauth:test"} onClick={onTest}>{busy === "google-play-oauth:test" ? "Checking…" : "Check configuration"}</button>}{configured && <button className="icon-action danger" type="button" disabled={busy === "google-play-oauth:remove"} onClick={onRemove} title="Remove shared Google OAuth configuration">×</button>}<span>{config?.lastTestedAt ? `Checked ${formatDate(config.lastTestedAt)}` : "Not checked yet"}</span></div>
     </section>
   </div>;
 }
