@@ -12,21 +12,22 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     <header className="m-header"><div className="m-container m-header-inner"><Brand />
       <nav className="m-nav" aria-label="Main navigation">
         <details className="m-nav-dropdown"><summary>Product <Plus size={12} /></summary><div>
+          <Link href="/services/answer-engine-optimization">AEO services <span>Public source pages and factual answers</span></Link>
           <Link href="/features/google-play-aso">Google Play ASO <span>Research to reviewed listings</span></Link>
           <Link href="/features/app-localization">Localization <span>Your message, market by market</span></Link>
           <Link href="/features/promotional-content">Promotional content <span>Plan your next product moment</span></Link>
           <Link href="/integrations/google-play">Google Play integration <span>What connects and how</span></Link>
         </div></details>
-        <Link href="/guides">Guides</Link><Link href="/tools/google-play-listing-checker">Free listing checker</Link><Link href="/pricing">Early access</Link>
+        <Link href="/services/answer-engine-optimization">AEO services</Link><Link href="/guides">Guides</Link><Link href="/tools/google-play-listing-checker">Free listing checker</Link><Link href="/pricing">Early access</Link>
       </nav>
       <div className="m-account"><a className="m-signin" href="/sign-in">Sign in</a><a className="m-button m-button-small" href="/sign-up">Get started <ArrowUpRight size={15} /></a></div>
       <details className="m-mobile-nav"><summary aria-label="Open navigation"><Menu size={23} /></summary><nav aria-label="Mobile navigation">
-        <Link href="/features/google-play-aso">Google Play ASO</Link><Link href="/features/app-localization">Localization</Link><Link href="/features/promotional-content">Promotional content</Link><Link href="/integrations/google-play">Google Play connection</Link><Link href="/guides">Guides</Link><Link href="/tools/google-play-listing-checker">Free listing checker</Link><Link href="/pricing">Early access</Link><a href="/sign-in">Sign in</a>
+        <Link href="/services/answer-engine-optimization">AEO services</Link><Link href="/features/google-play-aso">Google Play ASO</Link><Link href="/features/app-localization">Localization</Link><Link href="/features/promotional-content">Promotional content</Link><Link href="/integrations/google-play">Google Play connection</Link><Link href="/guides">Guides</Link><Link href="/tools/google-play-listing-checker">Free listing checker</Link><Link href="/pricing">Early access</Link><a href="/sign-in">Sign in</a>
       </nav></details>
     </div></header>
     <main id="main-content">{children}</main>
     <footer className="m-footer"><div className="m-container"><div className="m-footer-grid"><div><Brand /><p>A little more clarity.<br />A better next move.</p><a href="mailto:akour@sort3d.space">Talk to the founder <ArrowUpRight size={14} /></a></div>
-      <div><h2>Product</h2><Link href="/features/google-play-aso">Google Play ASO</Link><Link href="/features/app-localization">Listing localization</Link><Link href="/features/promotional-content">Promotional content</Link><Link href="/integrations/google-play">Google Play connection</Link></div>
+      <div><h2>Product</h2><Link href="/services/answer-engine-optimization">AEO services</Link><Link href="/features/google-play-aso">Google Play ASO</Link><Link href="/features/app-localization">Listing localization</Link><Link href="/features/promotional-content">Promotional content</Link><Link href="/integrations/google-play">Google Play connection</Link></div>
       <div><h2>Resources</h2><Link href="/guides">Growth guides</Link><Link href="/tools/google-play-listing-checker">Free listing checker</Link><Link href="/guides/google-play-aso-checklist">ASO checklist</Link><Link href="/guides/localize-google-play-listing">Localization guide</Link></div>
       <div><h2>Sorted</h2><Link href="/about">Our story</Link><Link href="/pricing">Early access</Link><Link href="/contact">Contact</Link><a href="/workspace">Open workspace</a></div></div>
       <div className="m-footer-bottom"><span>© {new Date().getUTCFullYear()} Sorted · Built in Jordan</span><span>Independent software. Not affiliated with Google Play.</span></div>
@@ -54,4 +55,4 @@ export function Breadcrumbs({ items }: { items: { name: string; path?: string }[
   return <nav aria-label="Breadcrumb" className="m-breadcrumb"><Link href="/">Home</Link>{items.map((item, i) => <span key={i}><span aria-hidden="true">/</span>{item.path ? <Link href={item.path}>{item.name}</Link> : <span aria-current="page">{item.name}</span>}</span>)}</nav>;
 }
 
-export const organization = { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Sorted", alternateName: "Sort3d", url: SITE_URL, logo: `${SITE_URL}/favicon.svg`, description: "An organic growth workspace for mobile app and game teams.", foundingDate: "2026-09", founder: { "@type": "Person", name: "Ahmed Akour" }, email: "akour@sort3d.space", sameAs: ["https://github.com/akour/sorted"] };
+export const organization = { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Sorted", alternateName: "Sort3d", url: SITE_URL, logo: `${SITE_URL}/favicon.svg`, description: "An organic growth workspace and AEO service for mobile app and game teams.", knowsAbout: ["Google Play app store optimization", "Answer engine optimization", "Generative engine optimization", "App store listing localization", "Mobile game promotional content"], foundingDate: "2026-09", founder: { "@type": "Person", name: "Ahmed Akour" }, email: "akour@sort3d.space", sameAs: ["https://github.com/akour/sorted"] };

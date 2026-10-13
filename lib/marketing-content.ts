@@ -1,5 +1,5 @@
 export const SITE_URL = "https://sort3d.space";
-export const CONTENT_DATE = "2026-10-09";
+export const CONTENT_DATE = "2026-10-13";
 
 export const features = [
   {
@@ -96,11 +96,12 @@ export const guides = [
   },
 ];
 
-export const publicPaths = ["/", ...features.map(f => `/features/${f.slug}`), "/integrations/google-play", "/guides", ...guides.map(g => `/guides/${g.slug}`), "/tools/google-play-listing-checker", "/about", "/pricing", "/contact"];
+export const publicPaths = ["/", ...features.map(f => `/features/${f.slug}`), "/services/answer-engine-optimization", "/integrations/google-play", "/guides", ...guides.map(g => `/guides/${g.slug}`), "/tools/google-play-listing-checker", "/about", "/pricing", "/contact"];
 
 export const homeFaqs = [
-  ["What is Sorted?", "Sorted (at sort3d.space) is an organic growth workspace for mobile app and game teams. It connects product research, Google Play app store optimization (ASO), listing localization, promotional planning, and performance review."],
+  ["What is Sorted?", "Sorted (at sort3d.space) is an organic growth workspace and service for mobile app and game teams. It connects product research, Google Play app store optimization (ASO), answer engine optimization (AEO), listing localization, promotional planning, and performance review."],
   ["Who is it built for?", "Independent developers, mobile game teams, and app growth teams who want product context, drafts, and launch plans in one place. Each product has its own workspace, with a portfolio view across products."],
+  ["Does Sorted provide AEO services?", "Yes. Sorted provides answer engine optimization (AEO) services for apps and games: clarifying the public source page, mapping factual answers and evidence, reviewing technical discovery signals, and creating a reviewable implementation plan. The goal is clearer, more useful product information—not promised rankings or AI citations."],
   ["What does the Google Play connection do?", "Authorized accounts can synchronize supported listing information and send reviewed listing text and selected locales to Google Play. Available quality and promotional reporting depend on the permissions and report access configured for the product."],
   ["Does Sorted automatically publish AI-generated content?", "No. Generated copy stays editable and needs your review. Listing publishing is an explicit action; promotional event submission currently happens in Play Console."],
   ["Can Sorted guarantee rankings or AI search mentions?", "No. Sorted helps organize research and improve the work behind organic growth. Store rankings, search visibility, and AI search citations depend on many factors beyond any one tool."],
