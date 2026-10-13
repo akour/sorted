@@ -1,15 +1,36 @@
 import { classifyProductUrl } from "./product-url";
 
-export function productWorkspaceKind(product: { type: string; url?: string }) {
+export type ProductDestinations = { type: string; url?: string; websiteUrl?: string; googlePlayUrl?: string; appStoreUrl?: string };
+
+export function hasWebsiteDestination(product: ProductDestinations) {
+  const urlKind = classifyProductUrl(product.url ?? "");
+  return Boolean(product.websiteUrl || urlKind === "website" || (product.type.toLowerCase() === "website" && !product.url && !product.googlePlayUrl && !product.appStoreUrl));
+}
+
+export function hasGooglePlayDestination(product: ProductDestinations) {
+  return Boolean(product.googlePlayUrl || classifyProductUrl(product.url ?? "") === "google-play");
+}
+
+export function hasAppStoreDestination(product: ProductDestinations) {
+  return Boolean(product.appStoreUrl || classifyProductUrl(product.url ?? "") === "app-store");
+}
+
+export function productWorkspaceKind(product: ProductDestinations) {
   const store = classifyProductUrl(product.url ?? "");
+  if (product.type.toLowerCase() === "website" && hasWebsiteDestination(product)) return "website";
   if (store === "google-play" || store === "app-store") return store;
+  if (hasGooglePlayDestination(product)) return "google-play";
+  if (hasAppStoreDestination(product)) return "app-store";
+  if (hasWebsiteDestination(product)) return "website";
   return product.type.toLowerCase() === "website" ? "website" : "unselected-store";
 }
 
-export function productSectionAllowed(product: { type: string; url: string }, view: string) {
-  const kind = productWorkspaceKind(product);
-  if (kind === "website") return !["Keywords", "Optimize", "Results", "Connections", "Calendar", "Publish", "Create"].includes(view);
-  if (view === "SEO") return true; // SEO is for the app's owned website.
-  if (kind !== "google-play") return !["Keywords", "Results", "Connections", "Calendar"].includes(view);
-  return true;
+export function productSectionAllowed(product: ProductDestinations, view: string) {
+  if (view === "SEO" || view === "Answers") return hasWebsiteDestination(product);
+  if (view === "Keywords" || view === "Results" || view === "Connections") return hasGooglePlayDestination(product);
+  if (view === "Optimize") return hasGooglePlayDestination(product) || hasAppStoreDestination(product);
+  if (view === "Calendar") return product.type.toLowerCase() !== "website" && (hasGooglePlayDestination(product) || hasAppStoreDestination(product));
+  if (view === "Publish" || view === "Create") return product.type.toLowerCase() !== "website" && (hasGooglePlayDestination(product) || hasAppStoreDestination(product));
+  if (["Research", "Settings", "Product workspace"].includes(view)) return true;
+  return false;
 }

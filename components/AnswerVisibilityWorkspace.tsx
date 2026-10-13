@@ -1,6 +1,6 @@
 "use client";
 
-import { productWorkspaceKind } from "../lib/product-workspace";
+import { hasWebsiteDestination } from "../lib/product-workspace";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, Clipboard, Code2, ExternalLink, FileText, Lightbulb, Link2, ListChecks, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { answerVisibilityScore, buildAnswerPageBrief, buildApplicationSchema, emptyAnswerVisibility, isPublicWebPage, starterAnswerCards, type AnswerCard, type AnswerFact, type AnswerVisibilityProfile } from "../lib/answer-visibility";
@@ -10,6 +10,9 @@ type Product = {
   name: string;
   type: string;
   url: string;
+  websiteUrl?: string;
+  googlePlayUrl?: string;
+  appStoreUrl?: string;
   position: string;
   audience: string;
 };
@@ -26,7 +29,8 @@ function answerIsBacked(answer: AnswerCard, facts: AnswerFact[]) {
 }
 
 export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettings }: { product: Product; onOpenListing: () => void; onOpenSettings: () => void }) {
-  const isWebsite = productWorkspaceKind(product) === "website";
+  const isWebsite = hasWebsiteDestination(product);
+  const savedWebsiteUrl = product.websiteUrl || (isPublicWebPage(product.url) ? product.url : "");
   const [profile, setProfile] = useState<AnswerVisibilityProfile>(() => emptyAnswerVisibility(product.id));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,11 +73,11 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
   }
 
   function useProductLink() {
-    if (!isPublicWebPage(product.url)) {
+    if (!isPublicWebPage(savedWebsiteUrl)) {
       setError("This product’s saved link is a store page or is not a public website. Add an owned product page in Product settings first.");
       return;
     }
-    setProfile((current) => ({ ...current, primaryPageUrl: product.url }));
+    setProfile((current) => ({ ...current, primaryPageUrl: savedWebsiteUrl }));
     setError("");
     setMessage("The saved product website is ready to review as the canonical answer source. Save when you are happy with it.");
   }
@@ -182,7 +186,7 @@ export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettin
             <label>Canonical public page URL<input value={profile.primaryPageUrl} onChange={(event) => setProfile((current) => ({ ...current, primaryPageUrl: event.target.value }))} placeholder="https://yourproduct.com" inputMode="url" autoComplete="url" />{profile.primaryPageUrl && !hasSourcePage && <small className="answer-validation">Use an owned public website. Google Play and App Store links are not a substitute for the product’s canonical source page.</small>}</label>
             <div className="answer-direct-answer"><div className="answer-field-heading"><label htmlFor="answer-primary-claim">One factual direct answer</label><button type="button" className="secondary-button ai-action-button" onClick={() => void suggestDirectAnswer()} disabled={loading || suggesting || saving} aria-busy={suggesting}><Sparkles size={16} /> {suggesting ? "Suggesting…" : "Suggest answer"}</button></div><textarea id="answer-primary-claim" value={profile.primaryClaim} onChange={(event) => setProfile((current) => ({ ...current, primaryClaim: event.target.value }))} rows={3} placeholder={`What is ${product.name}, and why would someone use it?`} /><small>AI drafts from this product’s saved context and facts. Review it, then put the final answer visibly near the top of the public page.</small></div>
           </div>
-          <div className="answer-inline-action"><span>{isPublicWebPage(product.url) ? "The product’s saved website can be used as a starting point." : "Your saved product link is not an owned public website yet."}</span>{isPublicWebPage(product.url) ? <button type="button" className="secondary-button" onClick={useProductLink}>Use saved product website</button> : <button type="button" className="secondary-button" onClick={onOpenSettings}>Add a product website</button>}</div>
+          <div className="answer-inline-action"><span>{isPublicWebPage(savedWebsiteUrl) ? "The product’s saved website can be used as a starting point." : "Your saved product link is not an owned public website yet."}</span>{isPublicWebPage(savedWebsiteUrl) ? <button type="button" className="secondary-button" onClick={useProductLink}>Use saved product website</button> : <button type="button" className="secondary-button" onClick={onOpenSettings}>Add a product website</button>}</div>
         </section>
 
         <section className="answer-panel" id="answer-facts">

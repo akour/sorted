@@ -37,7 +37,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as { name?: string; type?: string; url?: string; position?: string; audience?: string; iconUrl?: string; currentListing?: Partial<ProductListing>; answerSourceUrl?: string };
+    const payload = (await request.json()) as { name?: string; type?: string; url?: string; websiteUrl?: string; googlePlayUrl?: string; appStoreUrl?: string; position?: string; audience?: string; iconUrl?: string; currentListing?: Partial<ProductListing>; answerSourceUrl?: string };
     const name = payload.name?.trim() ?? "";
     const type = payload.type?.trim() ?? "";
     if (!name || !type) return Response.json({ error: "Product name and type are required." }, { status: 400 });
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     const url = rawUrl ? normalizeProductUrlInput(rawUrl) : "";
     if (rawUrl && !url) return Response.json({ error: "Enter a valid public website, Google Play, or App Store link." }, { status: 400 });
     const linkKind = url ? classifyProductUrl(url) : null;
+    const destinations = { websiteUrl: normalizeDestination(payload.websiteUrl, linkKind === "website" ? url : "", "website"), googlePlayUrl: normalizeDestination(payload.googlePlayUrl, linkKind === "google-play" ? url : "", "google-play"), appStoreUrl: normalizeDestination(payload.appStoreUrl, linkKind === "app-store" ? url : "", "app-store") };
+    for (const [label, value] of Object.entries(destinations)) if (value === null) return Response.json({ error: `Enter a valid public ${label === "websiteUrl" ? "website" : label === "googlePlayUrl" ? "Google Play" : "Apple App Store"} destination.` }, { status: 400 });
     const rawAnswerSourceUrl = payload.answerSourceUrl?.trim() ?? "";
     const answerSourceUrl = rawAnswerSourceUrl ? normalizeProductUrlInput(rawAnswerSourceUrl) : "";
     if (rawAnswerSourceUrl && (!answerSourceUrl || classifyProductUrl(answerSourceUrl) !== "website")) return Response.json({ error: "Choose a valid public website for the answer-visibility source page." }, { status: 400 });
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
       name,
       type,
       url,
+      ...destinations,
       iconUrl,
       position: payload.position?.trim() ?? "",
       audience: payload.audience?.trim() ?? "",
@@ -105,6 +108,12 @@ export async function POST(request: Request) {
   } catch (error) {
     return Response.json({ error: routeError(error) }, { status: 500 });
   }
+}
+
+function normalizeDestination(value: string | undefined, fallback: string, expected: "website" | "google-play" | "app-store"): string | null {
+  if (!value?.trim()) return fallback;
+  const normalized = normalizeProductUrlInput(value);
+  return normalized && classifyProductUrl(normalized) === expected ? normalized : null;
 }
 
 function cleanImportedValue(value: unknown, maximum: number, keepParagraphs = false): string {

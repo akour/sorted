@@ -897,9 +897,23 @@ body { background:var(--paper); color:var(--ink); font-size:14px; line-height:1.
 .product-job-card small { letter-spacing: 1px; font-size: 11px; color: #6554a6; font-weight: 700; }
 .product-job-card b { font-size: 14px; color: #5948b2; }
 .overview-context { margin-top: 30px; max-width: 700px; }
+.product-destinations { margin-top: 8px; padding: 15px 16px; border: 1px solid #e2deea; border-radius: 11px; background: #fbfaff; }
+.product-destinations summary { color: #514a60; font-size: 13px; font-weight: 650; cursor: pointer; }
+.product-destinations > p { margin: 8px 0 14px; }
+.product-destinations > label { display: block; margin-top: 14px; }
+.product-destinations input { margin-top: 7px; }
+.website-seo-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 20px 0; }
+.website-seo-metric { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding: 18px; border: 1px solid #dce1eb; border-radius: 12px; background: #fff; }
+.website-seo-metric strong { color: #30384a; font-size: 25px; }
+.website-seo-metric span { color: #687084; font-size: 12px; }
+.seo-finding { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 17px 0; border-top: 1px solid #e5e8ef; }
+.seo-finding > div { min-width: 0; }
+.seo-finding strong { color: #30384a; font-size: 14px; }
+.seo-finding p { margin: 6px 0 0; color: #606678; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.seo-finding .secondary-button { flex: 0 0 auto; }
 .section-context-heading { display: none; }
 @media (max-width: 1000px) { .listing-editor-layout { grid-template-columns: minmax(0, 1fr); } .listing-context { max-width: none; } }
-@media (max-width: 650px) { .listing-heading, .listing-editor-toolbar, .listing-action-bar { align-items: stretch; flex-direction: column; gap: 14px; } .listing-editor-card { padding: 18px; } .listing-review-diff, .product-job-grid { grid-template-columns: minmax(0, 1fr); } .listing-action-bar { position: static; } .listing-sections button { padding-inline: 12px; } .product-job-card { padding: 22px; } }
+@media (max-width: 650px) { .listing-heading, .listing-editor-toolbar, .listing-action-bar { align-items: stretch; flex-direction: column; gap: 14px; } .listing-editor-card { padding: 18px; } .listing-review-diff, .product-job-grid, .website-seo-metrics { grid-template-columns: minmax(0, 1fr); } .listing-action-bar { position: static; } .listing-sections button { padding-inline: 12px; } .product-job-card { padding: 22px; } .seo-finding { align-items: stretch; flex-direction: column; } }
 .promotion-editor-open [hidden] { display:none !important; }
 .promotion-editor-open .calendar-layout { display:block; }
 .promotion-backbar { display:flex; align-items:center; gap:18px; margin-bottom:20px; }

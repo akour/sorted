@@ -7,6 +7,9 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   type: text("type").notNull(),
   url: text("url").notNull().default(""),
+  websiteUrl: text("website_url").notNull().default(""),
+  googlePlayUrl: text("google_play_url").notNull().default(""),
+  appStoreUrl: text("app_store_url").notNull().default(""),
   iconUrl: text("icon_url").notNull().default(""),
   position: text("position").notNull().default(""),
   audience: text("audience").notNull().default(""),
@@ -138,6 +141,7 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   storeSubtitle: text("store_subtitle").notNull().default(""),
   storeShortDescription: text("store_short_description").notNull().default(""),
   storeLongDescription: text("store_long_description").notNull().default(""),
+  appStoreDraft: text("app_store_draft").notNull().default("{}"),
   answerSummary: text("answer_summary").notNull().default(""),
   currentListing: text("current_listing").notNull().default("{}"),
   localizedListings: text("localized_listings").notNull().default("[]"),
@@ -146,6 +150,17 @@ export const optimizationPlans = sqliteTable("optimization_plans", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("optimization_plans_product_owner_idx").on(table.productId, table.ownerId)]);
+
+export const websiteSeoAudits = sqliteTable("website_seo_audits", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  audit: text("audit").notNull().default("{}"),
+  actionStates: text("action_states").notNull().default("{}"),
+  metrics: text("metrics").notNull().default("[]"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("website_seo_audits_product_owner_idx").on(table.productId, table.ownerId)]);
 
 // Google Play report imports are kept per product and contain normalized
 // observations only; the original CSV is never stored.

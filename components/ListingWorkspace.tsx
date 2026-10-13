@@ -13,8 +13,9 @@ const sections: Array<{ id: Section; label: string }> = [
   { id: "experiments", label: "Experiments" },
 ];
 
-export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings, platform = "google-play", initialSection = "copy", initialExperimentOpportunity, onSectionChange }: {
+export function ListingWorkspace({ product, optimization, loading, saving, generating, onChange, onSave, onGenerate, onSettings, platform = "google-play", availablePlatforms = [platform], initialSection = "copy", initialExperimentOpportunity, onSectionChange }: {
   platform?: "google-play" | "app-store";
+  availablePlatforms?: Array<"google-play" | "app-store">;
   product: { id: number; name: string };
   optimization: OptimizationDraft;
   loading: boolean;
@@ -29,6 +30,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
   onSectionChange?: () => void;
 }) {
   const [section, setSection] = useState<Section>(initialSection);
+  const [selectedPlatform, setSelectedPlatform] = useState<"google-play" | "app-store">(availablePlatforms.includes(platform) ? platform : availablePlatforms[0] ?? platform);
   const [showCurrent, setShowCurrent] = useState(false);
   const [localizationBusy, setLocalizationBusy] = useState(false);
   const current = optimization.currentListing ?? {};
@@ -42,14 +44,15 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
   const busy = saving || generating || localizationBusy;
   if (loading || optimization.productId !== product.id) return <div className="loading-line" role="status">Loading this product’s listing…</div>;
 
-  if (platform === "app-store") {
-    const appleFields = [{ key: "storeTitle", label: "App name", limit: 30 }, { key: "storeSubtitle", label: "Subtitle", limit: 30 }, { key: "storeLongDescription", label: "Description", limit: 4000 }] as const;
-    const invalid = appleFields.some(field => optimization[field.key].length > field.limit);
-    return <section className="listing-workspace"><div className="listing-heading"><div><p className="eyebrow">Apple App Store · ASO</p><h2>Apple listing draft</h2><p>Prepare copy for App Store Connect. Direct publishing, Apple keyword research, and Apple reporting are not connected yet.</p></div></div><div className="listing-editor-card">{appleFields.map(field => <div className="listing-field" key={field.key}><label htmlFor={`apple-${field.key}`}>{field.label}<span>{optimization[field.key].length} / {field.limit}</span></label><textarea id={`apple-${field.key}`} rows={field.key === "storeLongDescription" ? 12 : 2} value={optimization[field.key]} disabled={saving} onChange={event => onChange({ ...optimization, [field.key]: event.target.value })} />{optimization[field.key].length > field.limit && <small role="alert">Shorten this field before saving.</small>}</div>)}<button className="primary-button" disabled={saving || invalid} onClick={onSave}>{saving ? "Saving…" : "Save Apple draft"}</button><p className="field-help">Saving stores your draft in Sorted. Review and publish manually in App Store Connect.</p></div></section>;
+  if (selectedPlatform === "app-store") {
+    const draft = optimization.appStoreDraft ?? { appName: "", subtitle: "", description: "", keywords: "" };
+    const appleFields = [{ key: "appName", label: "App name", limit: 30, rows: 1 }, { key: "subtitle", label: "Subtitle", limit: 30, rows: 1 }, { key: "description", label: "Description", limit: 4000, rows: 10 }, { key: "keywords", label: "Keywords", limit: 100, rows: 3 }] as const;
+    const invalid = appleFields.some(field => field.key === "keywords" ? new TextEncoder().encode(draft.keywords).length > field.limit : draft[field.key].length > field.limit);
+    return <section className="listing-workspace"><div className="listing-heading"><div><p className="eyebrow">Apple App Store · ASO</p><h2>Apple listing draft</h2><p>Prepare copy for App Store Connect. Apple keyword research, localization, analytics, and direct publishing are not connected yet.</p></div>{availablePlatforms.length > 1 && <select aria-label="Store destination" value={selectedPlatform} onChange={event => setSelectedPlatform(event.target.value as "google-play" | "app-store")}><option value="google-play">Google Play</option><option value="app-store">Apple App Store</option></select>}</div><div className="listing-editor-card">{appleFields.map(field => <div className="listing-field" key={field.key}><label htmlFor={`apple-${field.key}`}>{field.label}<span>{field.key === "keywords" ? `${new TextEncoder().encode(draft.keywords).length} / ${field.limit} bytes` : `${draft[field.key].length} / ${field.limit}`}</span></label>{field.rows === 1 ? <input id={`apple-${field.key}`} value={draft[field.key]} disabled={saving} onChange={event => onChange({ ...optimization, appStoreDraft: { ...draft, [field.key]: event.target.value } })} /> : <textarea id={`apple-${field.key}`} rows={field.rows} value={draft[field.key]} disabled={saving} onChange={event => onChange({ ...optimization, appStoreDraft: { ...draft, [field.key]: event.target.value } })} />}{(field.key === "keywords" ? new TextEncoder().encode(draft.keywords).length > field.limit : draft[field.key].length > field.limit) && <small role="alert">Shorten this field before saving.</small>}</div>)}<button className="primary-button" disabled={saving || invalid} onClick={onSave}>{saving ? "Saving…" : "Save Apple draft"}</button><p className="field-help">Saved separately from your Google Play listing. Review and publish manually in App Store Connect.</p></div></section>;
   }
 
   return <section className="listing-workspace">
-    <div className="listing-heading"><div><p className="eyebrow">Google Play</p><h2>Store listing</h2><p>Improve the fields that matter. Keep the rest as they are.</p></div><button className="secondary-button" onClick={onSettings}>Store connection</button></div>
+    <div className="listing-heading"><div><p className="eyebrow">Google Play · ASO</p><h2>Google Play listing</h2><p>Improve the fields that matter. Keep the rest as they are.</p></div>{availablePlatforms.length > 1 && <select aria-label="Store destination" value={selectedPlatform} onChange={event => setSelectedPlatform(event.target.value as "google-play" | "app-store")}><option value="google-play">Google Play</option><option value="app-store">Apple App Store</option></select>}<button className="secondary-button" onClick={onSettings}>Store connection</button></div>
     <nav className="listing-sections" aria-label="Store listing sections">{sections.map((item) => <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} className={section === item.id ? "active" : ""} onClick={() => { onSectionChange?.(); setSection(item.id); }} disabled={busy}>{item.label}</button>)}</nav>
     {section === "copy" && <>
       <div className="listing-editor-toolbar"><div><h3>English (United States)</h3><p>Your shared source for translations. Saving does not publish.</p></div><button className="secondary-button ai-action-button" disabled={busy} onClick={() => { if (window.confirm("Generate a new listing draft? This replaces the current draft, including unsaved copy. Translations will need review if the English source changes.")) onGenerate(); }}>✦ {generating ? "Generating…" : "Suggest a new draft"}</button></div>

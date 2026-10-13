@@ -17,6 +17,7 @@ export type OptimizationDraft = {
   storeSubtitle: string;
   storeShortDescription: string;
   storeLongDescription: string;
+  appStoreDraft?: { appName: string; subtitle: string; description: string; keywords: string };
   answerSummary: string;
   currentListing: { platform?: string; title?: string; subtitle?: string; shortDescription?: string; longDescription?: string; sourceUrl?: string; fetchedAt?: string; category?: string; developer?: string; iconUrl?: string; bundleId?: string; storeId?: string };
   opportunities: Array<{ title: string; area: string; impact: string; effort: string; rationale: string; status: "open" | "done" }>;

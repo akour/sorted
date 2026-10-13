@@ -24,13 +24,33 @@ function parseObject(value: string | null | undefined, fallback: Record<string, 
 }
 
 function emptyPlan(productId: number) {
-  return { productId, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", answerSummary: "", currentListing: {}, localizedListings: [], opportunities: [], experiments: [], nextActions: [] };
+  return { productId, focus: "ASO + AEO", storeTitle: "", storeSubtitle: "", storeShortDescription: "", storeLongDescription: "", appStoreDraft: { appName: "", subtitle: "", description: "", keywords: "" }, answerSummary: "", currentListing: {}, localizedListings: [], opportunities: [], experiments: [], nextActions: [] };
+}
+
+function parseAppStoreDraft(value: string | null | undefined) {
+  try {
+    const parsed = JSON.parse(value ?? "{}") as Record<string, unknown>;
+    const fallback = emptyPlan(0).appStoreDraft;
+    return Object.fromEntries(["appName", "subtitle", "description", "keywords"].map((key) => [key, typeof parsed?.[key] === "string" ? parsed[key] : fallback[key as keyof typeof fallback]])) as typeof fallback;
+  } catch { return emptyPlan(0).appStoreDraft; }
+}
+
+function truncateUtf8(value: string, maximumBytes: number) {
+  let result = "";
+  let bytes = 0;
+  for (const character of value) {
+    const length = new TextEncoder().encode(character).length;
+    if (bytes + length > maximumBytes) break;
+    result += character;
+    bytes += length;
+  }
+  return result;
 }
 
 function serialize(plan: typeof optimizationPlans.$inferSelect | undefined, productId: number) {
   if (!plan) return emptyPlan(productId);
   const { opportunities, experiments } = parseOptimizationStorage(plan.opportunities);
-  return { ...plan, currentListing: parseObject(plan.currentListing, {}), localizedListings: parseLocalizedStoreListings(plan.localizedListings), opportunities, experiments, nextActions: parseJson(plan.nextActions, []) };
+  return { ...plan, appStoreDraft: parseAppStoreDraft(plan.appStoreDraft), currentListing: parseObject(plan.currentListing, {}), localizedListings: parseLocalizedStoreListings(plan.localizedListings), opportunities, experiments, nextActions: parseJson(plan.nextActions, []) };
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -57,17 +77,25 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const savedOptimizationData = parseOptimizationStorage(existing?.opportunities);
     const values: Partial<typeof optimizationPlans.$inferInsert> = {
       focus: typeof payload.focus === "string" ? payload.focus.trim() : "ASO + AEO",
-      storeTitle: typeof payload.storeTitle === "string" ? payload.storeTitle.trim() : "",
-      storeSubtitle: typeof payload.storeSubtitle === "string" ? payload.storeSubtitle.trim() : "",
-      storeShortDescription: typeof payload.storeShortDescription === "string" ? payload.storeShortDescription.trim() : "",
-      storeLongDescription: typeof payload.storeLongDescription === "string" ? payload.storeLongDescription.trim() : "",
-      answerSummary: typeof payload.answerSummary === "string" ? payload.answerSummary.trim() : "",
+      storeTitle: typeof payload.storeTitle === "string" ? payload.storeTitle.trim() : existing?.storeTitle ?? "",
+      storeSubtitle: typeof payload.storeSubtitle === "string" ? payload.storeSubtitle.trim() : existing?.storeSubtitle ?? "",
+      storeShortDescription: typeof payload.storeShortDescription === "string" ? payload.storeShortDescription.trim() : existing?.storeShortDescription ?? "",
+      storeLongDescription: typeof payload.storeLongDescription === "string" ? payload.storeLongDescription.trim() : existing?.storeLongDescription ?? "",
+      answerSummary: typeof payload.answerSummary === "string" ? payload.answerSummary.trim() : existing?.answerSummary ?? "",
       currentListing: JSON.stringify(payload.currentListing && typeof payload.currentListing === "object" ? payload.currentListing : parseObject(existing?.currentListing, {})),
       opportunities: stringifyOptimizationStorage(Array.isArray(payload.opportunities) ? payload.opportunities : savedOptimizationData.opportunities, Array.isArray(payload.experiments) ? payload.experiments : savedOptimizationData.experiments),
       nextActions: JSON.stringify(Array.isArray(payload.nextActions) ? payload.nextActions : []),
       updatedAt: new Date().toISOString(),
     };
     if (hasLocalizedListings) values.localizedListings = JSON.stringify(validateLocalizedStoreListings(payload.localizedListings));
+    if (payload.appStoreDraft && typeof payload.appStoreDraft === "object" && !Array.isArray(payload.appStoreDraft)) {
+      const appleDraft = payload.appStoreDraft as Record<string, unknown>;
+      const previousDraft = parseAppStoreDraft(existing?.appStoreDraft);
+      values.appStoreDraft = JSON.stringify(Object.fromEntries(["appName", "subtitle", "description", "keywords"].map((key) => {
+        const raw = typeof appleDraft[key] === "string" ? appleDraft[key] as string : previousDraft[key as keyof typeof previousDraft];
+        return [key, key === "keywords" ? truncateUtf8(raw, 100) : raw.slice(0, key === "description" ? 4000 : 30)];
+      })));
+    }
     const [optimization] = existing
       ? await db.update(optimizationPlans).set(values).where(eq(optimizationPlans.id, existing.id)).returning()
       : await db.insert(optimizationPlans).values({ productId, ownerId, ...values }).returning();
