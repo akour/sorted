@@ -13,6 +13,17 @@
 .aeo-filters { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:20px 0 12px; }
 .aeo-filters label { min-width:130px; }
 .aeo-prompt-filter { display:block; max-width:700px; margin:16px 0 22px; }
+.aeo-collection-option { padding:20px; background:#f8faf4; border:1px solid #e1e8da; border-radius:12px; min-width:0; }
+.aeo-collection-option h4 { font-size:16px; margin:0; }
+.aeo-model-options { display:grid; gap:10px; margin:18px 0; }
+.aeo-model-options label { display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #dce5d5; background:white; border-radius:8px; }
+.aeo-dashboard .aeo-model-options input { width:16px; height:16px; min-height:0; padding:0; margin:0; flex-shrink:0; accent-color:#2e5941; }
+.aeo-model-options strong,.aeo-model-options small { display:block; }
+.aeo-model-options small { font-size:10px; color:#788672; margin-top:4px; }
+.aeo-web-engines { display:grid; gap:10px; margin-top:18px; }
+.aeo-web-engines article { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; border-top:1px solid #e0e7d8; padding-top:10px; font-size:12px; }
+.aeo-web-engines article strong { margin-right:auto; }
+.aeo-web-engines a { color:#2d634b; }
 .aeo-segment { display:flex; border:1px solid #d6dfd2; padding:4px; gap:4px; border-radius:10px; background:#f3f6ef; margin-right:auto; }
 .aeo-segment button { border:0; border-radius:7px; background:transparent; color:#5b6d61; padding:10px 12px; cursor:pointer; font-size:12px; }
 .aeo-segment button[aria-pressed=true] { background:white; color:#234936; box-shadow:0 1px 4px #23493618; font-weight:600; }

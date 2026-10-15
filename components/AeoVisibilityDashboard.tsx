@@ -3,6 +3,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ArrowUpRight, Check, Globe2, MessageSquare, Plus, Sparkles } from "lucide-react";
 import { AEO_ENGINES, aeoMetrics, containsBrand, defaultAeoConfig, isOwnedCitation, siteHost, type AeoConfig, type AeoObservation, type AeoPrompt, type Identification } from "@/lib/aeo-monitor";
 import "./aeo-visibility.css";
+import { AeoCollectionPanel, AeoModelComparison } from "./AeoCollectionPanel";
+import type { AeoApiModel } from "@/lib/aeo-collection";
 
 type Product={id:number;name:string;url?:string;websiteUrl?:string};
 type PageAudit={checkedAt:string;url:string;checks:{id:string;label:string;passed:boolean;evidence:string;recommendation:string}[]};
@@ -18,6 +20,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
   const endpoint=`/api/products/${product.id}/answers/visibility`;
   const [config,setConfig]=useState<AeoConfig>(()=>defaultAeoConfig(product.name,website));
   const [rows,setRows]=useState<AeoObservation[]>([]);
+  const [apiModels,setApiModels]=useState<AeoApiModel[]>([]);
   const [audit,setAudit]=useState<PageAudit | null>(null);
   const [tab,setTab]=useState<Tab>("overview");
   const [scope,setScope]=useState<Scope>("manual");
@@ -37,9 +40,9 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
     async function load() {
       try {
         const response=await fetch(endpoint,{signal:controller.signal,cache:"no-store"});
-        const data=await response.json() as {config:AeoConfig;observations:AeoObservation[];error?:string};
+        const data=await response.json() as {config:AeoConfig;observations:AeoObservation[];apiModels?:AeoApiModel[];error?:string};
         if (!response.ok) throw new Error(data.error || "Could not load visibility.");
-        setConfig(data.config);setRows(data.observations);
+        setConfig(data.config);setRows(data.observations);setApiModels(data.apiModels || []);
         const page=await fetch(`/api/products/${product.id}/seo`,{signal:controller.signal});
         const checked=await page.json() as {audit?:PageAudit};
         if (page.ok && Array.isArray(checked.audit?.checks)) setAudit(checked.audit!);
@@ -60,14 +63,25 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
     try {const result=await send("PUT",config);if(result.config)setConfig(result.config);setMessage("Monitoring plan saved. Existing answer history is retained.");}
     catch(e){setError(e instanceof Error?e.message:"Could not save plan.");}finally{setBusy("");}
   }
-  async function run(promptId:string) {
+  async function run(promptId:string,selectedModels?:string[]) {
     setBusy(promptId);setError("");setMessage("");
     try {
       await send("PUT",config);
-      const result=await send("POST",{action:"probe",promptId});
-      if(result.observation)setRows(current=>[result.observation!,...current]);
+      const requested=selectedModels?.length?selectedModels:[undefined];
+      const failures:string[]=[];
+      let completed=0;
+      for (const [index,model] of requested.entries()) {
+        setMessage(`Collecting answer ${index+1} of ${requested.length}${model?` · ${model}`:""}…`);
+        try {
+          const result=await send("POST",{action:"probe",promptId,...(model?{model}:{})});
+          if(!result.observation)throw new Error("No answer was returned.");
+          setRows(current=>[result.observation!,...current]);completed++;
+        } catch(e) {failures.push(`${model || "Shared AI"}: ${e instanceof Error?e.message:"Check failed."}`);}
+      }
+      if(!completed)throw new Error(failures.join(" "));
       setScope("api");setEngine("all");setTab("history");setIntent("all");setPromptFilter(promptId);
-      setMessage("API answer saved. Review whether it identifies the product correctly. Consumer-engine observations remain separate.");
+      setMessage(`${completed} API answer${completed===1?"":"s"} saved with actual model names. Review product identity for each answer.`);
+      if(failures.length)setError(`${failures.length} model check${failures.length===1?"":"s"} failed; successful answers were retained. ${failures.join(" ")}`);
     }catch(e){setError(e instanceof Error?e.message:"Could not run check.");}finally{setBusy("");}
   }
   async function recordAnswer() {
@@ -112,6 +126,8 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
     {tab!=="improve"&&<><div className="aeo-filters"><div className="aeo-segment"><button type="button" aria-pressed={scope==="manual"} onClick={()=>{setScope("manual");setEngine("all");}}>Captured engine answers</button><button type="button" aria-pressed={scope==="api"} onClick={()=>{setScope("api");setEngine("all");}}>Configured API checks</button></div><label>Period<select value={days} onChange={e=>setDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={365}>Last year</option></select></label><label>Engine<select value={engine} onChange={e=>setEngine(e.target.value)}><option value="all">All in this source</option>{(scope==="api"?["Configured API"]:AEO_ENGINES.filter(e=>e!=="Configured API")).map(e=><option key={e}>{e}</option>)}</select></label><label>Intent<select value={intent} onChange={e=>setIntent(e.target.value)}><option value="all">All intents</option><option value="brand">Brand</option><option value="discovery">Discovery</option><option value="comparison">Comparison</option></select></label></div><p className="aeo-method">{scope==="manual"?"Results below come from answers you captured from the named engines. Source links and citations are supplied evidence, not independently verified by Sorted.":"These are knowledge probes from Sorted’s configured API model, without a web-browsing tool or a supplied product brief. They do not measure ChatGPT, Gemini, Claude, Perplexity, or AI Overviews search visibility."} Metrics describe this sample of answers, not market-wide visibility. Brand prompts already name the brand; use discovery prompts to test unprompted inclusion.</p></>}
     {tab!=="improve"&&<label className="aeo-prompt-filter">Compare the same prompt<select value={promptFilter} onChange={e=>setPromptFilter(e.target.value)}><option value="all">All prompts</option>{config.prompts.map((p,i)=><option key={p.id} value={p.id}>{p.text||`Prompt ${i+1}`}</option>)}</select></label>}
     {loading&&tab!=="improve"?<p role="status">Loading AI visibility…</p>:null}
+    {!loading&&tab==="prompts"&&<AeoCollectionPanel prompts={config.prompts} models={apiModels} busy={Boolean(busy)} onCompare={(id,models)=>void run(id,models)} onCapture={(id,engine)=>{choosePrompt(id);setDraft(value=>({...value,engine}));setRecord(true);}}/>}
+    {!loading&&tab==="history"&&scope==="api"&&<AeoModelComparison rows={filtered}/>}
     {!loading&&tab==="overview"&&<>
       <div className="aeo-metrics">{[[pct(stats.mentionRate),"Brand mentioned",`${stats.mentioned} of ${stats.total} captured answers`],[pct(stats.recognitionRate),"Correctly identified",`${stats.correct} of ${stats.reviewed} assessed answers`],[pct(stats.citationRate),"Website cited",`${stats.cited} answers link to this site`],[String(stats.total),"Answers in sample",change===null?"Weekly comparison needs both weeks":`${change>=0?"+":""}${change} percentage points vs prior week`]].map(([value,label,detail])=><article key={label}><strong>{value}</strong><span>{label}</span><small>{detail}</small></article>)}</div>
       {!stats.total&&<div className="aeo-empty"><MessageSquare size={28}/><div><h3>Your visibility baseline starts here</h3><p>Capture the same prompt across the engines you use, or run a separate check with the shared API. Empty results mean there is no recorded evidence yet.</p></div><button type="button" className="secondary-button" onClick={()=>setTab("prompts")}>Set up the first check →</button></div>}

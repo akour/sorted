@@ -1,0 +1,23 @@
+"use client";
+import { useState } from "react";
+import { AEO_WEB_ENGINES, type AeoApiModel } from "@/lib/aeo-collection";
+import type { AeoObservation, AeoPrompt } from "@/lib/aeo-monitor";
+
+export function AeoCollectionPanel({prompts,models,busy,onCompare,onCapture}:{prompts:AeoPrompt[];models:AeoApiModel[];busy:boolean;onCompare:(promptId:string,models:string[])=>void;onCapture:(promptId:string,engine:string)=>void}) {
+  const [promptId,setPromptId]=useState(prompts[0]?.id || "");
+  const [chosen,setChosen]=useState<string[]>(models[0]?[models[0].id]:[]);
+  const [notice,setNotice]=useState("");
+  const prompt=prompts.find(p=>p.id===promptId);
+  const selected=chosen.filter(id=>models.some(m=>m.id===id));
+  async function copy() {try{if(prompt){await navigator.clipboard.writeText(prompt.text);setNotice("Prompt copied. Open an engine, run it in a fresh conversation, then record its answer and visible citations.");}}catch{setNotice("Copy the prompt text from the monitoring plan below; this browser could not access the clipboard.");}}
+  return <section className="aeo-panel"><p className="eyebrow">Collect answers</p><h3>One question, several perspectives</h3><label className="aeo-block-label">Question to collect<select value={promptId} onChange={e=>setPromptId(e.target.value)}><option value="">Choose a saved prompt</option>{prompts.map((p,i)=><option key={p.id} value={p.id}>{p.text||`Prompt ${i+1}`}</option>)}</select></label>
+    <div className="aeo-two-col"><div className="aeo-collection-option"><h4>Automatic model comparison</h4><p>Run the same question against selected API models already configured in Admin. Each answer retains its actual model name. Uses your current provider’s allowance and limits.</p><div className="aeo-model-options">{models.length?models.map(model=><label key={model.id}><input type="checkbox" disabled={busy} checked={chosen.includes(model.id)} onChange={e=>setChosen(current=>e.target.checked?[...current,model.id]:current.filter(id=>id!==model.id))}/><span><strong>{model.name}</strong><small>{model.provider} · API model</small></span></label>):<p>No API models are enabled. Configure a supported provider in Admin.</p>}</div><button type="button" className="primary-button" disabled={busy||!prompt?.text.trim()||!selected.length} onClick={()=>onCompare(promptId,selected)}>{busy?"Collection in progress…":`Compare ${selected.length} selected model${selected.length===1?"":"s"}`}</button><p>Model access is distinct from the provider’s public chat or search experience. A subscription is not unlimited usage; confirm your provider supports the intended service use.</p></div>
+    <div className="aeo-collection-option"><h4>Collect public web answers</h4><p>Use the free web interface where available. Copy the same prompt, open the engine, then bring its answer and sources back to Sorted. No passwords or session cookies are collected.</p><button type="button" className="secondary-button" disabled={!prompt?.text.trim()} onClick={()=>void copy()}>Copy selected prompt</button><div className="aeo-web-engines">{AEO_WEB_ENGINES.map(engine=><article key={engine.name}><strong>{engine.name}</strong><a href={engine.url} target="_blank" rel="noreferrer">Open ↗</a><button type="button" className="text-button" disabled={!prompt?.text.trim()||busy} onClick={()=>onCapture(promptId,engine.name)}>Record answer</button></article>)}</div><p>Web collection is guided, not automatic scraping. Account access and free limits depend on the engine. AI Overviews only appear for some searches.</p></div></div>{notice&&<p role="status" className="notice">{notice}</p>}
+  </section>;
+}
+
+export function AeoModelComparison({rows}:{rows:AeoObservation[]}) {
+  const names=[...new Set(rows.filter(r=>r.source==="api").map(r=>r.model))];
+  if (!names.length) return null;
+  return <section className="aeo-panel"><p className="eyebrow">API model comparison</p><h3>Answers by actual model</h3><p>Latest answer from each model within the current filters. Choose one exact prompt above for a consistent comparison.</p><div className="aeo-engine-grid">{names.map(name=>{const row=rows.find(r=>r.model===name)!;return <article key={name}><strong>{name}</strong><small>{new Date(row.observedAt).toLocaleString()} · {row.language}{row.country?` / ${row.country}`:""}</small><blockquote>{row.prompt}</blockquote><p>{row.answer.slice(0,220)}{row.answer.length>220?"…":""}</p><details><summary>Read full API answer</summary><div className="aeo-answer-text">{row.answer}</div></details><small>{row.identification==="unreviewed"?"Identity needs review":row.identification==="unknown"?"Does not know":row.identification==="confused"?"Wrong / confused identity":"Correct identity"}</small></article>;})}</div></section>;
+}
