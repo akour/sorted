@@ -181,7 +181,7 @@ export function starterKeywords(input: { seedTerms: string[]; semanticCore?: str
   const supplied = parseStringList(input.seedTerms);
   const semantic = parseStringList(input.semanticCore ?? "");
   const productWords = parseStringList([input.position ?? "", input.audience ?? ""]);
-  const raw = [...supplied, ...semantic, ...productWords].filter((value) => !value.includes(" ") || value.split(" ").length <= 7);
+  const raw = [...supplied, ...semantic, ...productWords].filter((value) => !value.includes(" ") || value.split(" ").length <= 4);
   const fallback = input.name.trim() ? [input.name.trim()] : [];
   const seen = new Set((input.existing ?? []).map((item) => phraseKey(item.phrase)));
   return parseStringList([...raw, ...fallback], 18).filter((phrase) => !seen.has(phraseKey(phrase))).map((phrase, index) => ({
