@@ -46,6 +46,7 @@ function fieldsFor(phrase: string, listing: ListingText) {
 
 export function KeywordResearchWorkspace({ product, onOpenListing }: { product: Product; onOpenListing: () => void }) {
   const isGame = /game/i.test(product.type);
+  const [workspaceTab, setWorkspaceTab] = useState<"keywords" | "description">("keywords");
   const [research, setResearch] = useState<KeywordResearch>(() => emptyKeywordResearch(product.id));
   const [observed, setObserved] = useState<KeywordCandidate[]>([]);
   const [listing, setListing] = useState<ListingEvidence>(blankListing);
@@ -208,6 +209,8 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
       <KeywordMetric value={counts.covered} label="Covered" detail="Found in a saved listing" />
     </div>
 
+    <div className="aso-workspace-tabs" role="tablist" aria-label="ASO research tools"><button type="button" role="tab" id="aso-keywords-tab" aria-controls="aso-keywords-panel" aria-selected={workspaceTab === "keywords"} onClick={() => setWorkspaceTab("keywords")}>Keyword research</button><button type="button" role="tab" id="aso-description-tab" aria-controls="aso-description-panel" aria-selected={workspaceTab === "description"} onClick={() => setWorkspaceTab("description")}>Description studio <Sparkles size={14}/></button></div>
+    <div id="aso-keywords-panel" role="tabpanel" aria-labelledby="aso-keywords-tab" hidden={workspaceTab !== "keywords"}>
     <form className="keyword-layout" onSubmit={(event) => void save(event)}>
       <div className="keyword-main">
         <section className="keyword-panel keyword-setup">
@@ -250,7 +253,10 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
         {observed.length > 0 && <section className="keyword-side-card keyword-observed"><p className="eyebrow">From Play Console</p><h3>Observed search terms</h3><p>These terms appeared in an imported performance report. They are not automatically good targets.</p><div>{observed.map((candidate) => <button type="button" key={candidate.id} onClick={() => addObserved(candidate)}><span>{candidate.phrase}</span><Plus size={15} /></button>)}</div></section>}
       </aside>
     </form>
-    {!loading && <AsoDescriptionWorkbench productId={product.id} market={research.market} keywords={research.keywords} current={listing.current.longDescription} draft={listing.draft.longDescription} onAdd={candidate => setResearch(value => ({...value, keywords: value.keywords.some(k => k.phrase.toLowerCase() === candidate.phrase.toLowerCase()) ? value.keywords : [...value.keywords, candidate]}))} />}
+    </div>
+    <div id="aso-description-panel" role="tabpanel" aria-labelledby="aso-description-tab" hidden={workspaceTab !== "description"}>
+    {!loading && <AsoDescriptionWorkbench productId={product.id} market={research.market} keywords={research.keywords} current={listing.current.longDescription} draft={listing.draft.longDescription} onAdd={candidate => { setResearch(value => ({...value, keywords: value.keywords.some(k => k.phrase.toLowerCase() === candidate.phrase.toLowerCase()) ? value.keywords : [...value.keywords, candidate]})); setMessage("Keyword added to your list. Save keyword research to keep it."); }} />}
+    </div>
   </section>;
 }
 
