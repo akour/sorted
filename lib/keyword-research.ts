@@ -16,6 +16,14 @@ export type KeywordCandidate = {
   placement: KeywordPlacement;
   source: KeywordSource;
   rationale: string;
+  volume?: number | null;
+  difficulty?: number | null;
+  rank?: number | null;
+  relevance?: number | null;
+  priority?: "high" | "medium" | "low";
+  metricSource?: string;
+  metricDate?: string;
+  country?: string;
 };
 
 export type CompetitorNote = {
@@ -89,8 +97,22 @@ export function normalizeKeywords(value: unknown, limit = 40): KeywordCandidate[
       placement: isOneOf(candidate.placement, KEYWORD_PLACEMENTS) ? candidate.placement : "not-planned",
       source: isOneOf(candidate.source, KEYWORD_SOURCES) ? candidate.source : "Manual",
       rationale: typeof candidate.rationale === "string" ? candidate.rationale.trim().slice(0, noteLimit) : "",
+      ...normalizeKeywordMetrics(candidate),
     } satisfies KeywordCandidate];
   }).slice(0, limit);
+}
+
+export function normalizeKeywordMetrics(value: Record<string, unknown>) {
+  const number = (key: string, max: number) => typeof value[key] === "number" && Number.isFinite(value[key]) && value[key] >= 0 && value[key] <= max ? value[key] as number : null;
+  return {
+    volume: number("volume", 1_000_000_000), difficulty: number("difficulty", 100),
+    rank: typeof value.rank === "number" && Number.isInteger(value.rank) && value.rank >= 1 && value.rank <= 100000 ? value.rank : null,
+    relevance: number("relevance", 5),
+    priority: isOneOf(value.priority, ["high", "medium", "low"] as const) ? value.priority : "medium" as const,
+    metricSource: typeof value.metricSource === "string" ? value.metricSource.trim().slice(0, 160) : "",
+    metricDate: typeof value.metricDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.metricDate) ? value.metricDate : "",
+    country: typeof value.country === "string" ? value.country.trim().slice(0, 60) : "",
+  };
 }
 
 export function normalizeCompetitorNotes(value: unknown): CompetitorNote[] {

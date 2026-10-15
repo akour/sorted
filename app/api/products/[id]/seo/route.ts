@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { products, websiteSeoAudits } from "@/db/schema";
+import { products, researchBriefs, websiteSeoAudits } from "@/db/schema";
+import { hasWebsiteDestination } from "@/lib/product-workspace";
 import { getOwnerId, ownerAuthenticationRequired } from "@/lib/owner";
 import { classifyProductUrl } from "@/lib/product-url";
 
@@ -128,10 +129,35 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const ownerId = await getOwnerId();
     if (!ownerId) return ownerAuthenticationRequired();
     const id = Number((await context.params).id);
-    if (!Number.isSafeInteger(id) || !(await getOwnedProduct(id, ownerId))) return Response.json({ error: "Product not found." }, { status: 404 });
+    const product = Number.isSafeInteger(id) ? await getOwnedProduct(id, ownerId) : null;
+    if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
     const [record] = await getDb().select().from(websiteSeoAudits).where(and(eq(websiteSeoAudits.productId, id), eq(websiteSeoAudits.ownerId, ownerId))).limit(1);
-    return Response.json({ audit: parse(record?.audit, null), actionStates: parse(record?.actionStates, {}), metrics: parse(record?.metrics, []) });
+    let brief = parse<Record<string, string>>(record?.seoBrief, {});
+    // Preserve existing website plans without mixing app ASO briefs into website SEO.
+    if (!Object.keys(brief).length && product.type.toLowerCase() === "website") {
+      const [legacy] = await getDb().select().from(researchBriefs).where(and(eq(researchBriefs.productId, id), eq(researchBriefs.ownerId, ownerId))).limit(1);
+      if (legacy) brief = Object.fromEntries(["intent", "semanticCore", "competitors", "proof", "notes"].map(key => [key, legacy[key as keyof typeof legacy] as string]));
+    }
+    const audit = parse<Audit | null>(record?.audit, null);
+    return Response.json({ brief, audit: Array.isArray(audit?.checks) ? audit : null, actionStates: parse(record?.actionStates, {}), metrics: parse(record?.metrics, []) });
   } catch { return Response.json({ error: "Could not load the website SEO review." }, { status: 500 }); }
+}
+
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const ownerId = await getOwnerId();
+    if (!ownerId) return ownerAuthenticationRequired();
+    const id = Number((await context.params).id);
+    const product = Number.isSafeInteger(id) ? await getOwnedProduct(id, ownerId) : null;
+    if (!product) return Response.json({ error: "Product not found." }, { status: 404 });
+    if (!hasWebsiteDestination(product)) return Response.json({ error: "Add a website destination before creating a website SEO plan." }, { status: 400 });
+    const body = await request.json() as Record<string, unknown>;
+    const keys = ["intent", "semanticCore", "competitors", "proof", "notes"];
+    if (!body || keys.some(key => typeof body[key] !== "string" || body[key].length > 20000)) return Response.json({ error: "Each SEO plan field must be text under 20,000 characters." }, { status: 400 });
+    const seoBrief = JSON.stringify(Object.fromEntries(keys.map(key => [key, (body[key] as string).trim()])));
+    await getDb().insert(websiteSeoAudits).values({ productId: id, ownerId, seoBrief }).onConflictDoUpdate({ target: [websiteSeoAudits.productId, websiteSeoAudits.ownerId], set: { seoBrief, updatedAt: new Date().toISOString() } });
+    return Response.json({ saved: true });
+  } catch { return Response.json({ error: "Could not save the website SEO plan." }, { status: 500 }); }
 }
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {

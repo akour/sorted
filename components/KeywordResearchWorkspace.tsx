@@ -2,7 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { ArrowUpRight, Check, Eye, FileSearch, Lightbulb, ListChecks, MessageSquareQuote, Plus, RefreshCw, SearchCheck, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
-import { competitorNoteId, emptyKeywordResearch, keywordId, type CompetitorNote, type KeywordCandidate, type KeywordIntent, type KeywordPlacement, type KeywordResearch, type KeywordSource, type KeywordStatus } from "../lib/keyword-research";
+import { competitorNoteId, emptyKeywordResearch, keywordId, type CompetitorNote, type KeywordCandidate, type KeywordResearch, type KeywordSource } from "../lib/keyword-research";
+import { AsoKeywordTable } from "./AsoKeywordTable";
+import { AsoDescriptionWorkbench } from "./AsoDescriptionWorkbench";
+import "./aso-research.css";
 
 type Product = { id: number; name: string; type: string };
 type ListingText = { title: string; shortDescription: string; longDescription: string };
@@ -42,6 +45,7 @@ function fieldsFor(phrase: string, listing: ListingText) {
 }
 
 export function KeywordResearchWorkspace({ product, onOpenListing }: { product: Product; onOpenListing: () => void }) {
+  const isGame = /game/i.test(product.type);
   const [research, setResearch] = useState<KeywordResearch>(() => emptyKeywordResearch(product.id));
   const [observed, setObserved] = useState<KeywordCandidate[]>([]);
   const [listing, setListing] = useState<ListingEvidence>(blankListing);
@@ -189,11 +193,11 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
 
   return <section className="keyword-research-workspace">
     <div className="keyword-heading">
-      <div><p className="eyebrow">Free ASO research</p><h2>Evidence-led keyword research</h2><p>Build a small, defensible phrase map for {product.name} from your product, customers, Google Play, and careful competitor notes.</p></div>
+      <div><p className="eyebrow">Google Play · {isGame ? "Game" : "App"} ASO</p><h2>Google Play keyword research</h2><p>Find phrases people would use to discover {product.name} in the store. Choose a language, validate relevance, then place natural wording in the title, short description, or full description.</p><p>These phrases target one store listing—not website pages. Website queries and page planning live separately in Website SEO. Apple uses its own listing and keyword field in Store ASO.</p></div>
       <div className="keyword-heading-actions"><button type="button" className="secondary-button" onClick={onOpenListing}><ArrowUpRight size={16} /> Open store listing</button><button type="button" className="primary-button" onClick={() => void buildStarterSet()} disabled={loading || building}><Sparkles size={16} /> {building ? "Building starter set…" : "Build starter set"}</button></div>
     </div>
 
-    <div className="keyword-disclosure"><ShieldCheck size={18} /><p><strong>Free research mode.</strong> Use first-party evidence and explicit hypotheses. Sorted does not invent volume, difficulty, ranks, or competitor data—and the starter set does not make an AI or paid-data call.</p></div>
+    <div className="keyword-disclosure"><ShieldCheck size={18} /><p><strong>Your ASO research desk.</strong> Build a keyword list, record manual volume, difficulty and rank observations, then review your description. Market metrics stay blank until you enter them; the description review uses Sorted’s configured AI.</p></div>
     {error && <div className="error-banner keyword-banner" role="alert">{error}</div>}
     {message && <div className="notice keyword-banner" role="status"><Check size={16} /> {message}</div>}
 
@@ -207,10 +211,10 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
     <form className="keyword-layout" onSubmit={(event) => void save(event)}>
       <div className="keyword-main">
         <section className="keyword-panel keyword-setup">
-          <div className="keyword-panel-heading"><div><p className="eyebrow">Start with product truth</p><h3>Research inputs</h3><p>Seeds can be a user problem, feature, category, or phrase from a support conversation. They are inputs—not market-volume claims.</p></div><SearchCheck size={22} /></div>
+          <div className="keyword-panel-heading"><div><p className="eyebrow">Start with product truth</p><h3>{isGame ? "How would players find this game?" : "What task does your app help with?"}</h3><p>{isGame ? "Start with genre, mechanics, theme, and play style. Only include claims such as offline play when the game supports them." : "Start with the user's problem, core task, useful features, and audience—not blog topics."} Seed phrases are hypotheses, not search-volume claims.</p></div><SearchCheck size={22} /></div>
           <div className="keyword-input-grid">
             <label>Market and language<select value={research.market} onChange={(event) => setResearch((current) => ({ ...current, market: event.target.value }))}><option value="en-US">English (United States)</option><option value="en-GB">English (United Kingdom)</option><option value="ar">Arabic</option><option value="es-419">Spanish (Latin America)</option><option value="pt-BR">Portuguese (Brazil)</option><option value="de-DE">German</option><option value="fr-FR">French</option><option value="ja-JP">Japanese</option><option value="ko-KR">Korean</option><option value="id">Indonesian</option></select></label>
-            <label>Seed phrases<textarea value={research.seedTerms.join("\n")} onChange={(event) => setResearch((current) => ({ ...current, seedTerms: event.target.value.split(/\n|,/).map((term) => term.trim()).filter(Boolean) }))} rows={3} placeholder="relaxing stacking game&#10;quick mobile puzzle&#10;offline space game" /></label>
+            <label>Store search phrases<textarea value={research.seedTerms.join("\n")} onChange={(event) => setResearch((current) => ({ ...current, seedTerms: event.target.value.split(/\n|,/).map((term) => term.trim()).filter(Boolean) }))} rows={3} placeholder={isGame ? "relaxing stacking game\nspace puzzle\narcade runner" : "daily habit tracker\nroutine planner\nhabit reminders"} /></label>
           </div>
         </section>
 
@@ -220,20 +224,9 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
         </section>
 
         <section className="keyword-panel keyword-map-panel">
-          <div className="keyword-panel-heading"><div><p className="eyebrow">Decide deliberately</p><h3>Keyword map</h3><p>Keep only language you can support in the product and listing. Map a phrase to one place; avoid repeating it everywhere.</p></div><button className="keyword-add-button" type="button" onClick={addPhrase}><Plus size={16} /> Add phrase</button></div>
+          <div className="keyword-panel-heading"><div><p className="eyebrow">Research & prioritize</p><h3>Keyword workspace</h3><p>Compare relevant phrases, enter market observations, and choose the keywords to test in your listing. Manage each row’s evidence and listing placement.</p></div><button className="keyword-add-button" type="button" onClick={addPhrase}><Plus size={16} /> Add phrase</button></div>
           <div className="keyword-quick-add"><input value={newPhrase} onChange={(event) => setNewPhrase(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addPhrase(); } }} placeholder="Add a phrase you want to evaluate" aria-label="New keyword phrase" /><select value={newPhraseSource} onChange={(event) => setNewPhraseSource(event.target.value as KeywordSource)} aria-label="Evidence source">{manualSources.map((source) => <option key={source.value} value={source.value}>{source.label}</option>)}</select><button type="button" className="secondary-button" onClick={addPhrase}>Add</button></div>
-          {loading ? <p className="loading-line">Loading keyword research…</p> : research.keywords.length ? <div className="keyword-table" role="table" aria-label="Keyword candidates">
-            <div className="keyword-table-header" role="row"><span>Phrase</span><span>Intent</span><span>Status</span><span>Listing use</span><span>Why keep it?</span><span className="sr-only">Remove</span></div>
-            {research.keywords.map((keyword) => <div className={`keyword-row keyword-${keyword.status}`} role="row" key={keyword.id}>
-              <input value={keyword.phrase} onChange={(event) => updateKeyword(keyword.id, { phrase: event.target.value, id: keywordId(event.target.value) })} aria-label="Keyword phrase" />
-              <select value={keyword.intent} onChange={(event) => updateKeyword(keyword.id, { intent: event.target.value as KeywordIntent })} aria-label={`Intent for ${keyword.phrase}`}><option value="core">Core need</option><option value="feature">Feature</option><option value="problem">Problem</option><option value="audience">Audience</option></select>
-              <select value={keyword.status} onChange={(event) => updateKeyword(keyword.id, { status: event.target.value as KeywordStatus })} aria-label={`Status for ${keyword.phrase}`}><option value="shortlist">Shortlist</option><option value="tracking">Track</option><option value="used">Used</option><option value="avoid">Avoid</option></select>
-              <select value={keyword.placement} onChange={(event) => updateKeyword(keyword.id, { placement: event.target.value as KeywordPlacement })} aria-label={`Listing use for ${keyword.phrase}`}><option value="not-planned">Not in listing</option><option value="title">Title</option><option value="short-description">Short description</option><option value="long-description">Full description</option></select>
-              <input value={keyword.rationale} onChange={(event) => updateKeyword(keyword.id, { rationale: event.target.value })} placeholder={keyword.source === "Play Console" ? "Observed term — confirm relevance" : "Reason to evaluate this phrase"} aria-label={`Rationale for ${keyword.phrase}`} />
-              <button type="button" className="keyword-remove" onClick={() => removeKeyword(keyword.id)} aria-label={`Remove ${keyword.phrase}`}><Trash2 size={16} /></button>
-              <small className="keyword-source">{keyword.source}</small>
-            </div>)}
-          </div> : <div className="keyword-empty"><Lightbulb size={22} /><div><strong>Start with a few useful phrases</strong><p>Add seeds above, build a free starter set, or capture language you hear from customers. Keywords remain editable and unpublished.</p></div></div>}
+          {loading ? <p className="loading-line">Loading keyword research…</p> : research.keywords.length ? <AsoKeywordTable keywords={research.keywords} update={updateKeyword} remove={removeKeyword} /> : <div className="keyword-empty"><Lightbulb size={22} /><div><strong>Build your keyword list</strong><p>Add keywords, enter manual market observations, and prioritize the phrases you want to test.</p></div></div>}
         </section>
 
         <section className="keyword-panel keyword-coverage-panel">
@@ -257,6 +250,7 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
         {observed.length > 0 && <section className="keyword-side-card keyword-observed"><p className="eyebrow">From Play Console</p><h3>Observed search terms</h3><p>These terms appeared in an imported performance report. They are not automatically good targets.</p><div>{observed.map((candidate) => <button type="button" key={candidate.id} onClick={() => addObserved(candidate)}><span>{candidate.phrase}</span><Plus size={15} /></button>)}</div></section>}
       </aside>
     </form>
+    {!loading && <AsoDescriptionWorkbench productId={product.id} market={research.market} keywords={research.keywords} current={listing.current.longDescription} draft={listing.draft.longDescription} onAdd={candidate => setResearch(value => ({...value, keywords: value.keywords.some(k => k.phrase.toLowerCase() === candidate.phrase.toLowerCase()) ? value.keywords : [...value.keywords, candidate]}))} />}
   </section>;
 }
 

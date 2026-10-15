@@ -178,6 +178,7 @@ export const websiteSeoAudits = sqliteTable("website_seo_audits", {
   productId: integer("product_id").notNull(),
   ownerId: text("owner_id").notNull(),
   audit: text("audit").notNull().default("{}"),
+  seoBrief: text("seo_brief").notNull().default("{}"),
   actionStates: text("action_states").notNull().default("{}"),
   metrics: text("metrics").notNull().default("[]"),
   searchConsoleProperty: text("search_console_property").notNull().default(""),
