@@ -1,3 +1,4 @@
+.keyword-research-workspace,.keyword-research-workspace .keyword-layout,.keyword-research-workspace .keyword-main,.keyword-research-workspace .keyword-panel,.aso-research-table { min-width:0; max-width:100%; }
 .aso-table-tools { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:16px 0; }
 .aso-table-tools > input { flex:1; min-width:180px; }
 .aso-table-tools label { display:flex; gap:8px; align-items:center; }
@@ -18,7 +19,7 @@
 .aso-description-grid > * { min-width:0; }
 .aso-description-label { display:block; font-weight:600; margin:12px 0; }
 .aso-description-workbench textarea { width:100%; resize:vertical; padding:16px; border:1px solid #cbd8ce; border-radius:12px; font:inherit; font-size:14px; line-height:1.8; background:var(--background,#fff); }
-.aso-description-insights { padding:20px; background:#f6f8f3; border:1px solid #e1e7dc; border-radius:12px; }
+.aso-description-insights { padding:20px; background:#f6f8f3; border:1px solid #e1e7dc; border-radius:12px; max-height:760px; overflow:auto; }
 .aso-description-insights article { padding:12px 0; border-top:1px solid #dce4de; }
 .aso-keyword-chip { display:flex; width:100%; justify-content:space-between; gap:10px; align-items:center; padding:10px; border:1px solid #d4dfd0; border-radius:8px; background:white; text-align:left; cursor:pointer; }
 .aso-keyword-chip span { font-size:11px; white-space:nowrap; }
@@ -31,5 +32,5 @@
 .aso-review-results details > summary { cursor:pointer; padding:12px 0; font-weight:600; }
 .aso-guidance { margin-top:20px; padding:16px; background:#f6f8f3; border-radius:10px; font-size:12px; }
 .aso-limit-error { color:#ae342d !important; }
-@media(min-width:1200px) { .keyword-research-workspace .keyword-layout { grid-template-columns:minmax(0,1fr); } .keyword-research-workspace .keyword-sidebar { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; } }
+@media(min-width:1200px) { .workspace-appearance .keyword-research-workspace .keyword-layout { grid-template-columns:minmax(0,1fr); } .workspace-appearance .keyword-research-workspace .keyword-sidebar { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start; } }
 @media(max-width:850px) { .aso-description-grid { grid-template-columns:1fr; } .aso-description-workbench { padding:16px; } .aso-description-workbench .keyword-panel-heading { flex-wrap:wrap; } }
