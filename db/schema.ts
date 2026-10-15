@@ -1,6 +1,23 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const aeoVisibilityCampaigns = sqliteTable("aeo_visibility_campaigns", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  config: text("config").notNull().default("{}"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, table => [uniqueIndex("aeo_campaign_product_owner_idx").on(table.productId, table.ownerId)]);
+
+export const aeoVisibilityObservations = sqliteTable("aeo_visibility_observations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  productId: integer("product_id").notNull(),
+  ownerId: text("owner_id").notNull(),
+  observation: text("observation").notNull(),
+  observedAt: text("observed_at").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, table => [index("aeo_observation_product_owner_idx").on(table.productId, table.ownerId, table.observedAt)]);
+
 export const products = sqliteTable("products", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   ownerId: text("owner_id").notNull(),

@@ -4,6 +4,7 @@ import { hasWebsiteDestination } from "../lib/product-workspace";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Check, Clipboard, Code2, ExternalLink, FileText, Lightbulb, Link2, ListChecks, Plus, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { answerVisibilityScore, buildAnswerPageBrief, buildApplicationSchema, emptyAnswerVisibility, isPublicWebPage, starterAnswerCards, type AnswerCard, type AnswerFact, type AnswerVisibilityProfile } from "../lib/answer-visibility";
+import { AeoVisibilityDashboard } from "./AeoVisibilityDashboard";
 
 type Product = {
   id: number;
@@ -28,7 +29,13 @@ function answerIsBacked(answer: AnswerCard, facts: AnswerFact[]) {
   return Boolean(answer.answer.trim() && (answer.sourceUrl || facts.length));
 }
 
-export function AnswerVisibilityWorkspace({ product, onOpenListing, onOpenSettings }: { product: Product; onOpenListing: () => void; onOpenSettings: () => void }) {
+type WorkspaceProps = { product:Product; onOpenListing:()=>void; onOpenSettings:()=>void };
+
+export function AnswerVisibilityWorkspace(props:WorkspaceProps) {
+  return <AeoVisibilityDashboard product={props.product} onOpenSeo={props.onOpenListing} onOpenSettings={props.onOpenSettings}><AnswerContentWorkspace {...props}/></AeoVisibilityDashboard>;
+}
+
+function AnswerContentWorkspace({ product, onOpenListing, onOpenSettings }: WorkspaceProps) {
   const isWebsite = hasWebsiteDestination(product);
   const savedWebsiteUrl = product.websiteUrl || (isPublicWebPage(product.url) ? product.url : "");
   const [profile, setProfile] = useState<AnswerVisibilityProfile>(() => emptyAnswerVisibility(product.id));

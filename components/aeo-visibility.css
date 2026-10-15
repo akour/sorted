@@ -1,0 +1,84 @@
+.aeo-dashboard { min-width:0; color:#193d34; }
+.aeo-dashboard *, .aeo-dashboard *::before, .aeo-dashboard *::after { box-sizing:border-box; }
+.aeo-hero { display:flex; justify-content:space-between; align-items:center; gap:28px; padding:32px; border:1px solid #dbe4d5; border-radius:18px; background:radial-gradient(ellipse at 90% 0%,#e1edbd 0%,transparent 55%),#f4f7ef; }
+.aeo-hero h2 { margin:8px 0 10px; font-size:clamp(24px,3vw,36px); letter-spacing:-.04em; line-height:1.2; }
+.aeo-hero p { max-width:640px; }
+.aeo-dashboard p { font-size:13px; line-height:1.75; color:#60746b; }
+.aeo-hero-actions { display:flex; flex-direction:column; align-items:stretch; gap:10px; min-width:205px; }
+.aeo-hero-actions button { justify-content:center; }
+.aeo-domain { display:inline-flex; gap:8px; align-items:center; margin-top:6px; padding:8px 12px; border:1px solid #d5dfcf; border-radius:20px; background:#fff9; color:#284b3d; font-size:12px; cursor:pointer; }
+.aeo-tabs { display:flex; gap:6px; overflow:auto; border-bottom:1px solid #dce5d8; padding:16px 0; margin-bottom:20px; }
+.aeo-tabs button { flex-shrink:0; padding:11px 16px; border:1px solid transparent; border-radius:8px; background:transparent; color:#64786d; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.aeo-tabs button[aria-current=page] { background:#244b3c; color:white; }
+.aeo-filters { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:20px 0 12px; }
+.aeo-filters label { min-width:130px; }
+.aeo-segment { display:flex; border:1px solid #d6dfd2; padding:4px; gap:4px; border-radius:10px; background:#f3f6ef; margin-right:auto; }
+.aeo-segment button { border:0; border-radius:7px; background:transparent; color:#5b6d61; padding:10px 12px; cursor:pointer; font-size:12px; }
+.aeo-segment button[aria-pressed=true] { background:white; color:#234936; box-shadow:0 1px 4px #23493618; font-weight:600; }
+.aeo-dashboard label { font-size:12px; font-weight:600; color:#3b5949; }
+.aeo-dashboard input,.aeo-dashboard select,.aeo-dashboard textarea { display:block; width:100%; min-width:0; min-height:40px; border:1px solid #d6dfd2; border-radius:8px; padding:10px 12px; margin-top:6px; background:white; color:#243e32; font:inherit; font-size:13px; line-height:1.6; }
+.aeo-dashboard textarea { resize:vertical; }
+.aeo-dashboard input:focus,.aeo-dashboard textarea:focus,.aeo-dashboard select:focus { outline:2px solid #b9cf8c; outline-offset:2px; }
+.aeo-dashboard button:disabled { cursor:wait; opacity:.6; }
+.aeo-dashboard .aeo-method { font-size:11px; line-height:1.7; max-width:1080px; padding-left:12px; border-left:2px solid #d8e1cd; }
+.aeo-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:24px 0; }
+.aeo-metrics article { display:flex; flex-direction:column; gap:9px; padding:24px; border:1px solid #dde5d8; border-radius:14px; background:white; }
+.aeo-metrics article strong { font-size:34px; letter-spacing:-.05em; line-height:1; }
+.aeo-metrics article span { font-size:13px; font-weight:600; }
+.aeo-metrics article small { font-size:11px; color:#7d8a7e; line-height:1.6; }
+.aeo-panel { min-width:0; border:1px solid #dce5d7; border-radius:15px; padding:24px; background:white; margin:20px 0; box-shadow:0 3px 12px #244b3c03; }
+.aeo-panel h3 { font-size:19px; margin:0 0 8px; letter-spacing:-.02em; }
+.aeo-panel-heading { display:flex; justify-content:space-between; align-items:start; gap:16px; margin-bottom:18px; }
+.aeo-panel-heading p { margin-bottom:0; }
+.aeo-panel-heading > div { min-width:0; }
+.aeo-panel-heading small { display:inline; color:#77847b; font-size:11px; }
+.aeo-engine-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.aeo-engine-grid article { padding:18px; border:1px solid #e0e7db; border-radius:12px; background:#fbfcf8; min-width:0; }
+.aeo-engine-grid article > div { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.aeo-engine-grid article > small { display:block; font-size:10px; color:#7d8a7e; line-height:1.7; overflow-wrap:anywhere; }
+.aeo-engine-grid article p { overflow-wrap:anywhere; }
+.aeo-engine-grid article button { margin-top:12px; }
+.aeo-status { font-size:10px; background:#edf0e8; border-radius:20px; padding:5px 8px; white-space:nowrap; color:#6a7c6e; }
+.aeo-status.correct { background:#e5f2e9; color:#2a7351; }
+.aeo-status.confused { background:#fff0dc; color:#9c5d19; }
+.aeo-status.unknown { background:#eeeaf3; color:#6e5b87; }
+.aeo-empty { display:flex; align-items:center; gap:20px; border:1px dashed #bfcea8; border-radius:14px; padding:24px; background:#f6f9ef; }
+.aeo-empty h3 { margin:0; font-size:18px; }
+.aeo-empty p { margin-bottom:0; }
+.aeo-empty > div { flex:1; }
+.aeo-two-col { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.aeo-two-col > .aeo-panel { margin:0 0 20px; }
+.aeo-empty-inline { padding:20px; background:#f7f9f2; border-radius:10px; color:#7d8a7e; font-size:13px; line-height:1.8; }
+.aeo-competitor,.aeo-citation { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:12px 0; border-bottom:1px solid #edf0e7; font-size:13px; }
+.aeo-citation a { min-width:0; overflow-wrap:anywhere; }
+.aeo-timeline { display:grid; gap:14px; margin:22px 0; }
+.aeo-timeline > div { display:grid; grid-template-columns:86px minmax(0,1fr) 36px 60px; align-items:center; gap:10px; font-size:11px; }
+.aeo-timeline > div > div { height:7px; background:#edf1e5; border-radius:5px; }
+.aeo-timeline i { display:block; height:7px; background:#87a76b; border-radius:5px; }
+.aeo-timeline small { color:#839078; }
+.aeo-readiness { display:flex; align-items:center; gap:22px; padding:16px 0; }
+.aeo-readiness > strong { font-size:40px; letter-spacing:-.05em; }
+.aeo-readiness strong small { font-size:20px; font-weight:400; color:#8b9983; }
+.aeo-readiness span { font-size:14px; }
+.aeo-readiness span small { font-size:11px; color:#839078; }
+.aeo-action-list article { display:flex; align-items:center; gap:18px; padding:18px 0; border-top:1px solid #e6ecdf; }
+.aeo-action-list article > b { display:grid; place-items:center; border-radius:50%; width:30px; height:30px; flex-shrink:0; background:#e9f0dc; font-size:13px; }
+.aeo-action-list article > div { flex:1; }
+.aeo-action-list article p { margin-bottom:0; }
+.aeo-inline-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:14px 0; }
+.aeo-inline-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:16px; }
+.aeo-block-label { display:block; margin:16px 0; }
+.aeo-prompt-list { display:grid; gap:18px; }
+.aeo-prompt-list article { padding:20px; border:1px solid #e1e8da; border-radius:12px; background:#fcfdf9; }
+.aeo-prompt-list article > label { display:block; }
+.aeo-record { border-color:#a8be85; }
+.aeo-answer-card { padding:22px 0; border-top:1px solid #dce5d7; }
+.aeo-answer-card blockquote { border-left:3px solid #c2d099; background:#f6f9ef; padding:14px 18px; margin:16px 0; font-size:13px; line-height:1.7; }
+.aeo-answer-text { white-space:pre-wrap; font-size:14px; line-height:1.85; overflow-wrap:anywhere; }
+.aeo-answer-flags { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.aeo-answer-flags span { font-size:10px; color:#5d7456; background:#edf3e4; border-radius:20px; padding:6px 9px; }
+.aeo-source-links { display:grid; gap:8px; font-size:12px; margin:16px 0; overflow-wrap:anywhere; }
+.aeo-footer { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:#7a8a76; font-size:11px; line-height:1.8; margin:22px 0; }
+.aeo-dashboard [hidden] { display:none !important; }
+@media(max-width:1100px) { .aeo-engine-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .aeo-hero { align-items:start; flex-direction:column; padding:24px; } .aeo-hero-actions { flex-direction:row; flex-wrap:wrap; } .aeo-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:760px) { .aeo-engine-grid,.aeo-two-col { grid-template-columns:1fr; } .aeo-panel { padding:18px; } .aeo-metrics article { padding:18px; } .aeo-panel-heading,.aeo-empty,.aeo-action-list article { align-items:start; flex-direction:column; } .aeo-inline-fields { grid-template-columns:1fr; } .aeo-segment { width:100%; } .aeo-segment button { flex:1; } .aeo-filters label { flex:1; min-width:110px; } .aeo-hero-actions { width:100%; } .aeo-hero-actions button { flex:1; } }
