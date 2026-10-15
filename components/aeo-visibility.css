@@ -12,6 +12,7 @@
 .aeo-tabs button[aria-current=page] { background:#244b3c; color:white; }
 .aeo-filters { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:20px 0 12px; }
 .aeo-filters label { min-width:130px; }
+.aeo-prompt-filter { display:block; max-width:700px; margin:16px 0 22px; }
 .aeo-segment { display:flex; border:1px solid #d6dfd2; padding:4px; gap:4px; border-radius:10px; background:#f3f6ef; margin-right:auto; }
 .aeo-segment button { border:0; border-radius:7px; background:transparent; color:#5b6d61; padding:10px 12px; cursor:pointer; font-size:12px; }
 .aeo-segment button[aria-pressed=true] { background:white; color:#234936; box-shadow:0 1px 4px #23493618; font-weight:600; }

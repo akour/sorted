@@ -24,6 +24,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
   const [engine,setEngine]=useState("all");
   const [days,setDays]=useState(30);
   const [intent,setIntent]=useState("all");
+  const [promptFilter,setPromptFilter]=useState("all");
   const [loading,setLoading]=useState(true);
   const [asOf]=useState(()=>Date.now());
   const [busy,setBusy]=useState("");
@@ -65,7 +66,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
       await send("PUT",config);
       const result=await send("POST",{action:"probe",promptId});
       if(result.observation)setRows(current=>[result.observation!,...current]);
-      setScope("api");setEngine("all");setTab("history");setIntent("all");
+      setScope("api");setEngine("all");setTab("history");setIntent("all");setPromptFilter(promptId);
       setMessage("API answer saved. Review whether it identifies the product correctly. Consumer-engine observations remain separate.");
     }catch(e){setError(e instanceof Error?e.message:"Could not run check.");}finally{setBusy("");}
   }
@@ -75,7 +76,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
       const selected=config.prompts.find(p=>p.id===draft.promptId);
       const result=await send("POST",{action:"record",observation:{...draft,prompt:selected?.text || draft.prompt,source:"manual",observedAt:new Date(`${draft.date}T00:00:00Z`).toISOString(),citations:draft.citations.split(/\n/).map(s=>s.trim()).filter(Boolean)}});
       if(result.observation)setRows(current=>[result.observation!,...current]);
-      setRecord(false);setScope("manual");setEngine("all");setIntent("all");setTab("history");setMessage("Captured answer saved with its engine, date, and evidence.");
+      setRecord(false);setScope("manual");setEngine("all");setIntent("all");setPromptFilter("all");setTab("history");setMessage("Captured answer saved with its engine, date, and evidence.");
       setDraft(value=>({...value,answer:"",citations:"",evidenceUrl:"",notes:""}));
     }catch(e){setError(e instanceof Error?e.message:"Could not record answer.");}finally{setBusy("");}
   }
@@ -93,7 +94,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
   function updatePrompt(id:string,patch:Partial<AeoPrompt>) {setConfig(value=>({...value,prompts:value.prompts.map(p=>p.id===id?{...p,...patch}:p)}));}
 
   const cutoff=asOf-days*86400000;
-  const filtered=rows.filter(r=>r.source===scope && new Date(r.observedAt).getTime()>=cutoff && (engine==="all" || r.engine===engine) && (intent==="all" || config.prompts.find(p=>p.id===r.promptId)?.intent===intent));
+  const filtered=rows.filter(r=>r.source===scope && new Date(r.observedAt).getTime()>=cutoff && (engine==="all" || r.engine===engine) && (promptFilter==="all" || r.promptId===promptFilter) && (intent==="all" || config.prompts.find(p=>p.id===r.promptId)?.intent===intent));
   const stats=aeoMetrics(filtered,product.name,website);
   const ownedPages=new Map<string,number>();
   filtered.forEach(r=>r.citations.filter(url=>isOwnedCitation(url,website)).forEach(url=>ownedPages.set(url,(ownedPages.get(url)||0)+1)));
@@ -109,6 +110,7 @@ export function AeoVisibilityDashboard({product,onOpenSeo,onOpenSettings,childre
     <nav className="aeo-tabs" aria-label="AI visibility sections">{tabs.map(([id,label])=><button type="button" key={id} aria-current={tab===id?"page":undefined} onClick={()=>setTab(id)}>{label}</button>)}</nav>
     {error&&<p role="alert" className="error-banner">{error}</p>}{message&&<p role="status" className="notice">{message}</p>}
     {tab!=="improve"&&<><div className="aeo-filters"><div className="aeo-segment"><button type="button" aria-pressed={scope==="manual"} onClick={()=>{setScope("manual");setEngine("all");}}>Captured engine answers</button><button type="button" aria-pressed={scope==="api"} onClick={()=>{setScope("api");setEngine("all");}}>Configured API checks</button></div><label>Period<select value={days} onChange={e=>setDays(Number(e.target.value))}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={365}>Last year</option></select></label><label>Engine<select value={engine} onChange={e=>setEngine(e.target.value)}><option value="all">All in this source</option>{(scope==="api"?["Configured API"]:AEO_ENGINES.filter(e=>e!=="Configured API")).map(e=><option key={e}>{e}</option>)}</select></label><label>Intent<select value={intent} onChange={e=>setIntent(e.target.value)}><option value="all">All intents</option><option value="brand">Brand</option><option value="discovery">Discovery</option><option value="comparison">Comparison</option></select></label></div><p className="aeo-method">{scope==="manual"?"Results below come from answers you captured from the named engines. Source links and citations are supplied evidence, not independently verified by Sorted.":"These are knowledge probes from Sorted’s configured API model, without a web-browsing tool or a supplied product brief. They do not measure ChatGPT, Gemini, Claude, Perplexity, or AI Overviews search visibility."} Metrics describe this sample of answers, not market-wide visibility. Brand prompts already name the brand; use discovery prompts to test unprompted inclusion.</p></>}
+    {tab!=="improve"&&<label className="aeo-prompt-filter">Compare the same prompt<select value={promptFilter} onChange={e=>setPromptFilter(e.target.value)}><option value="all">All prompts</option>{config.prompts.map((p,i)=><option key={p.id} value={p.id}>{p.text||`Prompt ${i+1}`}</option>)}</select></label>}
     {loading&&tab!=="improve"?<p role="status">Loading AI visibility…</p>:null}
     {!loading&&tab==="overview"&&<>
       <div className="aeo-metrics">{[[pct(stats.mentionRate),"Brand mentioned",`${stats.mentioned} of ${stats.total} captured answers`],[pct(stats.recognitionRate),"Correctly identified",`${stats.correct} of ${stats.reviewed} assessed answers`],[pct(stats.citationRate),"Website cited",`${stats.cited} answers link to this site`],[String(stats.total),"Answers in sample",change===null?"Weekly comparison needs both weeks":`${change>=0?"+":""}${change} percentage points vs prior week`]].map(([value,label,detail])=><article key={label}><strong>{value}</strong><span>{label}</span><small>{detail}</small></article>)}</div>
