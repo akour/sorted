@@ -61,6 +61,8 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
       if (!result.value) return Response.json({error:`The shared AI check failed. ${safeOpenCodeFailureDetails(result.failures,runtime.apiKey)}`},{status:502});
       observation={promptId:prompt.id,prompt:prompt.text,language:prompt.language,country:prompt.country,engine:"Configured API",source:"api",model:`${runtime.providerId} / ${result.model}`,answer:result.value,citations:[],evidenceUrl:"",identification:"unreviewed",notes:"Unprompted API knowledge probe. No browsing tool or product fact sheet was supplied. This is not a consumer search-engine result.",observedAt:new Date().toISOString()};
     } else if (body.action === "record") {
+      const supplied=body.observation as Record<string,unknown>|undefined;
+      if(supplied?.testMode!=="discovery" || supplied.searchEnabled!==true)return Response.json({error:"Discovery requires confirmation that the captured answer used web search. API memory tests belong in Model memory."},{status:400});
       observation=normalizeAeoObservation({...body.observation as object,source:"manual"});
       if (!observation || observation.engine === "Configured API") return Response.json({error:"Enter the prompt, answer, engine, and a valid observation date. API results must be run through the check button."},{status:400});
     } else return Response.json({error:"Choose a check or record an answer."},{status:400});

@@ -3,7 +3,9 @@ export type AeoEngine = typeof AEO_ENGINES[number];
 export type Identification = "unreviewed" | "correct" | "confused" | "unknown";
 export type AeoPrompt = { id:string; text:string; intent:"brand" | "discovery" | "comparison"; language:string; country:string };
 export type AeoConfig = { prompts:AeoPrompt[]; competitors:string[] };
-export type AeoObservation = { id?:number; promptId:string; prompt:string; engine:AeoEngine; source:"manual" | "api"; model:string; answer:string; citations:string[]; evidenceUrl:string; identification:Identification; notes:string; observedAt:string; language:string; country:string };
+export type AeoObservation = { id?:number; promptId:string; prompt:string; engine:AeoEngine; source:"manual" | "api"; testMode?:"discovery" | "memory" | "unverified"; searchEnabled?:boolean; model:string; answer:string; citations:string[]; evidenceUrl:string; identification:Identification; notes:string; observedAt:string; language:string; country:string };
+
+export function isDiscoveryObservation(row:AeoObservation) {return row.source==="manual" && row.testMode==="discovery" && row.searchEnabled===true;}
 
 export function safeAeoUrl(value:unknown) {
   if (typeof value !== "string" || value.length > 2000) return "";
@@ -46,7 +48,7 @@ export function normalizeAeoObservation(value:unknown):AeoObservation | null {
   if (typeof v.answer !== "string" || !v.answer.trim() || v.answer.length > 30000 || typeof v.prompt !== "string" || !v.prompt.trim() || v.prompt.length > 1000 || !AEO_ENGINES.includes(v.engine as AeoEngine)) return null;
   const date=typeof v.observedAt === "string" ? new Date(v.observedAt) : null;
   if (!date || !Number.isFinite(date.getTime()) || date.getTime() > Date.now()+300000) return null;
-  return {promptId:typeof v.promptId === "string" ? v.promptId.slice(0,80) : "",prompt:v.prompt,engine:v.engine as AeoEngine,source:v.source === "api" ? "api" : "manual",model:typeof v.model === "string" ? v.model.slice(0,120) : "",answer:v.answer.trim(),citations:[...new Set((Array.isArray(v.citations) ? v.citations : []).map(safeAeoUrl).filter(Boolean))].slice(0,30),evidenceUrl:safeAeoUrl(v.evidenceUrl),identification:["correct","confused","unknown"].includes(String(v.identification)) ? v.identification as Identification : "unreviewed",notes:typeof v.notes === "string" ? v.notes.slice(0,2000) : "",observedAt:date.toISOString(),language:typeof v.language === "string" ? v.language.slice(0,50) : "",country:typeof v.country === "string" ? v.country.slice(0,60) : ""};
+  return {promptId:typeof v.promptId === "string" ? v.promptId.slice(0,80) : "",prompt:v.prompt,engine:v.engine as AeoEngine,source:v.source === "api" ? "api" : "manual",testMode:v.source==="api"?"memory":v.testMode==="discovery"&&v.searchEnabled===true?"discovery":"unverified",searchEnabled:v.source!=="api"&&v.searchEnabled===true,model:typeof v.model === "string" ? v.model.slice(0,120) : "",answer:v.answer.trim(),citations:[...new Set((Array.isArray(v.citations) ? v.citations : []).map(safeAeoUrl).filter(Boolean))].slice(0,30),evidenceUrl:safeAeoUrl(v.evidenceUrl),identification:["correct","confused","unknown"].includes(String(v.identification)) ? v.identification as Identification : "unreviewed",notes:typeof v.notes === "string" ? v.notes.slice(0,2000) : "",observedAt:date.toISOString(),language:typeof v.language === "string" ? v.language.slice(0,50) : "",country:typeof v.country === "string" ? v.country.slice(0,60) : ""};
 }
 export function aeoMetrics(rows:AeoObservation[],name:string,website:string) {
   const reviewed=rows.filter(r=>r.identification !== "unreviewed");

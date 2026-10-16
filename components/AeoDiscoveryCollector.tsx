@@ -1,0 +1,11 @@
+"use client";
+import {useState} from "react";
+import {AEO_WEB_ENGINES} from "@/lib/aeo-collection";
+import type {AeoPrompt} from "@/lib/aeo-monitor";
+export function AeoDiscoveryCollector({prompts,onCapture}:{prompts:AeoPrompt[];onCapture:(id:string,engine:string)=>void}) {
+  const [selected,setSelected]=useState(prompts.find(p=>p.intent==="discovery")?.id||prompts[0]?.id||"");
+  const [message,setMessage]=useState("");
+  const prompt=prompts.find(p=>p.id===selected);
+  async function copy() {try{if(prompt){await navigator.clipboard.writeText(prompt.text);setMessage("Copied. Use a fresh conversation with web search enabled, keep the prompt unchanged, then capture the answer and sources.");}}catch{setMessage("Select and copy the question from the plan below. Clipboard access was unavailable.");}}
+  return <section className="aeo-panel"><p className="eyebrow">Discovery · guided search-enabled collection</p><h3>Check the same question in real answer engines</h3><p>Use a fresh conversation with web search enabled. For category discovery, ask an unbranded question without supplying the desired product facts. Record the actual answer, visible sources, date, language and country context.</p><label className="aeo-block-label">Question to test<select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Choose a prompt</option>{prompts.map((p,i)=><option key={p.id} value={p.id}>{p.text||`Prompt ${i+1}`}</option>)}</select></label>{prompt&&<blockquote>{prompt.text}</blockquote>}<button type="button" className="secondary-button" disabled={!prompt?.text.trim()} onClick={()=>void copy()}>Copy discovery question</button><div className="aeo-web-engines">{AEO_WEB_ENGINES.map(engine=><article key={engine.name}><strong>{engine.name}</strong><a href={engine.url} target="_blank" rel="noreferrer">Open engine ↗</a><button type="button" className="text-button" disabled={!prompt?.text.trim()} onClick={()=>onCapture(selected,engine.name)}>Capture search-enabled answer</button></article>)}</div><p>Some engines require login or have free usage limits. AI Overviews do not appear for every query. Sorted does not automatically scrape these interfaces. API model-memory checks are available separately in Model memory.</p>{message&&<p role="status" className="notice">{message}</p>}</section>;
+}
