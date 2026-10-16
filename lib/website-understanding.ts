@@ -11,15 +11,15 @@ const analysisSchema=z.object({
 export type WebsiteAnalysis=z.infer<typeof analysisSchema>;
 export type WebsiteUnderstandingReport={url:string;fetchedAt:string;model:string;pageTitle:string;contentHash:string;text:string;truncated:boolean;analysis:WebsiteAnalysis};
 export function normalizedEvidence(text:string) {return text.normalize("NFKC").replace(/\s+/g," ").trim();}
-export function parseWebsiteAnalysis(raw:string,source:string):WebsiteAnalysis|null {
+export function parseWebsiteAnalysis(raw:string,source:string,diagnostic=false):WebsiteAnalysis|null {
   try {
     const result=analysisSchema.safeParse(JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || raw));
-    if(!result.success)return null;
+    if(!result.success){if(diagnostic)throw new Error(`Review fields invalid: ${result.error.issues.map(i=>`${i.path.join(".")} (${i.code})`).slice(0,4).join(", ")}`);return null;}
     const evidence=normalizedEvidence(source);
     const quotes=[...result.data.answers.flatMap(a=>a.evidenceQuotes),...result.data.gaps.map(g=>g.evidenceQuote).filter(Boolean)];
-    if(!quotes.length || quotes.some(q=>!q.trim() || !evidence.includes(normalizedEvidence(q))))return null;
+    if(!quotes.length || quotes.some(q=>!q.trim() || !evidence.includes(normalizedEvidence(q)))){if(diagnostic)throw new Error("Review quotes did not match the captured page.");return null;}
     return result.data;
-  }catch{return null;}
+  }catch(e){if(diagnostic)throw new Error(e instanceof SyntaxError?`Review JSON incomplete or invalid (${raw.length} characters).`:e instanceof Error?e.message:"Invalid review.");return null;}
 }
 export function publicWebsiteTarget(raw:string,base?:string) {
   const url=new URL(raw,base);
