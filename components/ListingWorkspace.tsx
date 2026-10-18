@@ -1,5 +1,6 @@
 "use client";
 
+import { ListingDescriptionReview } from "./ListingDescriptionReview";
 import { useState } from "react";
 import { GooglePlayListingLocalization, type OptimizationDraft } from "./GooglePlayListingLocalization";
 import { GooglePlayExperimentTracker } from "./GooglePlayExperimentTracker";
@@ -33,6 +34,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
   const [selectedPlatform, setSelectedPlatform] = useState<"google-play" | "app-store">(availablePlatforms.includes(platform) ? platform : availablePlatforms[0] ?? platform);
   const [showCurrent, setShowCurrent] = useState(false);
   const [localizationBusy, setLocalizationBusy] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const current = optimization.currentListing ?? {};
   const { listing: source } = resolveGooglePlayListingSource({ title: optimization.storeTitle, shortDescription: optimization.storeShortDescription, fullDescription: optimization.storeLongDescription }, current);
   const errors = validateGooglePlayListingText(source);
@@ -41,7 +43,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
     { key: "storeShortDescription", current: "shortDescription", label: "Short description", limit: 80, rows: 3 },
     { key: "storeLongDescription", current: "longDescription", label: "Full description", limit: 4000, rows: 12 },
   ] as const;
-  const busy = saving || generating || localizationBusy;
+  const busy = saving || generating || localizationBusy || reviewBusy;
   if (loading || optimization.productId !== product.id) return <div className="loading-line" role="status">Loading this product’s listing…</div>;
 
   if (selectedPlatform === "app-store") {
@@ -55,6 +57,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
     <div className="listing-heading"><div><p className="eyebrow">Google Play · ASO</p><h2>Google Play listing</h2><p>Improve the fields that matter. Keep the rest as they are.</p></div>{availablePlatforms.length > 1 && <select aria-label="Store destination" value={selectedPlatform} onChange={event => setSelectedPlatform(event.target.value as "google-play" | "app-store")}><option value="google-play">Google Play</option><option value="app-store">Apple App Store</option></select>}<button className="secondary-button" onClick={onSettings}>Store connection</button></div>
     <nav className="listing-sections" aria-label="Store listing sections">{sections.map((item) => <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} className={section === item.id ? "active" : ""} onClick={() => { onSectionChange?.(); setSection(item.id); }} disabled={busy}>{item.label}</button>)}</nav>
     {section === "copy" && <>
+      <section className="listing-next-action"><p className="eyebrow">Your next step · English listing</p><h3>{!current.fetchedAt ? "Confirm the current listing first" : !optimization.storeLongDescription.trim() ? "Start with your current description" : "Choose one improvement to review"}</h3><p>{!current.fetchedAt ? "Connect Google Play and refresh the listing so you can compare against a dated source. You can still prepare a draft now." : `Your baseline was fetched ${new Date(current.fetchedAt).toLocaleDateString()}. Review one message, save your draft, and compare changes before sending. A saved snapshot is not a live publication check.`}</p><ol><li>Review evidence and edit</li><li>Save the draft</li><li>Review & send selected locales</li><li>Verify in Play Console and measure</li></ol></section>
       <div className="listing-editor-toolbar"><div><h3>English (United States)</h3><p>Your shared source for translations. Saving does not publish.</p></div><button className="secondary-button ai-action-button" disabled={busy} onClick={() => { if (window.confirm("Generate a new listing draft? This replaces the current draft, including unsaved copy. Translations will need review if the English source changes.")) onGenerate(); }}>✦ {generating ? "Generating…" : "Suggest a new draft"}</button></div>
       <div className="listing-editor-layout"><div className="listing-editor-card">
         <div className="listing-editor-toolbar"><strong>Listing draft</strong><button type="button" className="text-button" aria-pressed={showCurrent} onClick={() => setShowCurrent(!showCurrent)}>{showCurrent ? "Hide comparison" : "Compare with last sync"}</button></div>
@@ -69,6 +72,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
             <small>{!value.trim() && previous ? "Empty draft: the last synced value will be kept." : changed ? "Changed from last sync" : "Unchanged · this is fine"}</small>
           </div>;
         })}
+        <ListingDescriptionReview productId={product.id} text={source.fullDescription} disabled={busy} onBusyChange={setReviewBusy} onChange={storeLongDescription => onChange({...optimization,storeLongDescription})} />
       </div><aside className="listing-context"><h3>What to improve</h3><p>Recommendations are optional. You can edit and send a single field without completing a brief.</p>
         {optimization.opportunities.filter((item) => !/aeo/i.test(item.area) && item.status !== "done").slice(0, 3).map((item, index) => <article key={index}><strong>{item.title}</strong><p>{item.rationale}</p></article>)}
         <details><summary>Source details</summary><p>{current.fetchedAt ? `Last fetched ${new Date(current.fetchedAt).toLocaleDateString()}.` : "No sync date available."} This is a saved snapshot, not a live status check.</p><button className="text-button" onClick={onSettings}>Manage connection and sync</button></details>

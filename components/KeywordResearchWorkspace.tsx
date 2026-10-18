@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { ArrowUpRight, Check, Eye, FileSearch, Lightbulb, ListChecks, MessageSquareQuote, Plus, RefreshCw, SearchCheck, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { competitorNoteId, emptyKeywordResearch, keywordId, type CompetitorNote, type KeywordCandidate, type KeywordResearch, type KeywordSource } from "../lib/keyword-research";
 import { AsoKeywordTable } from "./AsoKeywordTable";
-import { AsoDescriptionWorkbench } from "./AsoDescriptionWorkbench";
 import "./aso-research.css";
 
 type Product = { id: number; name: string; type: string };
@@ -255,7 +254,7 @@ export function KeywordResearchWorkspace({ product, onOpenListing }: { product: 
     </form>
     </div>
     <div id="aso-description-panel" role="tabpanel" aria-labelledby="aso-description-tab" hidden={workspaceTab !== "description"}>
-    {!loading && <AsoDescriptionWorkbench productId={product.id} market={research.market} keywords={research.keywords} current={listing.current.longDescription} draft={listing.draft.longDescription} onAdd={candidate => { setResearch(value => ({...value, keywords: value.keywords.some(k => k.phrase.toLowerCase() === candidate.phrase.toLowerCase()) ? value.keywords : [...value.keywords, candidate]})); setMessage("Keyword added to your list. Save keyword research to keep it."); }} />}
+    <section className="keyword-panel"><h3>Description review now lives with your listing</h3><p>Use the same English draft for editing, AI review, comparison and sending. Save your keyword research first so the listing review can reuse it. Other locales stay in Translations.</p><button type="button" className="primary-button" onClick={onOpenListing}>Open listing & description review →</button></section>
     </div>
   </section>;
 }
