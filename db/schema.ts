@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const descriptionSemanticReviews=sqliteTable("description_semantic_reviews",{id:integer("id").primaryKey({autoIncrement:true}),productId:integer("product_id").notNull(),ownerId:text("owner_id").notNull(),analysis:text("analysis").notNull()},t=>[uniqueIndex("description_semantic_product_owner_idx").on(t.productId,t.ownerId)]);
+
 export const listingSubmissionReceipts=sqliteTable("listing_submission_receipts",{
   id:integer("id").primaryKey({autoIncrement:true}),productId:integer("product_id").notNull(),ownerId:text("owner_id").notNull(),receipt:text("receipt").notNull(),createdAt:text("created_at").notNull(),
 },table=>[index("listing_receipts_owner_product_idx").on(table.ownerId,table.productId,table.id)]);

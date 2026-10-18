@@ -157,6 +157,7 @@
       "breakpoints": true
     },
     {"idx":29,"version":"6","when":1792281600000,"tag":"0031_listing_submission_receipts","breakpoints":true},
-    {"idx":30,"version":"6","when":1792285200000,"tag":"0032_listing_change_outcomes","breakpoints":true}
+    {"idx":30,"version":"6","when":1792285200000,"tag":"0032_listing_change_outcomes","breakpoints":true},
+    {"idx":31,"version":"6","when":1792290000000,"tag":"0033_description_semantic_reviews","breakpoints":true}
   ]
 }
