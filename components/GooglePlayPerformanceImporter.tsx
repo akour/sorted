@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GooglePlayPromoInsights } from "./GooglePlayPromoInsights";
+import {ListingChangeResults} from "./ListingChangeResults";
 import {
   buildPlayPerformanceRows,
   parsePlayConsoleCsv,
@@ -57,7 +58,7 @@ function errorMessage(value: unknown, fallback: string) {
   return value && typeof value === "object" && "error" in value && typeof value.error === "string" ? value.error : fallback;
 }
 
-export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void; onOpenConnections?: () => void }) {
+export function GooglePlayPerformanceImporter({ productId, productName, onOpenExperiments, onOpenListing }: { productId: number; productName: string; onOpenExperiments: (opportunityTitle?: string) => void; onOpenConnections?: () => void; onOpenListing?:()=>void }) {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [imports, setImports] = useState<SavedImport[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -245,6 +246,7 @@ export function GooglePlayPerformanceImporter({ productId, productName, onOpenEx
   const unmappedHeaders = parsed?.headers.filter((_, index) => !mappedIndexes.has(index)) ?? [];
 
   return <section className="optimize-card performance-importer" aria-labelledby={`performance-title-${productId}`}>
+    <ListingChangeResults key={productId} productId={productId} evidenceVersion={imports.map(r=>r.id).join(",")} onOpenPlans={()=>onOpenListing?onOpenListing():onOpenExperiments()}/>
     <div className="optimize-card-heading">
       <div><p className="eyebrow">Evidence from Play Console</p><h3 id={`performance-title-${productId}`}>Google Play performance</h3></div>
       <span>{imports.length} report{imports.length === 1 ? "" : "s"}</span>

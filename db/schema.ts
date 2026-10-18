@@ -5,6 +5,10 @@ export const listingSubmissionReceipts=sqliteTable("listing_submission_receipts"
   id:integer("id").primaryKey({autoIncrement:true}),productId:integer("product_id").notNull(),ownerId:text("owner_id").notNull(),receipt:text("receipt").notNull(),createdAt:text("created_at").notNull(),
 },table=>[index("listing_receipts_owner_product_idx").on(table.ownerId,table.productId,table.id)]);
 
+export const listingChangeOutcomes=sqliteTable("listing_change_outcomes",{
+ id:integer("id").primaryKey({autoIncrement:true}),productId:integer("product_id").notNull(),ownerId:text("owner_id").notNull(),experimentId:text("experiment_id").notNull(),outcome:text("outcome").notNull(),
+},t=>[uniqueIndex("listing_outcome_owner_product_change_idx").on(t.ownerId,t.productId,t.experimentId)]);
+
 export const aeoWebsiteReviews = sqliteTable("aeo_website_reviews", {
   id:integer("id").primaryKey({autoIncrement:true}),
   productId:integer("product_id").notNull(),
