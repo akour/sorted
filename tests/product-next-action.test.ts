@@ -1,0 +1,8 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {productNextAction,type NextActionFacts} from "../lib/product-next-action.ts";
+const facts:NextActionFacts={kind:"google-play",connected:true,baselineAt:"2026-10-13",draftChanged:false,draftValid:true,changes:0,unmeasured:0,reports:0,receiptPhase:"",uncheckedSubmission:false,seoCheckedAt:"",seoIssues:0,pageReviewed:false,discovery:0};
+test("uncertain submissions take priority over connection and drafts",()=>{assert.equal(productNextAction({...facts,connected:false,receiptPhase:"unknown",draftChanged:true}).view,"Listing review");assert.equal(productNextAction({...facts,uncheckedSubmission:true}).view,"Listing review");});
+test("missing connection and baseline have clear setup destinations",()=>{assert.equal(productNextAction({...facts,connected:false}).view,"Connections");assert.equal(productNextAction({...facts,baselineAt:""}).view,"Connections");});
+test("drafts precede measurement, while saved unmeasured work leads to Results",()=>{assert.equal(productNextAction({...facts,draftChanged:true,unmeasured:1}).view,"Optimize");assert.equal(productNextAction({...facts,unmeasured:1}).view,"Results");assert.equal(productNextAction(facts).view,"Results");assert.equal(productNextAction({...facts,reports:1}).view,"Optimize");});
+test("website, Apple and unselected products never receive Google publishing tasks",()=>{assert.equal(productNextAction({...facts,kind:"website"}).view,"SEO");assert.equal(productNextAction({...facts,kind:"website",seoCheckedAt:"2026-10-13"}).view,"Answers");assert.equal(productNextAction({...facts,kind:"app-store"}).view,"Optimize");assert.equal(productNextAction({...facts,kind:"unselected-store"}).view,"Settings");});

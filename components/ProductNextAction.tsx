@@ -1,0 +1,9 @@
+"use client";
+import {useEffect,useState} from "react";
+import type {NextAction} from "@/lib/product-next-action";
+type Summary={action:NextAction;evidence:string[];checkedAt:string};
+export function ProductNextAction({productId,onNavigate}:{productId:number;onNavigate:(view:string)=>void}){
+ const [summary,setSummary]=useState<Summary|null>(null),[error,setError]=useState(""),[revision,setRevision]=useState(0);
+ useEffect(()=>{const controller=new AbortController();fetch(`/api/products/${productId}/next-action`,{signal:controller.signal,cache:"no-store"}).then(async r=>{const d=await r.json() as Summary&{error?:string};if(!r.ok)throw new Error(d.error||"Could not check saved work.");setSummary(d);setError("");}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Could not check saved work.");});return()=>controller.abort();},[productId,revision]);
+ return <section className="product-next-action" aria-label="Recommended next action"><p className="eyebrow">Your next useful action</p>{error?<><h3>Saved work could not be checked</h3><p role="alert">{error}</p><button className="secondary-button" type="button" onClick={()=>setRevision(v=>v+1)}>Retry status check</button></>:summary?<><h3>{summary.action.title}</h3><p>{summary.action.reason}</p><button className="primary-button" type="button" onClick={()=>onNavigate(summary.action.view)}>{summary.action.button} →</button><details className="product-action-evidence"><summary>Why this is recommended</summary><ul>{summary.evidence.map((e,i)=><li key={i}>{e}</li>)}</ul><p>Saved records checked {new Date(summary.checkedAt).toLocaleString()}. This does not contact Google Play, crawl the website, submit changes, or certify live status.</p></details></>:<><h3>Checking your saved work…</h3><p role="status">Choosing the next step from this product’s saved records—not a generic completion checklist.</p></>}</section>;
+}
