@@ -1,6 +1,7 @@
 "use client";
 
 import { ListingDescriptionReview } from "./ListingDescriptionReview";
+import { ListingChangePlan } from "./ListingChangePlan";
 import { useState } from "react";
 import { GooglePlayListingLocalization, type OptimizationDraft } from "./GooglePlayListingLocalization";
 import { GooglePlayExperimentTracker } from "./GooglePlayExperimentTracker";
@@ -77,6 +78,7 @@ export function ListingWorkspace({ product, optimization, loading, saving, gener
         {optimization.opportunities.filter((item) => !/aeo/i.test(item.area) && item.status !== "done").slice(0, 3).map((item, index) => <article key={index}><strong>{item.title}</strong><p>{item.rationale}</p></article>)}
         <details><summary>Source details</summary><p>{current.fetchedAt ? `Last fetched ${new Date(current.fetchedAt).toLocaleDateString()}.` : "No sync date available."} This is a saved snapshot, not a live status check.</p><button className="text-button" onClick={onSettings}>Manage connection and sync</button></details>
       </aside></div>
+      <ListingChangePlan before={`Title: ${current.title||""}\n\nShort description: ${current.shortDescription||""}\n\nFull description:\n${current.longDescription||""}`} after={`Title: ${source.title}\n\nShort description: ${source.shortDescription}\n\nFull description:\n${source.fullDescription}`} baselineFetchedAt={current.fetchedAt||""} experiments={optimization.experiments||[]} disabled={busy} onChange={experiments=>onChange({...optimization,experiments})} onSave={onSave} onReview={()=>setSection("experiments")} />
       {errors.length > 0 && <p className="localization-error" role="status">{errors.join(" ")}</p>}
       <div className="listing-action-bar"><span>Only selected locales are sent after your confirmation.</span><div><button className="secondary-button" disabled={busy} onClick={onSave}>{saving ? "Saving…" : "Save draft"}</button><button className="primary-button" disabled={busy || errors.length > 0} onClick={() => setSection("review")}>Review & send →</button></div></div>
     </>}

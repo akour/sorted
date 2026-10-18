@@ -29,6 +29,7 @@ export type OptimizationExperiment = {
   control: string;
   variant: string;
   resultNote: string;
+  listingChange?: { savedAt:string; baselineFetchedAt:string; reason:string; keywords:string; measurementPlan:string };
 };
 
 export function createOptimizationExperiment(opportunityTitle: string, opportunityArea: string, id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`): OptimizationExperiment {
@@ -68,7 +69,23 @@ export function normalizeOptimizationExperiment(value: unknown): OptimizationExp
     control: stringValue(item.control),
     variant: stringValue(item.variant),
     resultNote: stringValue(item.resultNote),
+    ...(normalizeListingChange(item.listingChange) ? {listingChange:normalizeListingChange(item.listingChange)!} : {}),
   };
+}
+
+function normalizeListingChange(value:unknown):OptimizationExperiment["listingChange"] {
+  if(!value||typeof value!=="object"||Array.isArray(value))return undefined;
+  const v=value as Record<string,unknown>;
+  if(typeof v.savedAt!=="string"||typeof v.reason!=="string")return undefined;
+  const str=(key:string,max:number)=>typeof v[key]==="string"?(v[key] as string).slice(0,max):"";
+  return {savedAt:str("savedAt",40),baselineFetchedAt:str("baselineFetchedAt",40),reason:str("reason",2000),keywords:str("keywords",1000),measurementPlan:str("measurementPlan",3000)};
+}
+
+export function createListingChange(input:{before:string;after:string;baselineFetchedAt:string;reason:string;keywords:string;measurementPlan:string;metric:PlayExperimentMetric},now=new Date().toISOString()):OptimizationExperiment {
+  if(!input.reason.trim()||!input.measurementPlan.trim())throw new Error("Add a reason and measurement plan first.");
+  if(input.before.trim()===input.after.trim())throw new Error("Edit the listing before capturing a change.");
+  const plan=createOptimizationExperiment("English listing change","Google Play listing");
+  return {...plan,locale:"en-US",metric:input.metric,hypothesis:input.reason.trim(),control:input.before,variant:input.after,listingChange:{savedAt:now,baselineFetchedAt:input.baselineFetchedAt,reason:input.reason.trim().slice(0,2000),keywords:input.keywords.trim().slice(0,1000),measurementPlan:input.measurementPlan.trim().slice(0,3000)}};
 }
 
 export function parseOptimizationStorage(raw: string | null | undefined) {
