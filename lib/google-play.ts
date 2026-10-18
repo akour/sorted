@@ -1,5 +1,5 @@
 import type { ProductListing } from "./product-icons";
-import { validateGooglePlayListingText, type GooglePlayListingText } from "./google-play-localizations";
+import { validateGooglePlayListingText, type GooglePlayListingText } from "./google-play-localizations.ts";
 
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_PLAY_API_ROOT = "https://androidpublisher.googleapis.com/androidpublisher/v3";
@@ -200,7 +200,7 @@ export async function publishGooglePlayListingsWithAccessToken(
   accessToken: string,
   packageNameInput: string,
   listings: Array<GooglePlayListingText & { language: string }>,
-): Promise<{ publishedLocales: string[] }> {
+): Promise<{ publishedLocales: string[]; editId:string }> {
   const packageName = validateGooglePlayPackageName(packageNameInput);
   if (!accessToken.trim()) throw new Error("Reconnect Google Play before publishing.");
   if (!listings.length) throw new Error("Select at least one complete locale to publish.");
@@ -227,9 +227,9 @@ export async function publishGooglePlayListingsWithAccessToken(
       );
     }
     await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}:validate`, accessToken, { method: "POST", body: "{}" });
-    await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}:commit`, accessToken, { method: "POST", body: "{}" });
+    await googlePlayRequest(`/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}:commit?changesInReviewBehavior=ERROR_IF_IN_REVIEW`, accessToken, { method: "POST", body: "{}" });
     committed = true;
-    return { publishedLocales: listings.map((item) => item.language) };
+    return { publishedLocales: listings.map((item) => item.language),editId };
   } finally {
     if (!committed) {
       await fetch(`${GOOGLE_PLAY_API_ROOT}/applications/${encodeURIComponent(packageName)}/edits/${encodeURIComponent(editId)}`, {

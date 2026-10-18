@@ -1,9 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../../../../db";
 import { adminOAuthClients, optimizationPlans, productConnections, productOauthConnections, products } from "../../../../../../db/schema";
 import { decryptAdminSecret, decryptProductConnectionSecret } from "../../../../../../lib/admin-secrets";
 import { getGooglePlayAccessToken, parseGooglePlayCredentials, publishGooglePlayListingsWithAccessToken } from "../../../../../../lib/google-play";
 import { refreshGooglePlayAccessToken } from "../../../../../../lib/google-play-oauth";
+import {listingSubmissionReceipts} from "@/db/schema";
+import type {ListingReceipt} from "@/lib/listing-receipts";
 import { getOwnerId, ownerAuthenticationRequired } from "../../../../../../lib/owner";
 import {
   isGooglePlayTargetLocale,
@@ -21,7 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!ownerId) return ownerAuthenticationRequired();
     if (!Number.isSafeInteger(productId) || productId < 1) return Response.json({ error: "Product not found." }, { status: 404 });
 
-    const payload = await request.json() as { locales?: unknown };
+    const payload = await request.json() as { locales?: unknown; acknowledgeUncertainSubmission?:boolean };
     if (!Array.isArray(payload.locales) || payload.locales.length < 1 || payload.locales.length > 11 || payload.locales.some((locale) => typeof locale !== "string")) {
       return Response.json({ error: "Select one or more complete Google Play locales to publish." }, { status: 400 });
     }
@@ -79,11 +81,23 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       packageName = serviceConnection.packageName;
     }
 
-    const result = await publishGooglePlayListingsWithAccessToken(accessToken, packageName, listings);
+    const [previous]=await db.select().from(listingSubmissionReceipts).where(and(eq(listingSubmissionReceipts.productId,productId),eq(listingSubmissionReceipts.ownerId,ownerId))).orderBy(desc(listingSubmissionReceipts.id)).limit(1);
+    if(previous&&["submitting","unknown"].includes((JSON.parse(previous.receipt) as ListingReceipt).phase)&&payload.acknowledgeUncertainSubmission!==true)return Response.json({error:"The previous submission has an uncertain outcome. Check Play Console before explicitly retrying."},{status:409});
+    const attemptedAt=new Date().toISOString();
+    const receipt:Omit<ListingReceipt,"id">={packageName,phase:"submitting",attemptedAt,listings,checks:[]};
+    // Persist intent before contacting Google. An interrupted request must not look like no attempt.
+    const [attempt]=await db.insert(listingSubmissionReceipts).values({productId,ownerId,createdAt:attemptedAt,receipt:JSON.stringify(receipt)}).returning();
+    let result:Awaited<ReturnType<typeof publishGooglePlayListingsWithAccessToken>>;
+    try{result=await publishGooglePlayListingsWithAccessToken(accessToken, packageName, listings);}
+    catch(error){await db.update(listingSubmissionReceipts).set({receipt:JSON.stringify({...receipt,phase:"unknown",error:"Google did not confirm a successful commit to Sorted. Check Play Console before retrying."})}).where(eq(listingSubmissionReceipts.id,attempt.id));throw error;}
     const now = new Date().toISOString();
-    if (oauthConnection) await db.update(productOauthConnections).set({ status: "connected", lastError: null, updatedAt: now }).where(eq(productOauthConnections.id, oauthConnection.id));
-    if (serviceConnection) await db.update(productConnections).set({ status: "connected", lastError: null, updatedAt: now }).where(eq(productConnections.id, serviceConnection.id));
-    return Response.json({ status: "submitted", publishedLocales: result.publishedLocales, submittedAt: now, message: "Google Play accepted the listing edit. Store changes may take time to appear and remain subject to Google Play review." });
+    const accepted={...receipt,id:attempt.id,phase:"submitted" as const,submittedAt:now,editId:result.editId};
+    let receiptSaved=true;
+    try{await db.update(listingSubmissionReceipts).set({receipt:JSON.stringify(accepted)}).where(eq(listingSubmissionReceipts.id,attempt.id));}catch{receiptSaved=false;}
+    // Ancillary connection-status writes must not turn an accepted commit into a retryable failure.
+    if (oauthConnection) await db.update(productOauthConnections).set({ status: "connected", lastError: null, updatedAt: now }).where(eq(productOauthConnections.id, oauthConnection.id)).catch(()=>{});
+    if (serviceConnection) await db.update(productConnections).set({ status: "connected", lastError: null, updatedAt: now }).where(eq(productConnections.id, serviceConnection.id)).catch(()=>{});
+    return Response.json({ status: "submitted",receipt:accepted,receiptSaved, publishedLocales: result.publishedLocales, submittedAt: now, message: receiptSaved?"Google Play accepted the listing edit. This is not confirmation that it is live.":"Google Play accepted the edit, but the final receipt could not be saved. Do not resubmit; check Play Console." });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Google Play could not publish these listings.";
     return Response.json({ error: message.slice(0, 500) }, { status: 422 });

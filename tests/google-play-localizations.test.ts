@@ -95,7 +95,8 @@ test("publishing stages all locales, validates the edit, then commits once", asy
     assert.deepEqual(result.publishedLocales, ["en-US", "ar"]);
     assert.deepEqual(calls.map((call) => call.method), ["POST", "PUT", "PUT", "POST", "POST"]);
     assert.ok(calls[3].url.endsWith(":validate"));
-    assert.ok(calls[4].url.endsWith(":commit"));
+    assert.ok(calls[4].url.endsWith(":commit?changesInReviewBehavior=ERROR_IF_IN_REVIEW"));
+    assert.equal(result.editId,"edit-1");
     assert.deepEqual(JSON.parse(calls[2].body ?? "{}"), { title: "مثال", shortDescription: "وصف قصير", fullDescription: "وصف كامل." });
   } finally {
     globalThis.fetch = originalFetch;

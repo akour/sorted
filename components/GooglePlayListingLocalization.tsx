@@ -9,6 +9,8 @@ import {
   type LocalizedStoreListing,
 } from "../lib/google-play-localizations";
 import type { OptimizationExperiment } from "../lib/aso-experiments";
+import {ListingSubmissionHistory} from "./ListingSubmissionHistory";
+import type {ListingReceipt} from "@/lib/listing-receipts";
 
 export type OptimizationDraft = {
   productId: number;
@@ -46,6 +48,7 @@ export function GooglePlayListingLocalization({
 }) {
   const [expandedLocale, setExpandedLocale] = useState<string>("");
   const [receipt, setReceipt] = useState<{ locales: string[]; at: string } | null>(null);
+  const [receiptVersion,setReceiptVersion]=useState(0);
   const [generatingLocale, setGeneratingLocale] = useState("");
   const [bulkProgress, setBulkProgress] = useState("");
   const [saving, setSaving] = useState(false);
@@ -216,11 +219,16 @@ export function GooglePlayListingLocalization({
     setNotice("");
     setPublishing(true);
     try {
+      const historyResponse=await fetch(`/api/products/${productId}/optimize/receipts`,{cache:"no-store"});
+      if(!historyResponse.ok)throw new Error("Could not check previous submissions. Retry loading history before submitting.");
+      const history=await historyResponse.json() as {receipts:ListingReceipt[]};
+      const uncertain=history.receipts[0]&&["submitting","unknown"].includes(history.receipts[0].phase);
+      if(uncertain&&!window.confirm("The previous submission has an uncertain outcome. Check Play Console first. Have you confirmed it is safe to submit again? A retry can duplicate an accepted edit."))return;
       if (!await saveCurrentDraft()) return;
       const response = await fetch(`/api/products/${productId}/optimize/publish-google-play`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locales }),
+        body: JSON.stringify({ locales,acknowledgeUncertainSubmission:Boolean(uncertain) }),
       });
       const data = await response.json() as { error?: string; message?: string; publishedLocales?: string[] };
       if (!response.ok) throw new Error(data.error ?? "Google Play could not accept the listing update.");
@@ -230,6 +238,7 @@ export function GooglePlayListingLocalization({
       setError(cause instanceof Error ? cause.message : "Google Play could not accept the listing update.");
     } finally {
       setPublishing(false);
+      setReceiptVersion(value=>value+1);
     }
   }
 
@@ -281,6 +290,7 @@ export function GooglePlayListingLocalization({
     ] as const).map(([label, before, after]) => <details key={label} open={before.trim() !== after.trim()}><summary>{label} · {before.trim() === after.trim() ? "Unchanged" : "Changed"}</summary><div className="listing-review-diff"><div><small>Last synced</small><p>{before || "Not available"}</p></div><div><small>Will be sent</small><p>{after || "Missing"}</p></div></div></details>)}</div>}
     {mode === "review" && <p className="field-help">Selected: {selectedToPublish.join(", ") || "None"}. Unselected locales are not sent. Review each selected translation with Preview before submitting. Google may review these changes; accepted does not mean live.</p>}
     {receipt && <div className="localization-notice" role="status"><strong>Submitted to Google Play</strong><p>{receipt.locales.join(", ")} · {new Date(receipt.at).toLocaleString()}. Accepted for processing, not confirmed live.</p></div>}
+    {mode==="review"&&<ListingSubmissionHistory productId={productId} savedAt={optimization.updatedAt} refreshKey={receiptVersion}/>}
     {error && <p className="localization-error" role="alert">{error}</p>}
     {notice && <p className="localization-notice" role="status">{notice}</p>}
     <div className="localization-footer">

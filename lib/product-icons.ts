@@ -407,6 +407,7 @@ async function fetchPublicHtml(value: string, maxBytes: number): Promise<PublicH
       if ((current.protocol !== "https:" && current.protocol !== "http:") || current.username || current.password || current.port || !isPublicProductHostname(current.hostname)) return null;
       current.protocol = "https:";
       const response = await fetch(current.toString(), {
+        cache: "no-store",
         headers: {
           accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
           "accept-language": "en-US,en;q=0.9",

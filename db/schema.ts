@@ -1,6 +1,10 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const listingSubmissionReceipts=sqliteTable("listing_submission_receipts",{
+  id:integer("id").primaryKey({autoIncrement:true}),productId:integer("product_id").notNull(),ownerId:text("owner_id").notNull(),receipt:text("receipt").notNull(),createdAt:text("created_at").notNull(),
+},table=>[index("listing_receipts_owner_product_idx").on(table.ownerId,table.productId,table.id)]);
+
 export const aeoWebsiteReviews = sqliteTable("aeo_website_reviews", {
   id:integer("id").primaryKey({autoIncrement:true}),
   productId:integer("product_id").notNull(),
